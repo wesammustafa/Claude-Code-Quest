@@ -1,7 +1,7 @@
 // What git status lists, for the beats that read it (ticket 88): the whole
 // tree clean, or part of it. Main runs git; these decide what its answer
 // means. Pure: nothing here reads the disk or starts a process.
-import { createHash } from "node:crypto";
+import { sha1Hex } from "#crypto";
 import { GIT, must, type GitVerify, type Verify } from "./content.ts";
 import { C } from "./copy.ts";
 
@@ -75,10 +75,7 @@ export const needsChange = (
 // What git status lists, as a stamp short enough to save: a digest of its
 // paths in order, the same for the same paths.
 export const statusStamp = (paths: readonly string[]) =>
-  createHash("sha1")
-    .update([...new Set(paths)].sort().join("\n"))
-    .digest("hex")
-    .slice(0, 16);
+  sha1Hex([...new Set(paths)].sort().join("\n")).slice(0, 16);
 
 // Whether a path git lists is `scope` or inside it: `secrets/` and `secrets`
 // both hold secrets/key.txt, and neither holds secrets-old.txt.

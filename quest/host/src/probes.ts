@@ -10,7 +10,7 @@
 // what it looked at, so a fresh beat passes only once that changed since its
 // step opened. Read-only, and never fetches: every git call is a local read
 // (repo.gitLocal), so a partial clone fails as if an object were missing.
-import { createHash } from "node:crypto";
+import { sha1Hex } from "#crypto";
 import {
   claudeWorktrees,
   liveWorktrees,
@@ -30,8 +30,7 @@ export interface Probed {
 // The host's registry: the engine's table, the same object.
 export { PROBES, probeError };
 
-const digest = (text: string) =>
-  createHash("sha1").update(text).digest("hex").slice(0, 16);
+const digest = (text: string) => sha1Hex(text).slice(0, 16);
 // git's answer, or null where it exits non-zero (no such ref, no upstream).
 const ask = (repo: Repo, ...args: string[]): string | null => {
   try {

@@ -4,7 +4,7 @@
 // with the page. Parsing and compilation are pure: callers supply all text,
 // Check modules and probe definitions.
 import type { DecidedBy, LevelId } from "@quest/contract";
-import { createHash } from "node:crypto";
+import { sha256Hex } from "#crypto";
 import { z } from "zod";
 import { frontmatter, type FrontValue } from "./frontmatter.ts";
 import { foldersOf, mapLinks, resolveLink, type GuideIndex } from "./links.ts";
@@ -1577,7 +1577,7 @@ export function fingerprint(content: LessonContent) {
     of: step.of,
     verification: step.beats.map((beat) => beat.verify),
   }));
-  return createHash("sha256").update(JSON.stringify(steps)).digest("hex");
+  return sha256Hex(JSON.stringify(steps));
 }
 
 function pageMetadata(text: string, file: string) {

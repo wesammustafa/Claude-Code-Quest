@@ -3,7 +3,7 @@
 // the file's bytes as they are now, in the lesson's work folder; these
 // decide what they mean. Pure: nothing here reads the disk or starts a
 // process.
-import { createHash } from "node:crypto";
+import { sha1Hex } from "#crypto";
 import { isGlob, type ReadVerify } from "./content.ts";
 import { C } from "./copy.ts";
 import { cut, graphemes, isEmoji, strip } from "./text.ts";
@@ -91,8 +91,7 @@ function firstOf(text: string) {
 // What a file is, to tell whether it changed (verify.mjs stampOf builds it
 // with this; grewFrom reads it back): its time, its size and the start of
 // its SHA-1. A fresh beat keeps the stamp its step opened with.
-const sha = (buf: Buffer) =>
-  createHash("sha1").update(buf).digest("hex").slice(0, 12);
+const sha = (buf: Buffer) => sha1Hex(buf).slice(0, 12);
 export const stampFor = (mtimeMs: number, buf: Buffer) =>
   `${String(Math.trunc(mtimeMs))}:${String(buf.length)}:${sha(buf)}`;
 
