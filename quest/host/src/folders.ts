@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { childEnv } from "./check-child.ts";
+import { folderPathWith } from "./folder-path.ts";
 import { shared, type Children } from "./children.ts";
 import { GIT_LIMIT, gitReady, NOT_A_REPO } from "./git.ts";
 import type { FolderLook } from "./types.ts";
@@ -58,18 +59,13 @@ export async function probeFolder(
   return { path, missing: false, git, gitBroken, practice };
 }
 
-// A folder path as the learner typed or pasted it, in full: quotes around
-// it and the shell's `\ ` for a space (a folder dragged onto the terminal)
-// come off, `~` is the home folder, and a relative path is from the copy,
-// as npm run check reads one.
+// A folder path as the learner typed or pasted it (folder-path.ts), with
+// this platform's node:path.
 export function folderPath(
   text: string,
   root: string,
   home: string,
   win32: boolean,
 ): string {
-  let path = text.trim().replace(/^(['"])(.*)\1$/, "$2");
-  if (!win32) path = path.replace(/\\ /g, " ");
-  if (path === "~" || /^~[\\/]/.test(path)) path = join(home, path.slice(1));
-  return resolve(root, path);
+  return folderPathWith({ join, resolve }, text, root, home, win32);
 }

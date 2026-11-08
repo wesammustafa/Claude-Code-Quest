@@ -17,6 +17,7 @@ import type {
   SavedProgress,
 } from "@quest/engine";
 import type { Children } from "./children.ts";
+import type { PathOps } from "./paths.ts";
 
 /**
  * The host's one clock: monotonic milliseconds, the intervals of the tick
@@ -127,7 +128,15 @@ export type StoreLoad = SavedProgress | null | { unreadable: "moved" | "kept" };
  */
 export interface Store {
   load(): StoreLoad;
-  save(data: object): boolean;
+  /**
+   * `meta.actionId` is the client's id for the action whose input caused
+   * this save, null for any other save (seam S8). A promise holds the host
+   * until it settles: nothing is published or taken before (seam S1).
+   */
+  save(
+    data: object,
+    meta: { actionId: string | null },
+  ): boolean | Promise<unknown>;
   /** Makes root `.practice/` where it is missing; one it can't make stays missing. */
   prepare(): void;
 }
@@ -135,6 +144,15 @@ export interface Store {
 /** The PATH lookup, bound to the environment: no process starts. */
 export interface Commands {
   has(name: string): boolean;
+}
+
+/**
+ * Stamps answered at once from what is on disk now (seam S1): the stamp a
+ * stamp effect asks for, null where it can't be known, or undefined to
+ * leave it to the host's own reads, later.
+ */
+export interface Stamps {
+  now(e: Extract<Effect, { type: "stamp" }>): string | null | undefined;
 }
 
 export interface Adapters {
@@ -149,6 +167,8 @@ export interface Adapters {
   commands: Commands;
   /** Kills this host's children. */
   stop(): void;
+  /** Answers stamp effects in the same turn (seam S1); none by default. */
+  stamps?: Stamps | undefined;
   /** The real adapters' registry, for tests. */
   children?: Pick<Children, "size">;
 }
@@ -193,6 +213,10 @@ export interface HostOptions {
    * on start; ignored where the app opens on Beginner.
    */
   ahead?: FolderLook | null | undefined;
+  /** The Learner's home folder, for `~`; from env by default (seam S1). */
+  home?: string | undefined;
+  /** Path functions: posix by default, node:path in the Node entry (seam S1). */
+  paths?: PathOps | undefined;
 }
 
 /**
@@ -229,8 +253,10 @@ export interface Host {
   /** Throws a TypeError for a type not in HOST_ACTION_TYPES. */
   dispatch(
     action: { type: string },
-    opts?: { revision?: Revision; instance?: InstanceId },
+    opts?: { revision?: Revision; instance?: InstanceId; id?: string },
   ): Dispatched;
+  /** Settles once every input so far is reduced, saved and published. */
+  idle(): Promise<void>;
   /** Null until open() resolves. */
   snapshot(): Snapshot | null;
   /** The envelopes after `id`, oldest first; null when this instance no longer holds it. */

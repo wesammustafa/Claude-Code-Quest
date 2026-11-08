@@ -34,7 +34,7 @@ export {
   watching,
   workFolder,
 } from "../../engine/src/index.ts";
-export { FOLDER_KEYS, SLOW } from "../../engine/src/course.ts";
+export { FOLDER_KEYS, SLOW } from "../../engine/src/course-data.ts";
 export {
   PATH_MAX,
   STEP_ID,

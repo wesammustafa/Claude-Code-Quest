@@ -69,6 +69,8 @@ export interface LiveDeps extends Omit<StreamDeps, "EventSource"> {
   now: () => number;
   /** Opens the shown-ID ledger the page's tabs share, once per connect. */
   shown: () => ShownEvents;
+  /** Makes an id for each action request, where given (a UUID). */
+  actionId?: (() => string) | undefined;
 }
 
 export interface LiveStore {
@@ -167,6 +169,7 @@ export function createLiveStore(deps: LiveDeps): LiveStore {
         action,
         instance: snapshot.instance,
         revision: snapshot.revision,
+        ...(deps.actionId ? { id: deps.actionId() } : {}),
       }),
     });
     let body: unknown = null;

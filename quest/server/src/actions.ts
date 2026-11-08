@@ -85,6 +85,7 @@ export const requestSchema = z.strictObject({
   action: actionSchema,
   instance: id,
   revision: z.int().min(0),
+  id: z.string().min(1).max(64).optional(),
 });
 
 export type CheckFolder = (path: string) => Promise<Checked>;
@@ -126,7 +127,7 @@ export function actionRoute(
       }
       const parsed = requestSchema.safeParse(body);
       if (!parsed.success) return refuse(c, { error: "invalid" }, 400);
-      const { action, instance, revision } = parsed.data;
+      const { action, instance, revision, id: actionId } = parsed.data;
 
       const queued = queue.run(async () => {
         await opened;
@@ -145,7 +146,11 @@ export function actionRoute(
             };
           sent = { ...action, to: { path: checked.path } };
         }
-        const done = host.dispatch(sent, { revision, instance });
+        const done = host.dispatch(sent, {
+          revision,
+          instance,
+          ...(actionId === undefined ? {} : { id: actionId }),
+        });
         if (done.snapshot === null)
           return { status: 503 as const, body: { error: "starting" as const } };
         const reply: ActionResponse = {

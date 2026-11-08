@@ -6,10 +6,9 @@
 // from a client. Since ticket 212 it also holds what live delivery needs:
 // a random instance ID, the revision, each event in its envelope with an
 // ID `<instance>.<sequence>`, the recent events for a reconnect, and the
-// pending milestones, all in memory only.
-import { randomUUID } from "node:crypto";
-import { homedir } from "node:os";
-import { join } from "node:path";
+// pending milestones, all in memory only. It imports no node: module
+// (seam S1), so a browser can run it: `@quest/host/core` exports it, and
+// the Node entry, `@quest/host`, gives it this platform's defaults.
 import {
   ACTION_TYPES,
   altOf,
@@ -29,8 +28,9 @@ import {
   workFolder,
 } from "./engine.ts";
 import { oneAtATime, owing, singleFlight } from "./flight.ts";
-import { folderPath } from "./folders.ts";
-import { snapshot as toSave } from "./store.ts";
+import { folderPathWith } from "./folder-path.ts";
+import { posixPaths } from "./paths.ts";
+import { snapshotWith } from "./save-shape.ts";
 import type {
   EventEnvelope,
   MilestoneShownAction,
@@ -59,6 +59,12 @@ import type {
 
 // What the host takes: an engine input, or a tab's milestone.shown.
 type Item = EngineInput | MilestoneShownAction;
+// An item in the queue, with the client's action id where a tab sent it
+// with one (seam S8): the save the item causes carries it.
+interface Queued {
+  item: Item;
+  actionId: string | null;
+}
 // A pending milestone, with the lesson it came in.
 interface Pending {
   envelope: EventEnvelope;
@@ -77,6 +83,11 @@ const dirOf = (dir: string | null) => dir as string;
 // an answer.
 const failed = (r: object): r is { error: string } =>
   "error" in r && Boolean(r.error);
+// A store's save that settles later (seam S1).
+const isThenable = (x: unknown): x is Promise<unknown> =>
+  typeof x === "object" &&
+  x !== null &&
+  typeof (x as { then?: unknown }).then === "function";
 // The host input of one type.
 type InputOf<K extends HostInput["type"]> = Extract<HostInput, { type: K }>;
 // A folder look as the engine reads it, after the fields `more` gives.
@@ -136,13 +147,16 @@ export function createHost({
   engine = { reduce, initialState },
   ahead = null,
   // This process's instance: an event ID splits at its last ".".
-  instance = randomUUID(),
+  instance = globalThis.crypto.randomUUID(),
+  home: givenHome,
+  paths = posixPaths,
 }: HostOptions): Host {
   if (typeof instance !== "string" || !instance || instance.includes("."))
     throw new TypeError(`not an instance ID: ${instance}`);
   const { clock, checks, probes, git, folders, files, store, commands } =
     adapters;
-  const home = env.HOME || env.USERPROFILE || homedir();
+  const home = givenHome ?? (env.HOME || env.USERPROFILE || "");
+  const join = (...parts: string[]) => paths.join(...parts);
   // A save the store could not read: moved aside, or kept where it is.
   const unreadable =
     saved && "unreadable" in saved ? saved.unreadable : undefined;
@@ -255,38 +269,119 @@ export function createHost({
 
   // One input at a time, in the order they came: an input sent while one
   // is reduced (a listener's, or an adapter that answers at once) waits.
-  const queue: Item[] = [];
+  // A store whose save returns a promise (seam S1) holds the queue: the
+  // host publishes the change and takes the next input only once the save
+  // has settled, so nothing shows before it is saved.
+  const queue: Queued[] = [];
   let busy = false;
-  function input(ev: Item) {
+  // The action id of the input being reduced, for the save it causes.
+  let actionId: string | null = null;
+  // The save the input being reduced started, where it returned a promise.
+  let pendingSave: Promise<unknown> | null = null;
+  function input(ev: Item, id: string | null = null) {
     // Nothing is reduced before open() has the first state, or after close.
     if (closed || !state) return;
-    queue.push(ev);
+    queue.push({ item: ev, actionId: id });
     if (busy) return;
     busy = true;
+    drain();
+  }
+  function drain() {
+    let held = false;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- an input's effects may close the host
       while (queue.length && !closed) {
-        const item = queue.shift() as Item;
+        const { item, actionId: id } = queue.shift() as Queued;
         if (item.type === "milestone.shown") {
           shown(item);
           continue;
         }
-        const prev: EngineState = state;
-        const r = engine.reduce(state, {
-          now: clock.now(),
-          epoch: clock.epoch(),
-          ...item,
-        });
-        state = r.state;
-        run(r.effects);
+        const prev = state as EngineState;
+        actionId = id;
+        let events: QuestEvent[];
+        try {
+          events = reduceTurn(item);
+        } finally {
+          actionId = null;
+        }
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- run() may close the host
         if (!closed) watchWork();
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a wrapped engine may leave events out
-        if (!closed) publish(prev, state, item, r.events ?? []);
+        const saving = pendingSave;
+        pendingSave = null;
+        if (saving) {
+          held = true;
+          void saving
+            .then(
+              () => {
+                saveError = null;
+              },
+              (caught: unknown) => {
+                saveFailed(caught);
+              },
+            )
+            .then(() => {
+              if (closed) return;
+              publish(prev, state as EngineState, item, events);
+              drain();
+            });
+          return;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- run() may close the host
+        if (!closed) publish(prev, state as EngineState, item, events);
       }
     } finally {
-      busy = false;
+      if (!held) {
+        busy = false;
+        for (const resolve of idlers.splice(0)) resolve();
+      }
     }
+  }
+  // Those waiting for the queue to empty (Host.idle).
+  const idlers: (() => void)[] = [];
+  // One input reduced, and its effects run. With a `stamps` adapter (seam
+  // S1), each stamp the engine asks for is answered in this same turn, from
+  // what is on disk now, and the save runs once after them, so the save
+  // that records a Step's opening holds its baselines.
+  function reduceTurn(item: EngineInput): QuestEvent[] {
+    const stamp = (s: EngineState, e: Item) =>
+      engine.reduce(s, {
+        now: clock.now(),
+        epoch: clock.epoch(),
+        ...e,
+      } as EngineInput);
+    const r = stamp(state as EngineState, item);
+    state = r.state;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a wrapped engine may leave events out
+    const events = [...(r.events ?? [])];
+    let effects = r.effects;
+    const now = adapters.stamps;
+    if (now) {
+      let wantSave = false;
+      const rest: Effect[] = [];
+      let todo = effects;
+      while (todo.length) {
+        const next: Effect[] = [];
+        for (const e of todo) {
+          const answer = e.type === "stamp" ? now.now(e) : undefined;
+          if (e.type === "stamp" && answer !== undefined) {
+            const r2 = stamp(state, {
+              type: "stamp",
+              key: e.key,
+              stamp: answer,
+              dir: e.dir,
+            });
+            state = r2.state;
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a wrapped engine may leave events out
+            events.push(...(r2.events ?? []));
+            next.push(...r2.effects);
+          } else if (e.type === "save") wantSave = true;
+          else rest.push(e);
+        }
+        todo = next;
+      }
+      effects = wantSave ? [...rest, { type: "save" }] : rest;
+    }
+    run(effects);
+    return events;
   }
 
   // When a check, git or probe child really starts: what it runs, the r
@@ -560,7 +655,13 @@ export function createHost({
   // turn down.
   async function lookAt(e: Extract<Effect, { type: "folder" }>) {
     const found = await folders.look(
-      folderPath(e.text, root, home, (facts as Facts).win32 as boolean),
+      folderPathWith(
+        paths,
+        e.text,
+        root,
+        home,
+        (facts as Facts).win32 as boolean,
+      ),
     );
     if (!closed) input(probed(found, { key: e.key, asked: e.asked }));
   }
@@ -568,26 +669,39 @@ export function createHost({
   // A failed save (a read-only folder, a full disk, a file another program
   // holds) never stops the lesson: the learner sees a note and goes on.
   let saveError: string | undefined | null = null;
+  function saveFailed(caught: unknown) {
+    const error = caught as { code?: string; message: string };
+    if (saveError === error.code) return;
+    saveError = error.code;
+    queueMicrotask(() => {
+      if (!closed)
+        input({
+          type: "notice",
+          kind: "save",
+          message: error.code ?? error.message,
+        });
+    });
+  }
   function save() {
     // A save the store could not move aside is never written over, whatever
     // the store does.
     if (facts?.saveKept) return;
     lastSave = clock.now();
     try {
-      store.save(toSave(state as EngineState));
+      const done = store.save(
+        snapshotWith(state as EngineState, (path) => paths.isAbsolute(path)),
+        {
+          actionId,
+        },
+      );
+      if (isThenable(done)) {
+        // The queue waits for it (drain); two saves in one turn wait in turn.
+        pendingSave = pendingSave ? pendingSave.then(() => done) : done;
+        return;
+      }
       saveError = null;
     } catch (caught) {
-      const error = caught as NodeJS.ErrnoException;
-      if (saveError === error.code) return;
-      saveError = error.code;
-      queueMicrotask(() => {
-        if (!closed)
-          input({
-            type: "notice",
-            kind: "save",
-            message: error.code ?? error.message,
-          });
-      });
+      saveFailed(caught);
     }
   }
 
@@ -783,7 +897,7 @@ export function createHost({
     // this instance has not reached yet is one), applies nothing and comes
     // back `stale`; a milestone shown is never stale. The revision and
     // snapshot after it come back.
-    dispatch(action, { revision: seen, instance: from } = {}): Dispatched {
+    dispatch(action, { revision: seen, instance: from, id } = {}): Dispatched {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a client may send anything
       const type = action?.type;
       if (!(HOST_ACTION_TYPES as readonly string[]).includes(type))
@@ -801,10 +915,18 @@ export function createHost({
             (seen < placeRevision || seen > revision)))
       )
         return { stale: true, revision, snapshot: snapshot() };
-      input(a as unknown as Item);
+      // The client's action id (seam S8) comes beside the action, never in
+      // it, and goes only to the save the action causes.
+      input(a as unknown as Item, typeof id === "string" && id ? id : null);
       return { revision, snapshot: snapshot() };
     },
     snapshot,
+    // Settles once every input taken so far is reduced, saved and published:
+    // at once for a store that saves synchronously.
+    idle() {
+      if (!busy || closed) return Promise.resolve();
+      return new Promise<void>((resolve) => idlers.push(resolve));
+    },
     // The events after the one with this ID, oldest first ([] when it is the
     // newest), or null when it is not one this instance still holds: then
     // nothing is replayed.
@@ -826,6 +948,7 @@ export function createHost({
     close() {
       if (closed) return;
       closed = true;
+      for (const resolve of idlers.splice(0)) resolve();
       for (const id of intervals) clock.clearInterval(id);
       watcher?.close();
       work.watcher?.close();

@@ -23,6 +23,12 @@ export interface ActionRequest {
   action: QuestAction;
   instance: InstanceId;
   revision: Revision;
+  /**
+   * The client's id for this request, a UUID, where the client makes one.
+   * The host hands it to the save the action causes, so a store can record
+   * the action and its change together. Without one nothing changes.
+   */
+  id?: string | undefined;
 }
 
 /**

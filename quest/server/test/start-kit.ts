@@ -52,6 +52,7 @@ export async function startWith(
       return { revision: 0, snapshot: null };
     },
     snapshot: () => null,
+    idle: () => Promise.resolve(),
     revision: () => 0,
     serverTime: () => 0,
     eventsAfter: () => null,

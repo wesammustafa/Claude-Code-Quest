@@ -3,7 +3,6 @@
 // instance, the revision, the recent events and the pending milestones
 // (ticket 212).
 export {
-  createHost,
   EVENT_KEEP_MS,
   EVENT_LIMIT,
   HOST_ACTION_TYPES,
@@ -14,6 +13,7 @@ export {
   TICK_MS,
 } from "./host.ts";
 export { folderPath } from "./folders.ts";
+export { createHost } from "./node-host.ts";
 export { perf, realAdapters, realClock } from "./real.ts";
 export type {
   Adapters,
