@@ -4,7 +4,7 @@
 import type { ComponentType } from "react";
 import type { RouteObject } from "react-router";
 import type { BeatKey, LessonId, StepId } from "@quest/contract";
-import type { WhereKind } from "../components/Where";
+import type { WhereKind } from "../components/where-kind";
 import type { LiveDeps } from "../live/store";
 
 export type { LiveDeps, WhereKind };

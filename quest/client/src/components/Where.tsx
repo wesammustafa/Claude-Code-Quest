@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "./Icon";
+import type { WhereKind } from "./where-kind";
 
-export type WhereKind =
-  "terminal" | "claude" | "claude-2" | "shell" | "editor" | "browser";
+export type { WhereKind };
 
 const ICONS: Record<WhereKind, IconName> = {
   terminal: "terminal",

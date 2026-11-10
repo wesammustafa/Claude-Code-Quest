@@ -6,7 +6,7 @@ import { expect, test } from "vitest";
 
 const CLIENT = fileURLToPath(new URL("../", import.meta.url));
 
-test("@quest/client/mount/types typechecks with no ambient types, as a page built without Vite's client types imports it", () => {
+test("@quest/client/mount/types typechecks with no ambient types and no JSX setting, as a page built without Vite's client types imports it", () => {
   const exports = (
     JSON.parse(readFileSync(`${CLIENT}package.json`, "utf8")) as {
       exports: Record<string, string>;
@@ -21,7 +21,6 @@ test("@quest/client/mount/types typechecks with no ambient types, as a page buil
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Bundler,
     types: [],
-    jsx: ts.JsxEmit.ReactJSX,
     strict: true,
     exactOptionalPropertyTypes: true,
     verbatimModuleSyntax: true,

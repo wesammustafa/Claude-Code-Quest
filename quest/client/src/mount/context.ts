@@ -7,7 +7,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useLocation, useMatches, useNavigate } from "react-router";
-import type { WhereKind } from "../components/Where";
+import type { WhereKind } from "../components/where-kind";
 import type { LiveDeps } from "../live/store";
 import type { ClientSlots, External, QuestRouteHandle } from "./types";
 
