@@ -1812,6 +1812,27 @@ describe("Lesson workspace, questions and hints (247)", () => {
     expect(await navigator.clipboard.readText()).toBe(code?.copy);
   });
 
+  test("a beat a host judges offers no Check again and says what its hints wait for", () => {
+    renderConnected(
+      "/lesson/b-1/step",
+      snapshotOf({
+        ...challengeUnavailable,
+        beat: {
+          ...(challengeUnavailable.beat as NonNullable<PlayingLesson["beat"]>),
+          decidedBy: "check",
+          status: "waiting",
+          judged: true,
+        },
+        hints: { ...challengeUnavailable.hints, unavailable: "first-try" },
+      }),
+    );
+    expect(screen.queryByRole("button", { name: "Check again" })).toBeNull();
+    screen.getByText("Waiting for your next try.");
+    expect(
+      document.querySelector("[data-hints-unavailable]"),
+    ).toHaveTextContent("Hints open once you have had a first try.");
+  });
+
   test("a choice rung shows its legend and options", () => {
     renderConnected(
       "/lesson/b-1/step",

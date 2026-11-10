@@ -47,6 +47,8 @@ export function primaryAction(beat: BeatView): PrimaryAction | null {
   if (isDone(beat))
     return { type: "step.continue", label: "Next step", variant: "primary" };
   if (asking(beat)) return null;
+  // A host-judged beat (seam S6) waits for the host's verdict: no button acts.
+  if (beat.judged) return null;
   switch (decidedByOf(beat)) {
     case "check":
     case "watch":
@@ -165,6 +167,8 @@ export function statusOf(beat: BeatView, checkStep = false): StatusWords {
             "Everything else passes. Check again runs the slow part.",
           )
         : say("watching", "slowOnly", "Check again runs these lines.");
+    if (beat.judged)
+      return say("watching", "judged", "Waiting for your next try.");
     // The folder actually watched: the step's Work folder, known before
     // any first look; the Practice copy otherwise. A beat that waits for
     // its button watches the same folder.

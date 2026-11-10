@@ -174,6 +174,7 @@ export function createHost({
   home: givenHome,
   paths = posixPaths,
   inStep: restored = null,
+  saveInStep = false,
 }: HostOptions): Host {
   if (typeof instance !== "string" || !instance || instance.includes("."))
     throw new TypeError(`not an instance ID: ${instance}`);
@@ -295,6 +296,7 @@ export function createHost({
     const before = milestones.length;
     milestones = milestones.filter((m) => m.envelope.id !== item.id);
     if (milestones.length === before) return;
+    if (saveInStep) save();
     revision += 1;
     notify([], item);
   }
@@ -325,6 +327,24 @@ export function createHost({
         const { item, actionId: id } = queue.shift() as Queued;
         if (item.type === "milestone.shown") {
           shown(item);
+          const saving = pendingSave;
+          pendingSave = null;
+          if (saving) {
+            held = true;
+            void saving
+              .then(
+                () => {
+                  saveError = null;
+                },
+                (caught: unknown) => {
+                  saveFailed(caught);
+                },
+              )
+              .then(() => {
+                if (!closed) drain();
+              });
+            return;
+          }
           continue;
         }
         const prev = state as EngineState;
@@ -332,6 +352,10 @@ export function createHost({
         let events: QuestEvent[];
         try {
           events = reduceTurn(item);
+        } catch (caught) {
+          // A turn that threw is never published: its events are no one's.
+          turn = null;
+          throw caught;
         } finally {
           actionId = null;
         }
@@ -373,12 +397,33 @@ export function createHost({
     if (!busy || closed) return Promise.resolve();
     return new Promise<void>((resolve) => idlers.push(resolve));
   }
+  // The pending milestones as the save being written should hold them:
+  // inside a turn, those its lesson leaves and the ones it marked.
+  function inStepNow(): HostInStep | null {
+    if (!state) return null;
+    const now = state;
+    const pending = turn ? lapsed(turn.prev, now) : milestones;
+    return {
+      engine: inStepOf(now),
+      milestones: [
+        ...pending.map((m) => ({
+          lesson: m.lesson,
+          event: eventOf(m.envelope),
+        })),
+        ...(turn?.events ?? []).filter(isMilestone).map((event) => ({
+          lesson: now.lesson,
+          event: structuredClone(event),
+        })),
+      ],
+    };
+  }
   // One input reduced, and its effects run. With a `stamps` adapter (seam
   // S1), each stamp the engine asks for is answered in this same turn, from
   // what is on disk now, and the save runs once after them, so the save
   // that records a Step's opening holds its baselines.
   function reduceTurn(item: EngineInput): QuestEvent[] {
     const prev = state as EngineState;
+    const before = saveInStep ? JSON.stringify(inStepNow()) : null;
     const stamp = (s: EngineState, e: Item) =>
       engine.reduce(s, {
         now: clock.now(),
@@ -418,6 +463,14 @@ export function createHost({
       effects = wantSave ? [...rest, { type: "save" }] : rest;
     }
     turn = { prev, events };
+    // With saveInStep (seam S5), a turn that changes the in-Step state
+    // saves, so the record a store writes beside it never holds an older one.
+    if (
+      before !== null &&
+      !effects.some((e) => e.type === "save") &&
+      JSON.stringify(inStepNow()) !== before
+    )
+      effects = [...effects, { type: "save" }];
     run(effects);
     return events;
   }
@@ -978,26 +1031,7 @@ export function createHost({
     // Settles once every input taken so far is reduced, saved and published:
     // at once for a store that saves synchronously.
     idle,
-    // The pending milestones as the save being written should hold them:
-    // inside a turn, those its lesson leaves and the ones it marked.
-    inStep(): HostInStep | null {
-      if (!state) return null;
-      const now = state;
-      const pending = turn ? lapsed(turn.prev, now) : milestones;
-      return {
-        engine: inStepOf(now),
-        milestones: [
-          ...pending.map((m) => ({
-            lesson: m.lesson,
-            event: eventOf(m.envelope),
-          })),
-          ...(turn?.events ?? []).filter(isMilestone).map((event) => ({
-            lesson: now.lesson,
-            event: structuredClone(event),
-          })),
-        ],
-      };
-    },
+    inStep: inStepNow,
     judged(verdict: JudgedInput) {
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a caller may send anything
       if (verdict?.type !== "judged") throw new TypeError("not a judged input");

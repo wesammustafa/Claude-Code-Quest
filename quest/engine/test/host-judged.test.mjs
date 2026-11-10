@@ -148,20 +148,102 @@ test("done: true passes the beat, emits check.passed and step.continue goes on",
   assert.equal(stepOf(d.state).id, "C");
 });
 
-test("a judged pass with done: false clears the Not yet and the streak and leaves the beat open", () => {
+test("a judged pass with done: false clears the Not yet, keeps its note and the streak, and leaves the beat open", () => {
   const d = atY4();
   verdict(d);
+  d.hint();
   assert.equal(d.state.beat.notYets, 1);
-  verdict(d, { pass: true, items: ITEMS([true, true]) });
+  verdict(d, { pass: true, items: ITEMS([true, true]), note: "Say why." });
   assert.equal(d.state.beat.status, "waiting");
   assert.equal(d.state.beat.fail, null);
-  assert.equal(d.state.beat.notYets, 0);
+  assert.equal(d.state.beat.notYets, 1, "no event breaks the row");
   assert.deepEqual(d.last.events, []);
+  const beat = project(d.state).lesson.beat;
   assert.deepEqual(
-    project(d.state).lesson.beat.verification.map((v) => v.pass),
+    beat.verification.map((v) => v.pass),
     [true, true],
   );
+  assert.equal(beat.note, "Say why.");
   d.refused("step.continue");
+  assert.equal(hintAvailable(d.state), false, "the choice waits for 2");
+  verdict(d);
+  assert.equal(d.state.beat.notYets, 2);
+  assert.equal(hintAvailable(d.state), true, "2 Not yets on its own prompt");
+  assert.equal(
+    project(d.state).lesson.beat.note,
+    undefined,
+    "a miss clears it",
+  );
+});
+
+test("a judged verdict while the y/n before the exact text is up lands, as a Check result does", () => {
+  const upToYesNo = () => {
+    const d = atY4();
+    verdict(d);
+    d.hint();
+    verdict(d);
+    d.hint();
+    d.hint();
+    assert.equal(d.state.beat.confirm, true);
+    return d;
+  };
+  const passed = upToYesNo();
+  verdict(passed, { pass: true, done: true, items: ITEMS([true, true]) });
+  assert.equal(passed.state.beat.status, "done");
+  assert.equal(passed.state.beat.confirm, false);
+  assert.deepEqual(
+    passed.last.events.map((e) => e.type),
+    ["check.passed", "step.completed"],
+  );
+  const missed = upToYesNo();
+  verdict(missed);
+  assert.equal(missed.state.beat.confirm, false, "the y/n closes");
+  assert.equal(missed.state.beat.rung, 1, "the rung stays");
+  assert.equal(notYets(missed.last.events).length, 1);
+  assert.equal(missed.state.beat.notYets, 3);
+});
+
+test("a malformed judged input is refused: field types, items, a pass with a failing item, a miss with none", () => {
+  const d = atY4();
+  const refused = (fields) => {
+    verdict(d, fields);
+    assert.equal(d.last.changed, false, JSON.stringify(fields));
+    assert.deepEqual(d.last.effects, []);
+    assert.deepEqual(d.last.events, []);
+  };
+  refused({ pass: "true", done: "true", items: ITEMS([true, true]) });
+  refused({ pass: 0 });
+  refused({ done: 1 });
+  refused({ note: 7 });
+  refused({ items: "none" });
+  refused({ items: [null] });
+  refused({ items: [{ index: "0", text: "A", pass: false, hint: "" }] });
+  refused({ items: [{ index: 0, text: "A", pass: false }] });
+  refused({ items: [{ index: 0, text: 5, pass: false, hint: "" }] });
+  refused({ items: [{ index: 0, text: "A", pass: "no", hint: "" }] });
+  refused({ pass: true, done: true, items: ITEMS() });
+  refused({ pass: true, items: ITEMS() });
+  refused({ items: ITEMS([true, true]) });
+  refused({ done: true });
+  refused({ items: [] });
+  assert.equal(d.state.beat.status, "waiting");
+  // A failing item whose hint is empty shows that, never Y4's own verify.
+  verdict(d, { items: [{ index: 0, text: "A", pass: false, hint: "" }] });
+  assert.equal(d.state.beat.status, "fail");
+  assert.equal(project(d.state).lesson.beat.fail, "");
+  assert.deepEqual(notYets(d.last.events), [
+    { type: "check.notYet", evidence: "" },
+  ]);
+});
+
+test("a host-judged beat tells the client so: no Check again to run, its own wait before a first try", () => {
+  const d = atY4();
+  const { beat, hints } = project(d.state).lesson;
+  assert.equal(beat.judged, true);
+  assert.equal(hints.unavailable, "first-try");
+  const plain = driver({ saved: AT_Y4 });
+  plain.open("b-1");
+  assert.equal("judged" in project(plain.state).lesson.beat, false);
 });
 
 test("Mastery counts hint.next as With hints and hint.takeExact as Every command shown on a judged beat", () => {

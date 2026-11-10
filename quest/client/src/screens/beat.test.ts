@@ -119,6 +119,17 @@ describe("primaryAction", () => {
     expect(action?.label ?? null).toBe(label);
   });
 
+  test("a beat a host judges has no action until it is done", () => {
+    const judged = { decidedBy: "check", judged: true } as const;
+    expect(primaryAction(beat(judged))).toBeNull();
+    expect(primaryAction(beat({ ...judged, status: "fail" }))).toBeNull();
+    expect(primaryAction(beat({ ...judged, status: "done" }))?.type).toBe(
+      "step.continue",
+    );
+    expect(statusOf(beat(judged)).words).toBe("Waiting for your next try.");
+    expect(statusOf(beat({ ...judged, watches: "work" })).key).toBe("judged");
+  });
+
   test("Check again is secondary; every other action is primary", () => {
     expect(primaryAction(beat({ decidedBy: "watch" }))?.variant).toBe(
       "secondary",

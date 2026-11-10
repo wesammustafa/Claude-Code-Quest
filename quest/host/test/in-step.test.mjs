@@ -243,3 +243,121 @@ test("a client cannot dispatch a judged input", async () => {
   assert.equal(typesOf(h.heard).includes("judged"), false);
   assert.equal(h.host.snapshot().lesson.beat.status, "waiting");
 });
+
+// A host whose store writes the record as 06 6.3 has it: the progress and
+// Host.inStep() together, taken inside save.
+const J = (x) => JSON.parse(JSON.stringify(x));
+async function recording(opts) {
+  const h = fakeHost({ saveInStep: true, ...opts });
+  const records = [];
+  const save = h.adapters.store.save.bind(h.adapters.store);
+  h.adapters.store.save = (data, meta) => {
+    records.push({ data: J(data), inStep: J(h.host.inStep()), meta });
+    return save(data, meta);
+  };
+  await h.host.open();
+  return { ...h, records };
+}
+async function fromRecord(record, opts = {}) {
+  const h = fakeHost({ saved: record.data, inStep: record.inStep, ...opts });
+  await h.host.open();
+  h.host.dispatch({ type: "lesson.open", lesson: "b-1" });
+  await turn();
+  return h;
+}
+
+test("with saveInStep, a Not yet, a hint and a quiet unlock each save, so a kill after them keeps the rung, streak and help", async () => {
+  const a = await recording({ saved: AT_W3, checks: () => w3(false) });
+  a.host.dispatch({ type: "lesson.open", lesson: "b-1" });
+  await turn();
+  a.host.dispatch(checkRun(a.host));
+  await turn();
+  assert.equal(a.host.snapshot().lesson.beat.status, "fail");
+  const afterNotYet = a.records.at(-1);
+  assert.equal(afterNotYet.inStep.engine.at.notYets, 1);
+  assert.notEqual(afterNotYet.inStep.engine.at.fail, null);
+  const saves = a.records.length;
+  a.host.dispatch({ type: "hint.next" });
+  assert.equal(a.records.length, saves + 1, "hint.next saves");
+  assert.deepEqual(a.records.at(-1).meta, { actionId: null });
+  const b = await fromRecord(a.records.at(-1), { checks: () => w3(false) });
+  assert.deepEqual(
+    b.host.snapshot().lesson.hints,
+    a.host.snapshot().lesson.hints,
+  );
+  assert.deepEqual(b.state().stepHelp, { "b-1 W3": "hints" });
+  assert.equal(b.state().beat.notYets, 1);
+  // A turn that changes nothing in it saves nothing more.
+  const n = a.records.length;
+  a.host.dispatch({ type: "step.continue" });
+  assert.equal(a.records.length, n);
+  // Without the option, hint.next saves nothing.
+  const plain = fakeHost({ saved: AT_W3, checks: () => w3(false) });
+  await plain.host.open();
+  plain.host.dispatch({ type: "lesson.open", lesson: "b-1" });
+  await turn();
+  plain.host.dispatch(checkRun(plain.host));
+  await turn();
+  const before = plain.adapters.store.saves.length;
+  plain.host.dispatch({ type: "hint.next" });
+  assert.equal(plain.adapters.store.saves.length, before);
+});
+
+test("with saveInStep, a shown milestone saves, so it never shows again after a kill", async () => {
+  const a = await recording({ saved: AT_END });
+  a.host.dispatch({ type: "lesson.open", lesson: "b-1" });
+  a.host.dispatch({ type: "step.markDone" });
+  assert.deepEqual(a.records.at(-1).inStep.milestones, [
+    { lesson: "b-1", event: COMPLETED },
+  ]);
+  const [m] = a.host.snapshot().milestones;
+  const saves = a.records.length;
+  a.host.dispatch({ type: "milestone.shown", id: m.id });
+  assert.equal(a.records.length, saves + 1);
+  assert.deepEqual(a.records.at(-1).inStep.milestones, []);
+  assert.deepEqual(a.records.at(-1).meta, { actionId: null });
+  const b = fakeHost(
+    a.records.at(-1).data && {
+      saved: a.records.at(-1).data,
+      inStep: a.records.at(-1).inStep,
+    },
+  );
+  await b.host.open();
+  assert.deepEqual(b.host.snapshot().milestones, []);
+  // An async store holds the queue until that save settles.
+  const c = await recording({ saved: AT_END });
+  c.host.dispatch({ type: "lesson.open", lesson: "b-1" });
+  c.host.dispatch({ type: "step.markDone" });
+  const held = [];
+  c.adapters.store.save = () => new Promise((resolve) => held.push(resolve));
+  const [shown] = c.host.snapshot().milestones;
+  c.host.dispatch({ type: "milestone.shown", id: shown.id });
+  let settled = false;
+  const idle = c.host.idle().then(() => (settled = true));
+  await turn();
+  assert.equal(held.length, 1);
+  assert.equal(settled, false);
+  held[0](true);
+  await idle;
+});
+
+test("a turn whose effects throw leaves no events for the next Host.inStep()", async () => {
+  // An engine that answers step.markDone with an effect no host knows.
+  const engine = {
+    initialState,
+    reduce(s, input) {
+      const r = reduce(s, input);
+      return input.type === "step.markDone"
+        ? { ...r, effects: [...r.effects, { type: "nonsense" }] }
+        : r;
+    },
+  };
+  const h = fakeHost({ saved: AT_END, engine });
+  await h.host.open();
+  h.host.dispatch({ type: "lesson.open", lesson: "b-1" });
+  assert.throws(
+    () => h.host.dispatch({ type: "step.markDone" }),
+    /unknown effect/,
+  );
+  assert.deepEqual(h.host.inStep().milestones, []);
+});

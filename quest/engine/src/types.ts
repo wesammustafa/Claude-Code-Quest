@@ -318,8 +318,9 @@ export interface EngineState {
 export interface EngineInStep {
   v: 1;
   lesson: LessonId;
-  // The help each of the lesson's steps used in this play, by step id.
-  help: Record<StepId, HelpUsed>;
+  // The help each step used in this play of its lesson, by lesson and step
+  // id: every lesson's, as stepHelp keeps them while another lesson is open.
+  help: Record<LessonId, Record<StepId, HelpUsed>>;
   // The beat on the card, not done, and its help; null off a card.
   at: {
     step: StepId;

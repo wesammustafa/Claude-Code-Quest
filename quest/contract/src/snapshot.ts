@@ -380,6 +380,8 @@ export interface BeatView {
   slowWait: boolean;
   /** The file has not changed since the step opened. */
   stale: boolean;
+  /** Seam S6: a host judges the beat: nothing runs or is watched, and no Check again acts. */
+  judged?: true;
   /** Seam S6: a host-judged beat's note under its passed lines, such as a missed bonus point's hint. */
   note?: string;
 }
@@ -409,8 +411,8 @@ export interface HintsView {
   shown: HintView[];
   /** Another hint can open now. */
   available: boolean;
-  /** At Challenge before a first try: the try it waits for. */
-  unavailable: "run-check" | "pick-answer" | null;
+  /** At Challenge before a first try: the try it waits for (`first-try` on a host-judged beat, seam S6). */
+  unavailable: "run-check" | "pick-answer" | "first-try" | null;
   /** The question before the exact command is up. */
   confirmExact: boolean;
 }

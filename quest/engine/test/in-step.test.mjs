@@ -9,6 +9,7 @@ import {
   beatOf,
   checkError,
   checkResult,
+  course,
   driver,
   FACTS,
   gitResult,
@@ -67,7 +68,7 @@ test("inStepOf holds the open Lesson's help, the beat's rung, confirm, unlock, N
   assert.deepEqual(inStepOf(d.state), {
     v: 1,
     lesson: "b-1",
-    help: { W3: "hints" },
+    help: { "b-1": { W3: "hints" } },
     at: {
       step: "W3",
       beat: 0,
@@ -206,7 +207,22 @@ test("inStep for another beat, a changed Lesson, a bad version or a new play is 
   );
   // Another version, or a lesson the course lacks.
   assert.deepEqual(restart(d.state, { ...inStep, v: 2 }), plain);
-  assert.deepEqual(restart(d.state, { ...inStep, lesson: "b-9" }), plain);
+  // A lesson the course lacks: its beat and its help go, another
+  // lesson's help stays.
+  const b9 = restart(d.state, {
+    ...inStep,
+    lesson: "b-9",
+    help: { ...inStep.help, "b-9": { W3: "hints" } },
+  });
+  assert.equal(b9.resume, undefined);
+  assert.deepEqual(b9.stepHelp, { "b-1 W3": "hints" });
+  assert.deepEqual({ ...b9, stepHelp: {} }, { ...plain, stepHelp: {} });
+  // Help for a step the lesson lacks, or of no kind there is, goes too.
+  const odd = restart(d.state, {
+    ...inStep,
+    help: { "b-1": { W3: "hints", Z9: "hints", W4: "lots" } },
+  });
+  assert.deepEqual(odd.stepHelp, { "b-1 W3": "hints" });
   // A new play: the restart's state goes with it.
   const s = restart(d.state, inStep);
   const again = reduced(s, { type: "lesson.restart", lesson: "b-1" }).state;
@@ -248,4 +264,67 @@ test("the Not-yet streak counts each Not yet in a row, a broken Check leaves it,
   d.cont();
   assert.equal(stepOf(d.state).id, "W4");
   assert.equal(d.state.beat.notYets, undefined, "a new beat starts again");
+});
+
+test("help opened in one Lesson counts after a restart taken while another Lesson is open", () => {
+  const mark = {
+    judge: "host",
+    ladder: [
+      { kind: "hint", text: "Look at the file." },
+      { kind: "exact", text: "Save it." },
+    ],
+  };
+  const full = course.map((l) =>
+    l.id === "b-1" ? { ...l, judged: { "Y4.0": mark } } : l,
+  );
+  const b1Full = full.find((l) => l.id === "b-1");
+  assert.ok(full.find((l) => l.id === "b-2")?.content, "b-2 has content");
+  const saved = save({
+    lessons: {
+      "b-1": {
+        step: "Y4",
+        beat: 0,
+        done: b1Full.content.steps.slice(0, -2).map((x) => x.id),
+      },
+    },
+  });
+  const miss = [
+    { index: 0, text: "Names the file", pass: false, hint: "Name it." },
+  ];
+  const hit = [{ index: 0, text: "Names the file", pass: true, hint: "" }];
+  let s = initialState({ course: full, saved, facts: FACTS, now: 1_000 });
+  s = reduced(s, { type: "lesson.open", lesson: "b-1" }).state;
+  s = reduced(s, {
+    type: "judged",
+    beat: "b-1:Y4:0",
+    pass: false,
+    done: false,
+    items: miss,
+  }).state;
+  s = reduced(s, { type: "hint.next" }).state;
+  s = reduced(s, { type: "lesson.open", lesson: "b-2" }).state;
+  const inStep = JSON.parse(JSON.stringify(inStepOf(s)));
+  assert.equal(inStep.lesson, "b-2");
+  assert.deepEqual(inStep.help["b-1"], { Y4: "hints" });
+  const finishY4 = (t) => {
+    let u = reduced(t, { type: "lesson.open", lesson: "b-1" }).state;
+    u = reduced(u, {
+      type: "judged",
+      beat: "b-1:Y4:0",
+      pass: true,
+      done: true,
+      items: hit,
+    }).state;
+    u = reduced(u, { type: "step.continue" }).state;
+    return u.progress["b-1"].help?.Y4?.used;
+  };
+  const restarted = initialState({
+    course: full,
+    saved: saveOf(s),
+    facts: FACTS,
+    now: 1_000,
+    inStep,
+  });
+  assert.equal(finishY4(s), "hints");
+  assert.equal(finishY4(restarted), "hints");
 });

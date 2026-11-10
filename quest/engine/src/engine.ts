@@ -358,10 +358,12 @@ export function initialState({
 // Not yet and streak, and a Step-down not yet taken. A store keeps it
 // beside the save, and initialState takes it back after a restart.
 export function inStepOf(s: EngineState): EngineInStep {
-  const prefix = `${s.lesson} `;
-  const help: Record<string, HelpUsed> = {};
-  for (const [key, used] of Object.entries(s.stepHelp))
-    if (key.startsWith(prefix)) help[key.slice(prefix.length)] = used;
+  const help: EngineInStep["help"] = {};
+  for (const [key, used] of Object.entries(s.stepHelp)) {
+    const space = key.indexOf(" ");
+    const lesson = key.slice(0, space);
+    (help[lesson] ??= {})[key.slice(space + 1)] = used;
+  }
   // A resume not taken yet is still the place the Learner left.
   const pending = s.resume?.lesson === s.lesson && !s.beat ? s.resume : null;
   let at: EngineInStep["at"] = pending?.at ?? null;
@@ -391,9 +393,13 @@ export function inStepOf(s: EngineState): EngineInStep {
   return clone({ v: 1, lesson: s.lesson, help, at, stepDown });
 }
 
+const isHelpUsed = (x: unknown): x is HelpUsed =>
+  (HELP_USED as readonly unknown[]).includes(x);
+
 // initialState's last pass: the help goes back into stepHelp, and the rest
-// waits in `resume` for the lesson to open. One for another version, for a
-// lesson the course lacks or whose steps changed, is dropped.
+// waits in `resume` for the lesson to open. One for another version is
+// dropped, and so is the part for a lesson the course lacks or whose steps
+// changed.
 function restoreInStep(
   s: EngineState,
   inStep: EngineInStep,
@@ -408,13 +414,19 @@ function restoreInStep(
     kept.help === null
   )
     return;
-  const content = contentOf(s, inStep.lesson);
-  if (!content || restarted.has(inStep.lesson)) return;
-  const ids = new Set([...content.steps, ...content.warmup].map((x) => x.id));
-  for (const [step, used] of Object.entries(inStep.help))
-    if (ids.has(step) && (HELP_USED as readonly string[]).includes(used))
-      s.stepHelp[`${inStep.lesson} ${step}`] = used;
-  s.resume = clone(inStep);
+  const playable = (id: LessonId) =>
+    Boolean(contentOf(s, id)) && !restarted.has(id);
+  const help = kept.help as Record<LessonId, unknown>;
+  for (const [lesson, steps] of Object.entries(help)) {
+    const content = contentOf(s, lesson);
+    if (!content || !playable(lesson) || typeof steps !== "object" || !steps)
+      continue;
+    const ids = new Set([...content.steps, ...content.warmup].map((x) => x.id));
+    for (const [step, used] of Object.entries(steps as Record<string, unknown>))
+      if (ids.has(step) && isHelpUsed(used))
+        s.stepHelp[`${lesson} ${step}`] = used;
+  }
+  if (playable(inStep.lesson)) s.resume = clone(inStep);
 }
 
 // The beat openBeat just opened takes the rung, unlock, streak and Not yet
@@ -2195,21 +2207,56 @@ function onProbe(
   );
 }
 
+// A judged input as a host must send it (seam S6): the host's code may send
+// anything, so each field is checked. A pass has no failing item and a miss
+// at least one; only a pass may be `done`.
+const isCheckItem = (it: unknown): it is CheckItem => {
+  if (typeof it !== "object" || it === null) return false;
+  const { index, text, pass, hint } = it as Record<string, unknown>;
+  return (
+    typeof index === "number" &&
+    typeof text === "string" &&
+    typeof pass === "boolean" &&
+    typeof hint === "string"
+  );
+};
+function wellFormed(ev: JudgedInput) {
+  const { beat, pass, done, items, note } = ev as unknown as Record<
+    string,
+    unknown
+  >;
+  if (
+    typeof beat !== "string" ||
+    typeof pass !== "boolean" ||
+    typeof done !== "boolean" ||
+    (note !== undefined && typeof note !== "string") ||
+    !Array.isArray(items) ||
+    !items.every(isCheckItem)
+  )
+    return false;
+  const missed = items.some((it) => !it.pass);
+  return pass ? !missed : missed && !done;
+}
+
 // A host's verdict on the host-judged beat on the card (seam S6), read as a
-// Check result: a pass with `done` passes the beat, a pass without leaves
-// it open, and a miss is a Not yet whose rung never resets, as the ladder
-// is static. A verdict for another beat, or while the y/n is up, is none.
+// Check result: a pass with `done` passes the beat, a pass without clears
+// the Not yet and leaves the beat open, and a miss is a Not yet whose rung
+// never resets, as the ladder is static. Like a Check result, a verdict
+// that lands while the y/n is up closes it. One that is malformed, or for
+// another beat, is none.
 function onJudged(s: EngineState, ev: JudgedInput, effects: Effect[]) {
   if (
+    !wellFormed(ev) ||
     !hostJudged(s) ||
     ev.beat !== beatKeyOf(s) ||
-    isDone(s.beat) ||
-    yesNo(s) ||
-    !Array.isArray(ev.items)
+    isDone(s.beat)
   )
     return false;
   const st = beatState(s);
   const items = clone(ev.items);
+  st.confirm = false;
+  delete st.note;
+  if (ev.pass && ev.note) st.note = ev.note;
   if (ev.pass && ev.done) {
     Object.assign(st, {
       status: "done",
@@ -2217,28 +2264,25 @@ function onJudged(s: EngineState, ev: JudgedInput, effects: Effect[]) {
       fail: null,
       feedback: null,
       rung: -1,
-      confirm: false,
     });
-    if (typeof ev.note === "string" && ev.note) st.note = ev.note;
     progressOf(s).passedCheck = {
       step: currentStep(s).id,
       beat: s.pos.beat,
       items: clone(items),
     };
   } else if (ev.pass) {
-    Object.assign(st, {
-      status: "waiting",
-      fail: null,
-      judged: items,
-      notYets: 0,
-    });
+    // The beat's own prompt is still to come, so the Not yets in a row on
+    // it go on: no event says the row broke, and the client's count of them
+    // goes on too.
+    Object.assign(st, { status: "waiting", fail: null, judged: items });
   } else {
-    const failing = items.find((it) => !it.pass);
+    const failing = must(
+      items.find((it) => !it.pass),
+      "a miss has a failing item",
+    );
     Object.assign(st, {
       status: "fail",
-      fail: failing
-        ? { item: failing.text, hint: failing.hint }
-        : { hint: undefined },
+      fail: { item: failing.text, hint: failing.hint },
       judged: items,
       unlocked: true,
       acted: true,

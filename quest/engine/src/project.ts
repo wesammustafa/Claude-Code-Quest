@@ -540,6 +540,7 @@ function beatView(s: EngineState): BeatView {
   const beat = currentBeat(s);
   const st = beatState(s);
   const hide = hidesRuns(s);
+  const judged = hostJudged(s) !== null;
   const win32 = Boolean(s.facts.win32);
   const lines: BeatLine[] = [];
   let code: CodeView | null = null;
@@ -591,7 +592,7 @@ function beatView(s: EngineState): BeatView {
     ask: beat.ask ?? null,
     self: beat.self ?? null,
     doneLabel: beat.doneLabel ?? null,
-    decidedBy: hostJudged(s) ? "check" : decidedBy(beat),
+    decidedBy: judged ? "check" : decidedBy(beat),
     ranIn: st.ranIn && !inCopy(s, st.ranIn) ? st.ranIn : null,
     watches: watchesOf(s),
     wait: beat.wait ? { text: beat.wait.text ?? null } : null,
@@ -640,12 +641,15 @@ function beatView(s: EngineState): BeatView {
     found: st.found ?? null,
     fail:
       hintStatus(st) === "fail" && st.fail
-        ? (st.fail.hint ?? cleanLine(beat.verify, st.fail.paths ?? []))
+        ? // A host-judged beat's words are the verdict's, never its verify's.
+          (st.fail.hint ??
+          (judged ? "" : cleanLine(beat.verify, st.fail.paths ?? [])))
         : null,
     broken: st.status === "broken" ? brokenKind(st.error) : null,
     same: Boolean(st.same),
     slowWait: Boolean(st.slowWait),
     stale: Boolean(st.stale),
+    ...(judged ? { judged: true as const } : {}),
     ...(st.note ? { note: st.note } : {}),
   };
 }
@@ -741,7 +745,13 @@ function hintsView(s: EngineState): HintsView {
   return {
     shown: rungs.slice(0, st.rung + 1).map((r) => hintView(s, r)),
     available,
-    unavailable: waits ? (first === "r" ? "run-check" : "pick-answer") : null,
+    unavailable: !waits
+      ? null
+      : first !== "r"
+        ? "pick-answer"
+        : hostJudged(s)
+          ? "first-try"
+          : "run-check",
     confirmExact: st.confirm,
   };
 }

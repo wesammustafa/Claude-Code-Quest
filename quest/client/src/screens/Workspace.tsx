@@ -79,6 +79,7 @@ const UNAVAILABLE: Record<
 > = {
   "run-check": "Hints open once you have run Check again.",
   "pick-answer": "Hints open once you have tried an answer.",
+  "first-try": "Hints open once you have had a first try.",
 };
 
 /**

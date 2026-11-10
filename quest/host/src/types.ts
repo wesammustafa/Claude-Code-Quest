@@ -234,6 +234,12 @@ export interface HostOptions {
   paths?: PathOps | undefined;
   /** Seam S5: what Host.inStep() gave before a restart. */
   inStep?: Partial<HostInStep> | null | undefined;
+  /**
+   * Seam S5: save on every turn that changes Host.inStep(), and when a
+   * pending milestone is shown, for a store that writes it beside the save.
+   * Off by default: the host saves only where the engine asks.
+   */
+  saveInStep?: boolean | undefined;
 }
 
 /**
