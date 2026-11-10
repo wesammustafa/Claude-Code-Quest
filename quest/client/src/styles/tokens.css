@@ -41,6 +41,7 @@
   --breakpoint-sm: 30rem;
   --breakpoint-md: 48rem;
   --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
 
   /* Page widths: the lesson column fits half a laptop screen beside a terminal. */
   --container-column: 45rem;
@@ -51,6 +52,13 @@
   /* The wide sheet that reads a lesson page: its own measure, not the column's. */
   --container-reading: 47.5rem;
   --container-measure: 66ch;
+  /* A Lesson screen with a practice pane (app.css): the column between lg and
+     xl, the gap around the pane, the least the pane keeps on a narrow screen,
+     and how far More lets the Lesson strip grow there. */
+  --lesson-column-mid: clamp(26.25rem, 45vw, 45rem);
+  --practice-gutter: calc(var(--spacing) * 4);
+  --terminal-min-height: 55dvh;
+  --strip-more-height: 70dvh;
 
   /* Colour, dark theme. */
   --color-bg: #0b1020;

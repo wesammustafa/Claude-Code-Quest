@@ -1,5 +1,7 @@
-import { useRef } from "react";
+import { useContext, useRef, useState } from "react";
 import { cx } from "../lib/cx";
+import { CommandTargetContext, useSlots } from "../mount/context";
+import { usePipLook } from "../pip/PipStage";
 import { Icon } from "./Icon";
 import { useCopy } from "./useCopy";
 
@@ -40,10 +42,19 @@ export interface CommandProps {
   className?: string;
 }
 
+const BUTTON = cx(
+  "inline-flex h-7.5 shrink-0 cursor-pointer items-center gap-1.5 rounded-sm border border-transparent bg-code-control px-2.5 font-sans text-xs font-semibold text-code-text",
+  "transition-[background-color,translate,scale] duration-(--duration-fast) ease-out",
+  "hover:bg-code-control-hover active:duration-(--duration-press) active:translate-y-(--press-y) active:scale-(--press-scale)",
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-on-code",
+);
+
 /**
  * A command to type in the terminal, with a Copy button. Where the clipboard
  * is unavailable, Copy selects the command so the keyboard can copy it.
  * Either way Pip, if the screen has one, looks at the command for a moment.
+ * In a Step, where the mount inserts commands, the button is Insert: it asks
+ * the page to put the command into the Step's Where, and never sends it.
  */
 export function Command({
   text,
@@ -55,6 +66,12 @@ export function Command({
 }: CommandProps) {
   const code = useRef<HTMLElement>(null);
   const { state, copies, label, copy } = useCopy(code);
+  const target = useContext(CommandTargetContext);
+  const { command } = useSlots();
+  const look = usePipLook();
+  const [inserts, setInserts] = useState(0);
+  const insert =
+    command?.action === "insert" && target !== null ? command.insert : null;
 
   return (
     <div
@@ -97,27 +114,45 @@ export function Command({
           <span className="sr-only">You ran this</span>
         </span>
       )}
-      <button
-        type="button"
-        onClick={() => void copy(copied ?? text)}
-        aria-label={state === "idle" ? `Copy ${text}` : label}
-        className={cx(
-          "inline-flex h-7.5 shrink-0 cursor-pointer items-center gap-1.5 rounded-sm border border-transparent bg-code-control px-2.5 font-sans text-xs font-semibold text-code-text",
-          "transition-[background-color,translate,scale] duration-(--duration-fast) ease-out",
-          "hover:bg-code-control-hover active:duration-(--duration-press) active:translate-y-(--press-y) active:scale-(--press-scale)",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-on-code",
-        )}
-      >
-        <Icon
-          key={`${state}-${String(copies)}`}
-          name={state === "idle" ? "copy" : "check"}
-          size="sm"
-          className={state === "idle" ? undefined : "animate-pop"}
-        />
-        <span aria-hidden="true">{label}</span>
-      </button>
+      {insert !== null && target !== null ? (
+        <button
+          type="button"
+          data-insert=""
+          onClick={() => {
+            look("command", code.current);
+            const result = insert({
+              text: copied ?? text,
+              where: target.where,
+              terminal: target.terminal,
+            });
+            if (result === "inserted") setInserts((n) => n + 1);
+          }}
+          aria-label={`Insert ${text}`}
+          className={BUTTON}
+        >
+          <Icon name="terminal" size="sm" />
+          <span aria-hidden="true">Insert</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void copy(copied ?? text)}
+          aria-label={state === "idle" ? `Copy ${text}` : label}
+          className={BUTTON}
+        >
+          <Icon
+            key={`${state}-${String(copies)}`}
+            name={state === "idle" ? "copy" : "check"}
+            size="sm"
+            className={state === "idle" ? undefined : "animate-pop"}
+          />
+          <span aria-hidden="true">{label}</span>
+        </button>
+      )}
       <span role="status" className="sr-only">
-        {state !== "idle" && (
+        {/* A new node for each Insert, so a repeat is announced. "Asked": the page asks about the draft itself. */}
+        {insert !== null && inserts > 0 && <span key={inserts}>Inserted</span>}
+        {insert === null && state !== "idle" && (
           // A new node for each Copy, so a repeat is announced, not dropped as unchanged.
           <span key={copies}>
             {state === "copied"

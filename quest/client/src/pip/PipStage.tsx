@@ -7,9 +7,9 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
-import { useLocation } from "react-router";
 import type { PipModel } from "../../pip/contract";
 import { useConnection, useLiveFeed } from "../live/LiveProvider";
+import { useRouteHandle, useScreenPath } from "../mount/context";
 import { useCourseSnapshot } from "../screens/lesson";
 import { motionReduced, pageHidden, useReducedMotion } from "../lib/page";
 import type { DirectorInput, LookTarget } from "./director";
@@ -133,20 +133,24 @@ const ACTIVITY_MS = 1000;
  * whether the connection is lost, and read by every Pip on screen.
  */
 export function PipStageProvider({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation();
+  const pathname = useScreenPath();
+  const handleScreen = useRouteHandle().screen;
   // A Step-down shares the step's route: the phase tells them apart.
   const phase = useCourseSnapshot()?.lesson.phase;
   const [stage] = useState(() =>
     createPipStage(pageClock, {
-      screen: screenFor(pathname, phase),
+      screen: screenFor(pathname, phase, handleScreen),
       reducedMotion: motionReduced(),
       hidden: pageHidden(),
     }),
   );
 
   useEffect(() => {
-    stage.send({ type: "screen", screen: screenFor(pathname, phase) });
-  }, [stage, pathname, phase]);
+    stage.send({
+      type: "screen",
+      screen: screenFor(pathname, phase, handleScreen),
+    });
+  }, [stage, pathname, phase, handleScreen]);
 
   const reducedMotion = useReducedMotion();
   useEffect(() => {

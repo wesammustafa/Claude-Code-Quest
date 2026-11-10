@@ -3,6 +3,8 @@ import type { LevelId, Snapshot } from "@quest/contract";
 import { ButtonLink } from "../components/Button";
 import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES } from "../course/labels";
+import { useSlots } from "../mount/context";
+import { useProductName } from "../mount/copy";
 import { Pip } from "../pip/Pip";
 import { PageTitle } from "../shell/PageTitle";
 import { Waiting } from "./LessonGate";
@@ -128,6 +130,8 @@ function LevelNext({
  */
 export function CourseComplete() {
   const snapshot = useCourseSnapshot();
+  const product = useProductName();
+  const { courseCompleteExtra: Extra } = useSlots();
   useClaimMilestone((m) => m.type === "course.completed");
   if (!snapshot) return <Waiting />;
   const { levels } = snapshot.course;
@@ -137,7 +141,7 @@ export function CourseComplete() {
     <main className={MOMENT}>
       <Pip size="hero" className="mb-2" />
       <span className={EYEBROW}>Course complete</span>
-      <PageTitle title="You finished Claude Code Quest" className={TITLE} />
+      <PageTitle title={`You finished ${product}`} className={TITLE} />
       <p className="text-muted">All three levels are complete.</p>
       {levels.map((view) => (
         <section
@@ -165,6 +169,7 @@ export function CourseComplete() {
           </ul>
         </section>
       ))}
+      {Extra && <Extra />}
       <div className="flex flex-wrap items-center justify-center gap-4">
         <ButtonLink to="/progress" variant="primary" iconEnd="arrow">
           See your progress

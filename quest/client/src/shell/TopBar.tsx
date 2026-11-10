@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, useMatch } from "react-router";
+import { Link, NavLink, useLocation, useMatch } from "react-router";
 import type { Snapshot, StepSummary } from "@quest/contract";
 import { Button } from "../components/Button";
 import { Command } from "../components/Command";
@@ -8,6 +8,7 @@ import { IconButton } from "../components/IconButton";
 import { InlineText } from "../components/InlineText";
 import { Panel } from "../components/Panel";
 import { LEVEL_NAMES, lessonEyebrow, lessonLabel } from "../course/labels";
+import { useRouteHandle, useRouterPath, useSlots } from "../mount/context";
 import { usePagePanel } from "../pages/PagePanel";
 import { summaryOf, useCourseSnapshot } from "../screens/lesson";
 import { BrandMark } from "./BrandMark";
@@ -32,8 +33,9 @@ function MainLink({
   icon: IconName;
   children: string;
 }) {
+  const path = useRouterPath();
   return (
-    <NavLink to={to} className={NAV_LINK}>
+    <NavLink to={path(to)} className={NAV_LINK}>
       <Icon name={icon} />
       <span className="max-md:sr-only">{children}</span>
     </NavLink>
@@ -118,6 +120,16 @@ export function TopBar() {
   const closePanel = () => {
     setPanel(null);
   };
+  const { topBarEnd: End } = useSlots();
+  const path = useRouterPath();
+  // A route whose handle asks for Settings opens it on each arrival.
+  const settingsRoute = useRouteHandle().settings === true;
+  const { key } = useLocation();
+  const [arrival, setArrival] = useState<string | null>(null);
+  if (settingsRoute && arrival !== key) {
+    setArrival(key);
+    setPanel("settings");
+  }
   const pages = usePagePanel();
   const steps =
     active &&
@@ -142,13 +154,13 @@ export function TopBar() {
           className="flex min-w-0 items-center gap-1 text-sm"
         >
           {/* The crumbs need the room of a wide window, and Steps shows its label from md: narrower, either would crowd the brand or the main nav and push this cluster off centre. */}
-          <Link to="/journey" className={`${CRUMB} max-lg:hidden`}>
+          <Link to={path("/journey")} className={`${CRUMB} max-lg:hidden`}>
             {levelName}
           </Link>
           <Icon name="chevron" size="sm" className="text-muted max-lg:hidden" />
           {/* On the Lesson's overview this crumb is the current page, which NavLink marks. */}
           <NavLink
-            to={`/lesson/${lesson.id}`}
+            to={path(`/lesson/${lesson.id}`)}
             end
             className={`${CRUMB} max-lg:hidden`}
           >
@@ -203,6 +215,7 @@ export function TopBar() {
             setPanel("settings");
           }}
         />
+        {End && <End />}
       </nav>
 
       <Panel

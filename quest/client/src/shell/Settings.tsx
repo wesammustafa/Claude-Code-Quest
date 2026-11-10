@@ -9,6 +9,7 @@ import {
   readTheme,
   type ThemeChoice,
 } from "../lib/settings";
+import { useSlots } from "../mount/context";
 import { pageIndex } from "../pages/fetch";
 import { WorkFolders } from "./WorkFolders";
 
@@ -42,7 +43,9 @@ function releaseText(release: Release): string {
  * The Settings panel's body: the theme and motion choices, which apply at
  * once and stay in this browser; the Work folders slot; Help, which opens the
  * reference pages in the page panel; and the release the pages came from,
- * read from the page index when the panel opens.
+ * read from the page index when the panel opens. A mount adds its own
+ * sections after Work folders and may hide Work folders, the release and the
+ * Codespace line.
  */
 export function SettingsBody({
   onOpenPage,
@@ -54,6 +57,9 @@ export function SettingsBody({
   const [release, setRelease] = useState<Release>({ state: "loading" });
   const foldersId = useId();
   const helpId = useId();
+  const { settingsSections = [], settingsHide = [] } = useSlots();
+  const shows = (part: "work-folders" | "release" | "codespace") =>
+    !settingsHide.includes(part);
 
   useEffect(() => {
     let live = true;
@@ -90,16 +96,21 @@ export function SettingsBody({
           applyMotion(choice);
         }}
       />
-      <section
-        aria-labelledby={foldersId}
-        data-settings="work-folders"
-        className="grid gap-2"
-      >
-        <h3 id={foldersId} className="text-sm font-semibold">
-          Work folders
-        </h3>
-        <WorkFolders />
-      </section>
+      {shows("work-folders") && (
+        <section
+          aria-labelledby={foldersId}
+          data-settings="work-folders"
+          className="grid gap-2"
+        >
+          <h3 id={foldersId} className="text-sm font-semibold">
+            Work folders
+          </h3>
+          <WorkFolders />
+        </section>
+      )}
+      {settingsSections.map((Section, i) => (
+        <Section key={i} />
+      ))}
       <section aria-labelledby={helpId} className="grid gap-2">
         <h3 id={helpId} className="text-sm font-semibold">
           Help
@@ -131,15 +142,20 @@ export function SettingsBody({
           Anthropic.
         </p>
       </section>
-      <p
-        className="text-sm text-muted"
-        data-ref={release.state === "ready" ? release.ref : undefined}
-      >
-        {releaseText(release)}
-      </p>
-      <p className="text-sm text-muted">
-        In a Codespace, keep the port private: the app is for you alone.
-      </p>
+      {shows("release") && (
+        <p
+          className="text-sm text-muted"
+          data-settings="release"
+          data-ref={release.state === "ready" ? release.ref : undefined}
+        >
+          {releaseText(release)}
+        </p>
+      )}
+      {shows("codespace") && (
+        <p className="text-sm text-muted" data-settings="codespace">
+          In a Codespace, keep the port private: the app is for you alone.
+        </p>
+      )}
     </>
   );
 }

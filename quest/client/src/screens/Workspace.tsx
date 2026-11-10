@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import type {
   BeatKey,
   BeatLine,
@@ -26,6 +33,7 @@ import { Where } from "../components/Where";
 import { LEVEL_NAMES, lessonEyebrow } from "../course/labels";
 import { useAct, useActionsEnabled } from "../live/LiveProvider";
 import { useActionProps, useSend } from "../live/useAction";
+import { CommandTargetContext, useExternal, useSlots } from "../mount/context";
 import { ReadLesson } from "../pages/ReadLesson";
 import {
   useHelpShowing,
@@ -37,7 +45,7 @@ import { ActionBar } from "../shell/ActionBar";
 import { Pip } from "../pip/Pip";
 import { PageTitle } from "../shell/PageTitle";
 import { LessonGate } from "./LessonGate";
-import { EYEBROW, MOMENT, WORKSPACE_COLUMN } from "./layout";
+import { EYEBROW, MOMENT, PANE_COLUMN, WORKSPACE_COLUMN } from "./layout";
 import {
   answerMarks,
   checkLines,
@@ -226,9 +234,15 @@ function Play({
     main.current?.querySelector<HTMLElement>("[data-page-title]")?.focus();
   };
 
+  const slots = useSlots();
+  const checkWaiting = useExternal(slots.checkWaiting, null);
+  const [more, setMore] = useState(false);
   const runKey = useRunKey(beat.status);
   const seconds = useCheckClock(beat.status);
   const status = statusOf(beat, step.part === "Check");
+  // The mount's words in place of a pending Check's running line.
+  const waitingWords =
+    beat.status === "checking" && checkWaiting !== null ? checkWaiting : null;
   const at = lesson.steps.findIndex((s) => s.id === step.id);
   const hints = lesson.hints.shown.map((hint) =>
     hintRung(hint, step.where?.kind ?? null),
@@ -258,10 +272,17 @@ function Play({
     ? `Tear down, step ${String(tearDowns.findIndex((s) => s.id === step.id) + 1)} of ${String(tearDowns.length)}`
     : `Step ${String(at + 1)} of ${String(lesson.steps.length)}`;
   const priorNote = cardNote(step, lesson.capstone);
+  const Pane = slots.practicePane;
+  const ExtraLines = slots.checkLinesExtra;
+  const whereSlot = slots.where;
+  const target = {
+    where: where?.kind ?? null,
+    terminal: where?.terminal ?? null,
+  };
 
-  return (
-    <>
-      <main ref={main} className={WORKSPACE_COLUMN}>
+  const column = (
+    <CommandTargetContext value={target}>
+      <main ref={main} className={Pane ? PANE_COLUMN : WORKSPACE_COLUMN}>
         <StepDots
           steps={lesson.steps.map((s) => s.title)}
           at={Math.max(at, 0)}
@@ -273,7 +294,7 @@ function Play({
             the offer under it, so its buttons are never said with them. */}
         <Says
           tone={offering ? "offer" : status.tone}
-          textKey={status.key}
+          textKey={waitingWords !== null ? "check-waiting" : status.key}
           aside={
             seconds !== null && (
               <span
@@ -300,7 +321,7 @@ function Play({
                 aria-hidden="true"
               />
             )}
-            {status.words}
+            {waitingWords ?? status.words}
           </span>
         </Says>
         <article
@@ -323,7 +344,22 @@ function Play({
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-sm text-muted">{step.part}</span>
               <Tier tier={step.tier} />
-              {where && (
+              {where && whereSlot && (
+                // The mount's label carries the number itself.
+                <Where
+                  kind={where.kind}
+                  label={whereSlot.labels[where.kind]}
+                  {...(whereSlot.focus
+                    ? {
+                        onPress: () => {
+                          whereSlot.focus?.(where.kind, where.terminal);
+                        },
+                      }
+                    : {})}
+                  {...(where.folder ? { note: `in ${where.folder}` } : {})}
+                />
+              )}
+              {where && !whereSlot && (
                 <Where
                   kind={where.kind}
                   label={WHERE[where.kind]}
@@ -376,6 +412,12 @@ function Play({
               }))}
             />
           )}
+          {lines.length > 0 && ExtraLines && (
+            <ExtraLines
+              beat={beatKey(lesson.id, step.id, beat.index)}
+              pass={passed}
+            />
+          )}
           {passed && ranIn !== null && <p data-ran-in="">{RUN_IT_TOO}</p>}
           {beat.winNote && (
             <p data-win-note="">
@@ -415,8 +457,55 @@ function Play({
         )}
         <Offers lesson={lesson} />
       </main>
-      <Actions lesson={lesson} step={step} beat={beat} />
-    </>
+    </CommandTargetContext>
+  );
+
+  if (!Pane)
+    return (
+      <>
+        {column}
+        <Actions lesson={lesson} step={step} beat={beat} />
+      </>
+    );
+  // Two regions: the Lesson column, its action bar inside it, beside the
+  // practice pane (app.css lays them out). On a narrow screen the column is
+  // a strip above the pane that scrolls in itself; More lets it grow, and
+  // working in the pane puts it back.
+  return (
+    <div data-lesson-regions="">
+      <div data-lesson-column="" {...(more ? { "data-expanded": "" } : {})}>
+        <div data-lesson-strip="">{column}</div>
+        <button
+          type="button"
+          data-strip-more=""
+          aria-expanded={more}
+          onClick={() => {
+            setMore(!more);
+          }}
+          className="mx-auto cursor-pointer rounded-sm px-2 py-1 text-sm text-muted hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus lg:hidden"
+        >
+          {more ? "Less" : "More"}
+        </button>
+        <Actions lesson={lesson} step={step} beat={beat} inline />
+      </div>
+      <div
+        data-practice-pane=""
+        data-pip-target="work"
+        onFocus={() => {
+          setMore(false);
+        }}
+      >
+        <Pane
+          beat={{
+            lesson: lesson.id,
+            step: step.id,
+            beat: beat.index,
+            where: target.where,
+            terminal: target.terminal,
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -892,11 +981,14 @@ function Actions({
   lesson,
   step,
   beat,
+  inline = false,
 }: {
   lesson: PlayingLesson;
   step: StepView;
   beat: BeatView;
+  inline?: boolean;
 }) {
+  const { stepActionsStart: Start, onStepNext } = useSlots();
   const revisit = useActionProps("step.revisit", { type: "step.revisit" });
   const skip = useActionProps("step.skip", { type: "step.skip" });
   const check = useActionProps("check.run", {
@@ -905,7 +997,17 @@ function Actions({
   });
   const markDone = useActionProps("step.markDone", { type: "step.markDone" });
   const ended = useActionProps("session.ended", { type: "session.ended" });
-  const next = useActionProps("step.continue", { type: "step.continue" });
+  const sendNext = useActionProps("step.continue", { type: "step.continue" });
+  // The mount hears Next inside the click itself, and only when it sends.
+  const next = onStepNext
+    ? {
+        ...sendNext,
+        onClick: (event: MouseEvent<HTMLButtonElement>) => {
+          if (sendNext["aria-disabled"] !== true) onStepNext(step.id);
+          sendNext.onClick(event);
+        },
+      }
+    : sendNext;
   const props = {
     "step.continue": next,
     "check.run": check,
@@ -913,19 +1015,28 @@ function Actions({
     "session.ended": ended,
   };
   const action = primaryAction(beat);
+  const back = lesson.offers.back && (
+    <Button
+      variant="ghost"
+      icon="back"
+      aria-describedby={BACK_NOTE}
+      {...revisit}
+    >
+      Back
+    </Button>
+  );
 
   return (
     <ActionBar
+      inline={inline}
       start={
-        lesson.offers.back && (
-          <Button
-            variant="ghost"
-            icon="back"
-            aria-describedby={BACK_NOTE}
-            {...revisit}
-          >
-            Back
-          </Button>
+        Start ? (
+          <>
+            <Start />
+            {back}
+          </>
+        ) : (
+          back
         )
       }
     >

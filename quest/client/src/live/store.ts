@@ -46,7 +46,7 @@ export interface LiveState {
   connection: Connection;
   /** The keys of the actions in flight. */
   pending: ReadonlySet<string>;
-  /** Actions may be sent: a snapshot is held and the stream is up. */
+  /** Actions may be sent: a snapshot is held, the stream is up, and the transport has not turned them off. */
   actionsEnabled: boolean;
   /**
    * The oldest pending milestone no tab has shown, or null. A notice is
@@ -71,6 +71,12 @@ export interface LiveDeps extends Omit<StreamDeps, "EventSource"> {
   shown: () => ShownEvents;
   /** Makes an id for each action request, where given (a UUID). */
   actionId?: (() => string) | undefined;
+  /**
+   * Where given, actions are off while `get()` is true (a read-only tab,
+   * say), whatever the stream's state; re-read on each `subscribe` call.
+   */
+  actionsOff?:
+    { get(): boolean; subscribe(fn: () => void): () => void } | undefined;
 }
 
 export interface LiveStore {
@@ -231,6 +237,14 @@ export function createLiveStore(deps: LiveDeps): LiveStore {
   });
 
   // ---- the connection ----
+  // Whether the stream is up with a snapshot; actions are on while it is,
+  // unless the transport turns them off.
+  let up = false;
+  const off = () => deps.actionsOff?.get() === true;
+  const offChanged = () => {
+    const enabled = up && !off();
+    if (enabled !== state.actionsEnabled) set({ actionsEnabled: enabled });
+  };
   let droppedAt: number | null = null;
   const timers: unknown[] = [];
   const clearTimers = () => {
@@ -254,6 +268,7 @@ export function createLiveStore(deps: LiveDeps): LiveStore {
     const now = deps.now();
     if (droppedAt === null) {
       droppedAt = now;
+      up = false;
       set({ actionsEnabled: false });
       timers.push(
         // Reconnecting only once a snapshot was held: before that the page
@@ -271,13 +286,16 @@ export function createLiveStore(deps: LiveDeps): LiveStore {
   // Parked while hidden: no stream, so no actions, but no drop either.
   const parked = () => {
     flush();
+    up = false;
     if (state.actionsEnabled) set({ actionsEnabled: false });
   };
   const connected = () => {
     droppedAt = null;
     clearTimers();
-    if (state.connection !== "connected" || !state.actionsEnabled)
-      set({ connection: "connected", actionsEnabled: true });
+    up = true;
+    const enabled = !off();
+    if (state.connection !== "connected" || state.actionsEnabled !== enabled)
+      set({ connection: "connected", actionsEnabled: enabled });
   };
 
   const frame = (name: FrameName, data: unknown, eventId: string) => {
@@ -353,12 +371,15 @@ export function createLiveStore(deps: LiveDeps): LiveStore {
       if (EventSource === null || !closed) return () => undefined;
       closed = false;
       ledger = deps.shown();
+      const unwatch = deps.actionsOff?.subscribe(offChanged);
       stream = openStream(
         { ...deps, EventSource },
         { after: () => lastId, frame, failed, parked },
       );
       return () => {
         closed = true;
+        up = false;
+        unwatch?.();
         stream?.close();
         stream = null;
         clearTimers();

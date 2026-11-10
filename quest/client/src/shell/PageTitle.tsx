@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { cx } from "../lib/cx";
+import { useProductName } from "../mount/copy";
 
 export interface PageTitleProps {
   /** The tab's title; the brand follows it. */
@@ -13,9 +14,10 @@ export interface PageTitleProps {
  * to it after a route change so a screen reader starts at the new screen.
  */
 export function PageTitle({ title, className, children }: PageTitleProps) {
+  const product = useProductName();
   useEffect(() => {
-    document.title = `${title} · Claude Code Quest`;
-  }, [title]);
+    document.title = `${title} · ${product}`;
+  }, [title, product]);
   return (
     <h1
       tabIndex={-1}

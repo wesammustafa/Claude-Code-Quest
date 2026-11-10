@@ -17,6 +17,7 @@ const ENTRIES = [
   "engine/src/index.ts",
   "engine/src/course-data.ts",
   "client/src/main.tsx",
+  "client/src/mount.tsx",
 ];
 const SPECIFIER =
   /(?:^|[\s;])(import|export)\s+(type\s+)?(?:[\w*{}\s,$]+?\s+from\s+)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/gm;

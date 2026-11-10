@@ -8,6 +8,7 @@ import { InlineText } from "../components/InlineText";
 import { Tier } from "../components/Tier";
 import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
+import { useSlots } from "../mount/context";
 import { githubTree, pageIndex } from "../pages/fetch";
 import { ReadLesson } from "../pages/ReadLesson";
 import { Pip } from "../pip/Pip";
@@ -86,6 +87,7 @@ export function LessonComplete() {
   const reveal = useReveal(active?.lesson ?? null);
   const levelPending = useLevelPending(active?.lesson ?? null);
   const ref = useReleaseRef();
+  const { lessonCompleteExtra: Extra } = useSlots();
   if (!active) return <LessonGate />;
   const { lesson, summary } = active;
   const passed = lesson.checkSummary.filter((line) => line.pass).length;
@@ -173,6 +175,7 @@ export function LessonComplete() {
           </a>
         )}
       </div>
+      {Extra && <Extra lesson={lesson.id} />}
       {levelPending !== null ? (
         <ButtonLink
           to={levelPath(levelPending)}

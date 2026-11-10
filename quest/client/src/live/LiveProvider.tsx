@@ -9,18 +9,20 @@ import {
 } from "react";
 import type { Milestone, QuestAction, Snapshot } from "@quest/contract";
 import { pageHidden } from "../lib/page";
+import { useMount } from "../mount/context";
 import { SHOWN_CHANNEL, createShownEvents, type EventFeed } from "./events";
 import {
   createLiveStore,
   type ActOutcome,
   type Connection,
+  type LiveDeps,
   type LiveState,
   type LiveStore,
 } from "./store";
 
-/** The page's store, on the browser's stream, ledger, clock and fetch. */
-function pageStore(): LiveStore {
-  return createLiveStore({
+/** The page's own transport: the browser's stream, ledger, clock and fetch. */
+export function pageLiveDeps(): LiveDeps {
+  return {
     EventSource: typeof EventSource === "function" ? EventSource : null,
     setTimeout: (run, ms) => window.setTimeout(run, ms),
     clearTimeout: (handle) => {
@@ -42,7 +44,7 @@ function pageStore(): LiveStore {
           : null,
         "locks" in navigator ? navigator.locks : null,
       ),
-  });
+  };
 }
 
 /** Outside the provider (the Pip Playground, a component on its own) the page is offline: waiting, with no events. */
@@ -66,11 +68,13 @@ const offline: LiveStore = {
 const LiveContext = createContext<LiveStore>(offline);
 
 /**
- * The page's connection to Claude Code Quest: one store for the page,
- * connected while mounted, read through the hooks below.
+ * The page's connection to Claude Code Quest: one store for the page, on
+ * the mount's transport (the page's own without a mount), connected while
+ * mounted, read through the hooks below.
  */
 export function LiveProvider({ children }: { children: ReactNode }) {
-  const [store] = useState(pageStore);
+  const { live } = useMount();
+  const [store] = useState(() => createLiveStore(live ?? pageLiveDeps()));
   useEffect(() => store.connect(), [store]);
   return <LiveContext value={store}>{children}</LiveContext>;
 }

@@ -7,6 +7,7 @@ import { ProgressBar } from "../components/ProgressBar";
 import { lessonEyebrow } from "../course/labels";
 import { useConnection } from "../live/LiveProvider";
 import { useActionProps } from "../live/useAction";
+import { useSlots } from "../mount/context";
 import { Pip } from "../pip/Pip";
 import { PageTitle } from "../shell/PageTitle";
 import { BOX, EYEBROW, QUIET_LINK } from "./layout";
@@ -34,6 +35,7 @@ export function Welcome() {
       ? lesson
       : null;
   const name = snapshot?.learner.name ?? null;
+  const waitingLine = useSlots().copy?.waitingLine ?? WAITING_LINE;
 
   return (
     <main className={HERO}>
@@ -53,7 +55,7 @@ export function Welcome() {
           className="hidden text-sm text-muted [[data-connection=waiting]_&]:block"
           data-waiting-line=""
         >
-          {WAITING_LINE}
+          {waitingLine}
         </p>
       )}
     </main>
@@ -62,6 +64,7 @@ export function Welcome() {
 
 function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
   const navigate = useNavigate();
+  const welcomeLine = useSlots().copy?.welcomeLine;
   const first = snapshot?.course.next ?? null;
   const welcomed = snapshot?.learner.welcomed === true;
   const title = first !== null ? summaryOf(snapshot, first)?.title : undefined;
@@ -93,6 +96,11 @@ function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
         Every lesson happens in a real project, your Practice copy, with this
         page beside your terminal.
       </p>
+      {welcomeLine !== undefined && (
+        <p className="max-w-moment text-muted" data-welcome-line="">
+          {welcomeLine}
+        </p>
+      )}
       <ul className="my-2 grid w-full grid-cols-2 gap-3 text-left max-sm:grid-cols-1">
         <li className={`${BOX} gap-1 text-sm`}>
           <Icon name="browser" size="xl" className="mb-1 text-accent-text" />

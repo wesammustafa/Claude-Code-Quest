@@ -197,3 +197,92 @@
     }
   }
 }
+
+/* A Lesson screen with a mount's practice pane (Workspace.tsx): the Lesson
+   column and the pane as two regions. From lg the column sits at its width
+   beside the pane, which stays in view, sticky under the top. Below lg the
+   screen is one window high: the Lesson strip scrolls in itself above the
+   pane, its action bar pinned at its bottom, and More lets it grow. */
+@layer components {
+  [data-lesson-regions] {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--top-height));
+    overflow: hidden;
+
+    @variant lg {
+      display: grid;
+      grid-template-columns: var(--lesson-column-mid) minmax(0, 1fr);
+      align-items: start;
+      height: auto;
+      overflow: visible;
+    }
+    @variant xl {
+      grid-template-columns: var(--container-column) minmax(0, 1fr);
+    }
+  }
+
+  [data-lesson-column] {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    min-height: 0;
+
+    @variant lg {
+      display: block;
+      min-height: calc(100dvh - var(--top-height));
+    }
+  }
+
+  [data-lesson-strip] {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    mask-image: linear-gradient(
+      to bottom,
+      black calc(100% - var(--spacing) * 6),
+      transparent
+    );
+
+    @variant lg {
+      overflow: visible;
+      mask-image: none;
+    }
+  }
+
+  [data-lesson-column][data-expanded] [data-lesson-strip] {
+    flex-basis: var(--strip-more-height);
+    max-height: var(--strip-more-height);
+
+    @variant lg {
+      max-height: none;
+    }
+  }
+
+  [data-practice-pane] {
+    display: flex;
+    flex: 1 0 var(--terminal-min-height);
+    flex-direction: column;
+    min-height: 0;
+    padding: var(--practice-gutter);
+
+    @variant lg {
+      position: sticky;
+      top: var(--top-height);
+      height: calc(100dvh - var(--top-height));
+    }
+    & > * {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+  }
+
+  [data-lesson-column][data-expanded] + [data-practice-pane] {
+    flex-basis: 0;
+    flex-shrink: 1;
+
+    @variant lg {
+      flex-basis: auto;
+    }
+  }
+}

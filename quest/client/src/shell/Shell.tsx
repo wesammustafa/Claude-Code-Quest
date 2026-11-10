@@ -5,16 +5,24 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { Outlet, useLocation } from "react-router";
+import { Outlet } from "react-router";
 import { Notice, type NoticeKind } from "../components/Notice";
 import { useHeightProperty } from "../lib/height-property";
 import { LiveProvider, useConnection } from "../live/LiveProvider";
 import type { Connection } from "../live/store";
+import {
+  RouteHandleContext,
+  useMatchedHandle,
+  useRouteHandle,
+  useScreenPath,
+  useTrailingSlash,
+} from "../mount/context";
 import { PagePanelProvider } from "../pages/PagePanel";
 import { PipStageProvider } from "../pip/PipStage";
 import { PendingMoment } from "../screens/LevelComplete";
 import { useCourseSnapshot } from "../screens/lesson";
 import { useLessonRoute } from "../screens/useLessonRoute";
+import { MountNotices } from "./MountNotices";
 import { SaveNotices } from "./SaveNotices";
 import { TopBar } from "./TopBar";
 
@@ -96,14 +104,17 @@ function useScreenFocus(
 
 /** The page's connection, around everything the shell shows. */
 export function Shell() {
+  const handle = useMatchedHandle();
   return (
-    <LiveProvider>
-      <PipStageProvider>
-        <PagePanelProvider>
-          <Frame />
-        </PagePanelProvider>
-      </PipStageProvider>
-    </LiveProvider>
+    <RouteHandleContext value={handle}>
+      <LiveProvider>
+        <PipStageProvider>
+          <PagePanelProvider>
+            <Frame />
+          </PagePanelProvider>
+        </PipStageProvider>
+      </LiveProvider>
+    </RouteHandleContext>
   );
 }
 
@@ -118,17 +129,21 @@ export function Shell() {
  * (`aria-busy`, `data-connection="waiting"`) for the styles to show. On a
  * Lesson's route the path follows the engine's place (useLessonRoute). On
  * Welcome and the journey a Level or course moment still waiting gets a link.
+ * An added route's handle can ask for either screen's frame.
  */
 function Frame(): ReactNode {
-  const location = useLocation();
+  useTrailingSlash();
+  const pathname = useScreenPath();
+  const handle = useRouteHandle();
   const screen = useRef<HTMLDivElement>(null);
   const top = useRef<HTMLDivElement>(null);
   useHeightProperty(top, "--top-height");
-  const welcome = location.pathname === "/";
+  const welcome = pathname === "/" || handle.screen === "welcome";
+  const journey = pathname === "/journey" || handle.screen === "journey";
   const connection = useConnection();
   const longWait = useLongWait(connection);
   useLessonRoute();
-  useScreenFocus(screen, location.pathname);
+  useScreenFocus(screen, pathname);
 
   return (
     <div className="min-h-dvh bg-bg bg-(image:--glow) bg-no-repeat">
@@ -137,17 +152,18 @@ function Frame(): ReactNode {
         {!welcome && <TopBar />}
         <Notice kind={NOTICES[connection]} />
         <SaveNotices />
+        <MountNotices />
       </div>
       <div
         ref={screen}
-        key={location.pathname}
+        key={pathname}
         data-screen=""
         {...(longWait
           ? { "aria-busy": true, "data-connection": "waiting" }
           : {})}
         className="animate-rise"
       >
-        {(welcome || location.pathname === "/journey") && <PendingMoment />}
+        {(welcome || journey) && <PendingMoment />}
         <Outlet />
       </div>
     </div>

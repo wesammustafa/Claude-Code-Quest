@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router";
 import type { FolderNeed, OverviewNote, StairStep } from "@quest/contract";
 import { Button } from "../components/Button";
 import { CODE, InlineText } from "../components/InlineText";
@@ -6,7 +7,8 @@ import { Says } from "../components/Says";
 import { Tier } from "../components/Tier";
 import { LessonBadge } from "../components/badges";
 import { lessonEyebrow } from "../course/labels";
-import { useActionProps } from "../live/useAction";
+import { useActionProps, type ActionProps } from "../live/useAction";
+import { useLessonAccess, useSlots } from "../mount/context";
 import { ReadLesson } from "../pages/ReadLesson";
 import { PageTitle } from "../shell/PageTitle";
 import { CheckLooksFor } from "./CheckLooksFor";
@@ -70,18 +72,29 @@ function noteText(note: OverviewNote): string | null {
 /**
  * A Lesson's overview: Pip with one line, the title, what the Lesson
  * teaches (quoted), its time and Badge, the help by part, and how to start.
- * Every word about Claude Code here is the snapshot's.
+ * Every word about Claude Code here is the snapshot's. A Lesson the mount
+ * keeps closed shows the mount's offer: in place of the start buttons behind
+ * a paywall, or above them, inert, while it needs a connection.
  */
 export function LessonOverview() {
   const active = useActiveLesson("overview");
-  const start = useActionProps("lesson.start", {
-    type: "lesson.start",
-    help: "planned",
-  });
-  const startLess = useActionProps("lesson.start.less", {
-    type: "lesson.start",
-    help: "less",
-  });
+  const access = useLessonAccess(useParams().lessonId ?? "");
+  const Offer = useSlots().lessonAccess?.Offer;
+  const inert = access === "needs-connection";
+  const start = useInert(
+    useActionProps("lesson.start", {
+      type: "lesson.start",
+      help: "planned",
+    }),
+    inert,
+  );
+  const startLess = useInert(
+    useActionProps("lesson.start.less", {
+      type: "lesson.start",
+      help: "less",
+    }),
+    inert,
+  );
   // Start over unmounts with the confirm that had focus: once the restart
   // lands, focus moves to Start.
   const actions = useRef<HTMLDivElement>(null);
@@ -284,9 +297,16 @@ export function LessonOverview() {
         </section>
       )}
 
+      {Offer && access === "needs-connection" && (
+        <Offer lesson={lesson.id} offer={access} />
+      )}
+
       <div ref={actions} className="flex flex-wrap items-center gap-2.5">
+        {Offer && access === "keep-going" && (
+          <Offer lesson={lesson.id} offer={access} />
+        )}
         {/* No start while the folder question waits for its answer. */}
-        {lesson.start?.planned && (
+        {access !== "keep-going" && lesson.start?.planned && (
           <Button
             variant="primary"
             size="lg"
@@ -297,17 +317,25 @@ export function LessonOverview() {
             {lesson.resumable ? "Resume" : "Start"}
           </Button>
         )}
-        {lesson.start?.less && (
+        {access !== "keep-going" && lesson.start?.less && (
           <Button size="lg" {...startLess}>
             Start with less help
           </Button>
         )}
-        {lesson.resumable && <StartOver lesson={lesson.id} />}
+        {access !== "keep-going" && lesson.resumable && (
+          <StartOver lesson={lesson.id} inert={inert} />
+        )}
         <span className="grow" />
         <ReadLesson />
       </div>
     </main>
   );
+}
+
+/** A start button's props, aria-disabled and doing nothing while `inert`. */
+function useInert(props: ActionProps, inert: boolean): ActionProps {
+  if (!inert) return props;
+  return { ...props, "aria-disabled": true, onClick: () => undefined };
 }
 
 /** The Work folder saved for this Lesson, or null where none is. */
@@ -355,7 +383,7 @@ function OpenFirst({
  * takes focus, and Escape says the same. The engine keeps the Badge and the
  * help used ("lesson.restart").
  */
-function StartOver({ lesson }: { lesson: string }) {
+function StartOver({ lesson, inert }: { lesson: string; inert: boolean }) {
   const [asking, setAsking] = useState(false);
   const trigger = useRef<HTMLSpanElement>(null);
   const group = useRef<HTMLDivElement>(null);
@@ -395,8 +423,9 @@ function StartOver({ lesson }: { lesson: string }) {
         <Button
           variant="ghost"
           size="lg"
+          {...(inert ? { "aria-disabled": true } : {})}
           onClick={() => {
-            setAsking(true);
+            if (!inert) setAsking(true);
           }}
         >
           Start over

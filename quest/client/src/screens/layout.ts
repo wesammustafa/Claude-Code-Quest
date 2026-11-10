@@ -8,6 +8,12 @@ export const COLUMN =
 export const WORKSPACE_COLUMN =
   "mx-auto grid max-w-column gap-5 px-5 pt-8 pb-[calc(var(--action-bar-height)+--spacing(8))] [&>*]:min-w-0";
 
+/**
+ * The Lesson column beside a practice pane: the region sets its width, and
+ * the action bar sits inside it, so no room is kept below for it.
+ */
+export const PANE_COLUMN = "grid gap-5 px-5 pt-8 pb-8 [&>*]:min-w-0";
+
 /** The Learning journey: a wider page. */
 export const WIDE =
   "mx-auto grid max-w-wide gap-5.5 px-6 pt-9 pb-24 max-sm:px-5";
