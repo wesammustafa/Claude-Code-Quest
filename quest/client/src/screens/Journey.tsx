@@ -1,5 +1,4 @@
 import { useCallback, useRef, useState, type KeyboardEvent } from "react";
-import { Link } from "react-router";
 import type { LessonSummary, LevelId, Snapshot } from "@quest/contract";
 import { Button, ButtonLink } from "../components/Button";
 import { Disclosure } from "../components/Disclosure";
@@ -10,6 +9,7 @@ import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { cx } from "../lib/cx";
 import { useBelow } from "../lib/media";
+import { Link } from "../mount/links";
 import { pageIndex, type PageEntry } from "../pages/fetch";
 import { usePagePanel } from "../pages/PagePanel";
 import { Pip } from "../pip/Pip";

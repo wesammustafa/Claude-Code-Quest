@@ -16,6 +16,7 @@ export type {
   BeatOnScreen,
   ClientMount,
   ClientSlots,
+  External,
   InsertRequest,
   InsertResult,
   LessonAccess,
@@ -29,7 +30,8 @@ export { Welcome } from "./screens/Welcome";
 
 /**
  * Renders the client into `root` on the mount's transport, router, added
- * screens and slots; returns the unmount, which closes the stream.
+ * screens and slots; returns the unmount, which closes the stream and does
+ * nothing when called again.
  */
 export function mountQuest(root: HTMLElement, mount: ClientMount): () => void {
   const kind = mount.router ?? "hash";
@@ -61,7 +63,10 @@ export function mountQuest(root: HTMLElement, mount: ClientMount): () => void {
       </MountContext>
     </StrictMode>,
   );
+  let mounted = true;
   return () => {
+    if (!mounted) return;
+    mounted = false;
     reactRoot.unmount();
     router.dispose();
   };

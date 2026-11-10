@@ -163,9 +163,12 @@ export function renderMounted(
   const notices = held<readonly Notice[]>([]);
   const checkWaiting = held<string | null>(null);
   const slots: ClientSlots = own ?? {
-    practicePane: ({ beat }) => (
+    practicePane: ({ beat, onInput }) => (
       <div data-test-pane="">
         {`${beat.lesson} ${beat.step} ${String(beat.beat)} ${beat.where ?? "none"} ${String(beat.terminal)}`}
+        <button type="button" onClick={onInput}>
+          Send input
+        </button>
       </div>
     ),
     command: {

@@ -1,7 +1,8 @@
-import { useNavigate, useParams } from "react-router";
+import { useParams } from "react-router";
 import type { ActiveLesson, LessonSummary, Snapshot } from "@quest/contract";
 import { useSnapshot } from "../live/LiveProvider";
 import { useActionProps, type ActionProps } from "../live/useAction";
+import { useQuestNavigate } from "../mount/links";
 
 type Phase = ActiveLesson["phase"];
 
@@ -79,7 +80,7 @@ export function useUnknownLesson(): boolean {
  * preview.
  */
 export function useOpenLesson(id: string): ActionProps {
-  const navigate = useNavigate();
+  const navigate = useQuestNavigate();
   return useActionProps(
     "lesson.open",
     { type: "lesson.open", lesson: id },

@@ -58,16 +58,6 @@ export function useScreenPath(): string {
   return pathname.slice(0, -1);
 }
 
-/** The path a screen navigates to, written as the router writes paths. */
-export function useRouterPath(): (path: string) => string {
-  const { router } = useMount();
-  return useCallback(
-    (path: string) =>
-      router === "browser" && !path.endsWith("/") ? `${path}/` : path,
-    [router],
-  );
-}
-
 /**
  * Under the browser router a path without its trailing `/` is replaced
  * with it before paint, so every screen has one URL and a reload of it is

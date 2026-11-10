@@ -167,4 +167,63 @@ describe("the client mount", () => {
       vi.unstubAllGlobals();
     }
   });
+  test("calling the returned unmount again does nothing", async () => {
+    const { mountQuest } = await import("./mount");
+    stubPageGlobals();
+    FakeEventSource.reset();
+    window.history.replaceState(null, "", "/#/journey");
+    const root = document.createElement("div");
+    document.body.append(root);
+    const live = fakeLive({ posts: [], fetched: [] }, () => step);
+    let stop: () => void = () => undefined;
+    act(() => {
+      stop = mountQuest(root, { live });
+    });
+    act(() => {
+      stop();
+    });
+    expect(() => {
+      act(() => {
+        stop();
+      });
+    }).not.toThrow();
+    expect(root).toBeEmptyDOMElement();
+    root.remove();
+    vi.unstubAllGlobals();
+    window.history.replaceState(null, "", "/");
+  });
+
+  test("on the hash router a built-in screen's frame follows its exact path: #/journey/ is not the journey", async () => {
+    const { mountQuest } = await import("./mount");
+    const gazeAt = (hash: string): string => {
+      stubPageGlobals();
+      FakeEventSource.reset();
+      window.history.replaceState(null, "", `/${hash}`);
+      const root = document.createElement("div");
+      document.body.append(root);
+      const live = fakeLive({ posts: [], fetched: [] }, () => step);
+      let stop: () => void = () => undefined;
+      act(() => {
+        stop = mountQuest(root, { live });
+      });
+      act(() => {
+        FakeEventSource.last.emit("snapshot", step);
+      });
+      const gaze =
+        root.querySelector("[data-pip-gaze]")?.getAttribute("data-pip-gaze") ??
+        "none";
+      act(() => {
+        stop();
+      });
+      root.remove();
+      vi.unstubAllGlobals();
+      return gaze;
+    };
+    const journey = gazeAt("#/journey");
+    const other = gazeAt("#/nope");
+    expect(journey).not.toBe(other);
+    expect(gazeAt("#/journey/")).toBe(other);
+    expect(gazeAt("#/Journey")).toBe(other);
+    window.history.replaceState(null, "", "/");
+  });
 });

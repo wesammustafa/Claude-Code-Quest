@@ -1,9 +1,10 @@
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 import type { LevelId, Snapshot } from "@quest/contract";
 import { ButtonLink } from "../components/Button";
 import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES } from "../course/labels";
 import { useSlots } from "../mount/context";
+import { Link } from "../mount/links";
 import { useProductName } from "../mount/copy";
 import { Pip } from "../pip/Pip";
 import { PageTitle } from "../shell/PageTitle";

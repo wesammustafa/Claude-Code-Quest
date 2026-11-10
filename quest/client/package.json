@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./mount": "./src/mount.tsx",
+    "./mount/types": "./src/mount/types.ts",
     "./src/*": "./src/*"
   },
   "scripts": {

@@ -29,8 +29,12 @@ export interface ClientMount {
 }
 
 export interface ClientSlots {
-  /** Rendered beside the Lesson column on a Lesson's step; with it, the screen lays out two regions. */
-  practicePane?: ComponentType<{ beat: BeatOnScreen }>;
+  /**
+   * Rendered beside the Lesson column on a Lesson's step; with it, the screen
+   * lays out two regions. The pane calls `onInput` when it sends input to the
+   * terminal, which collapses a narrow screen's expanded strip.
+   */
+  practicePane?: ComponentType<{ beat: BeatOnScreen; onInput: () => void }>;
   /** What a Step's Command blocks do: Copy (the default) or Insert. */
   command?:
     | { action: "copy" }
@@ -51,7 +55,10 @@ export interface ClientSlots {
   lessonCompleteExtra?: ComponentType<{ lesson: LessonId }>;
   /** On Course complete, after the Level lists and before the buttons. */
   courseCompleteExtra?: ComponentType;
-  /** Whether a Lesson may start; a closed one shows `Offer` instead. */
+  /**
+   * Whether a Lesson may start; a closed one shows `Offer` instead, on its
+   * overview and on its step route (a resume or a deep link).
+   */
   lessonAccess?: {
     get(lesson: LessonId): LessonAccess;
     subscribe(fn: () => void): () => void;

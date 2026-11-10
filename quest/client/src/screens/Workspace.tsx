@@ -1,4 +1,6 @@
+import { useParams } from "react-router";
 import {
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -33,7 +35,12 @@ import { Where } from "../components/Where";
 import { LEVEL_NAMES, lessonEyebrow } from "../course/labels";
 import { useAct, useActionsEnabled } from "../live/LiveProvider";
 import { useActionProps, useSend } from "../live/useAction";
-import { CommandTargetContext, useExternal, useSlots } from "../mount/context";
+import {
+  CommandTargetContext,
+  useExternal,
+  useLessonAccess,
+  useSlots,
+} from "../mount/context";
 import { ReadLesson } from "../pages/ReadLesson";
 import {
   useHelpShowing,
@@ -156,9 +163,23 @@ function useRunKey(status: Status): number {
  */
 export function Workspace() {
   const active = useActiveLesson("playing", "step-down");
+  const access = useLessonAccess(useParams().lessonId ?? "");
+  const Offer = useSlots().lessonAccess?.Offer;
   if (!active) return <LessonGate />;
   const { lesson } = active;
   const number = active.summary?.number ?? null;
+  // The step route is gated as Start is: a resume from Welcome or a deep
+  // link to a Lesson the mount keeps closed meets the same offer.
+  if (access !== "open" && Offer)
+    return (
+      <main className={MOMENT} data-lesson-closed={access}>
+        <span className={EYEBROW}>
+          {lessonEyebrow(lesson.level, number, lesson.capstone)}
+        </span>
+        <PageTitle title={lesson.title} className="text-3xl max-sm:text-2xl" />
+        <Offer lesson={lesson.id} offer={access} />
+      </main>
+    );
   if (lesson.phase === "step-down")
     return <StepDown lesson={lesson} number={number} />;
   if (lesson.step === null || lesson.beat === null)
@@ -237,6 +258,9 @@ function Play({
   const slots = useSlots();
   const checkWaiting = useExternal(slots.checkWaiting, null);
   const [more, setMore] = useState(false);
+  const collapse = useCallback(() => {
+    setMore(false);
+  }, []);
   const runKey = useRunKey(beat.status);
   const seconds = useCheckClock(beat.status);
   const status = statusOf(beat, step.part === "Check");
@@ -470,7 +494,7 @@ function Play({
   // Two regions: the Lesson column, its action bar inside it, beside the
   // practice pane (app.css lays them out). On a narrow screen the column is
   // a strip above the pane that scrolls in itself; More lets it grow, and
-  // working in the pane puts it back.
+  // the pane's onInput (it sent input to the terminal) puts it back.
   return (
     <div data-lesson-regions="">
       <div data-lesson-column="" {...(more ? { "data-expanded": "" } : {})}>
@@ -488,13 +512,7 @@ function Play({
         </button>
         <Actions lesson={lesson} step={step} beat={beat} inline />
       </div>
-      <div
-        data-practice-pane=""
-        data-pip-target="work"
-        onFocus={() => {
-          setMore(false);
-        }}
-      >
+      <div data-practice-pane="" data-pip-target="work">
         <Pane
           beat={{
             lesson: lesson.id,
@@ -503,6 +521,7 @@ function Play({
             where: target.where,
             terminal: target.terminal,
           }}
+          onInput={collapse}
         />
       </div>
     </div>

@@ -35,13 +35,13 @@ class PageEventSource implements EventSourceLike {
 const NO_NOTICES: readonly [] = [];
 
 const slots: ClientSlots = {
-  practicePane: () => (
+  practicePane: ({ onInput }) => (
     // The app's stylesheet builds only the utilities its own source names.
     <div
       data-test-terminal=""
       style={{ height: "100%", background: "var(--color-code-bg)" }}
     >
-      <textarea aria-label="Terminal input" />
+      <textarea aria-label="Terminal input" onInput={onInput} />
     </div>
   ),
   command: { action: "insert", insert: () => "inserted" },

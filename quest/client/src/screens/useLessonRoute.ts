@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router";
 import { useAct, useActionsEnabled } from "../live/LiveProvider";
-import { useRouterPath, useScreenPath } from "../mount/context";
+import { useScreenPath } from "../mount/context";
+import { useQuestNavigate } from "../mount/links";
 import { pathOf, summaryOf, useCourseSnapshot } from "./lesson";
 
 const LESSON_ROUTE = /^\/lesson\/([^/]+)(?:\/(?:step|complete))?\/?$/;
@@ -25,8 +25,7 @@ export function useLessonRoute(): void {
   // Without the browser router's trailing `/`, so a path that has it is
   // already the target and is never replaced again.
   const pathname = useScreenPath();
-  const routerPath = useRouterPath();
-  const navigate = useNavigate();
+  const navigate = useQuestNavigate();
   // The Lesson last asked for, so a render never sends it twice.
   const asked = useRef<string | null>(null);
 
@@ -60,7 +59,7 @@ export function useLessonRoute(): void {
     }
     asked.current = null;
     if (target !== null && target !== pathname)
-      void navigate(routerPath(target), { replace: true });
+      void navigate(target, { replace: true });
   }, [
     act,
     enabled,
@@ -69,7 +68,6 @@ export function useLessonRoute(): void {
     navigate,
     pathname,
     routeId,
-    routerPath,
     target,
     waitsToOpen,
   ]);

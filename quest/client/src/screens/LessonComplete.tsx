@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useState } from "react";
-import { Link } from "react-router";
 import type { CompleteLesson, LevelId } from "@quest/contract";
 import { NEW_BADGE } from "../components/Badge";
 import { Button, ButtonLink } from "../components/Button";
@@ -9,6 +8,7 @@ import { Tier } from "../components/Tier";
 import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { useSlots } from "../mount/context";
+import { Link } from "../mount/links";
 import { githubTree, pageIndex } from "../pages/fetch";
 import { ReadLesson } from "../pages/ReadLesson";
 import { Pip } from "../pip/Pip";

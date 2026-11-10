@@ -145,14 +145,13 @@ export function SettingsBody({
       {shows("release") && (
         <p
           className="text-sm text-muted"
-          data-settings="release"
           data-ref={release.state === "ready" ? release.ref : undefined}
         >
           {releaseText(release)}
         </p>
       )}
       {shows("codespace") && (
-        <p className="text-sm text-muted" data-settings="codespace">
+        <p className="text-sm text-muted">
           In a Codespace, keep the port private: the app is for you alone.
         </p>
       )}

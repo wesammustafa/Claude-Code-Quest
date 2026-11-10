@@ -1,8 +1,8 @@
-import { Link } from "react-router";
 import { Button } from "../components/Button";
 import { InlineText } from "../components/InlineText";
 import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
+import { Link } from "../mount/links";
 import { PageTitle } from "../shell/PageTitle";
 import { COLUMN, EYEBROW, QUIET_LINK } from "./layout";
 import { useCourseSnapshot, useOpenLesson } from "./lesson";

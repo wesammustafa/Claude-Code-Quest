@@ -5,11 +5,15 @@ import { describe, expect, test, vi } from "vitest";
 import type { Snapshot } from "@quest/contract";
 import {
   cardEntries,
+  beginnerDone,
   checkRunning,
   complete,
+  completeCapstone,
   courseDone,
   exactTaken,
+  levelCompleted,
   overview,
+  overviewAt,
   playing,
   playingWith,
   snapshotOf,
@@ -53,6 +57,21 @@ describe("every slot where 5.10 places it", () => {
     const more = screen.getByRole("button", { name: "More" });
     expect(more).toHaveAttribute("aria-expanded", "false");
     expect(before(more, bar)).toBe(true);
+  });
+
+  test("practicePane's onInput collapses the expanded strip, and focus in the pane alone keeps it", async () => {
+    renderMounted(STEP, step);
+    const more = screen.getByRole("button", { name: "More" });
+    await userEvent.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    const send = screen.getByRole("button", { name: "Send input" });
+    act(() => {
+      send.focus();
+    });
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    await userEvent.click(send);
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(more).toHaveTextContent("More");
   });
 
   test("command insert: a Step's command and the exact hint rung read Insert and send InsertRequest; the skills card keeps Copy", async () => {
@@ -147,8 +166,8 @@ describe("every slot where 5.10 places it", () => {
     expect(
       within(panel).queryByRole("heading", { name: "Work folders" }),
     ).not.toBeInTheDocument();
-    for (const part of ["work-folders", "release", "codespace"])
-      expect(panel.querySelector(`[data-settings="${part}"]`)).toBeNull();
+    expect(panel.querySelector('[data-settings="work-folders"]')).toBeNull();
+    expect(panel).not.toHaveTextContent(/Release|Built from commit/);
     expect(panel).not.toHaveTextContent("Codespace");
   });
 
@@ -212,6 +231,33 @@ describe("every slot where 5.10 places it", () => {
     await waitFor(() => {
       expect(mounted.posts.map((p) => p.action.type)).toEqual(["lesson.start"]);
     });
+  });
+
+  test("lessonAccess on the step route: a closed Lesson shows the offer in place of the step and the pane, as a resume or a deep link meets it", () => {
+    const mounted = renderMounted(STEP, step);
+    expect(one("[data-practice-pane]")).toBeInTheDocument();
+
+    mounted.access.set({ "b-1": { open: false, offer: "keep-going" } });
+    expect(document.querySelector("[data-practice-pane]")).toBeNull();
+    expect(document.querySelector("[data-lesson-regions]")).toBeNull();
+    expect(one("[data-lesson-closed]")).toHaveAttribute(
+      "data-lesson-closed",
+      "keep-going",
+    );
+    expect(one("[data-test-offer]")).toHaveTextContent(
+      "Offer keep-going for b-1",
+    );
+    expect(screen.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(window.location.pathname).toBe(STEP);
+
+    mounted.access.set({ "b-1": { open: false, offer: "needs-connection" } });
+    expect(one("[data-test-offer]")).toHaveTextContent(
+      "Offer needs-connection for b-1",
+    );
+
+    mounted.access.set({});
+    expect(document.querySelector("[data-test-offer]")).toBeNull();
+    expect(one("[data-practice-pane]")).toBeInTheDocument();
   });
 
   test("copy: productName in the tab title and course complete, waitingLine on Welcome, welcomeLine once", async () => {
@@ -384,5 +430,69 @@ describe("every slot where 5.10 places it", () => {
       .filter((link) => link.getAttribute("aria-current") === "page");
     expect(current).toHaveLength(1);
     expect(current[0]).toHaveAttribute("href", "/lesson/b-1/");
+  });
+  test("browser router: every same-origin link on every screen is written with its trailing slash, and opening a Lesson navigates to its slash path", async () => {
+    const screens: [string, Snapshot][] = [
+      ["/journey/", snapshotOf(overview)],
+      ["/progress/", snapshotOf(overview)],
+      ["/lesson/b-2/", snapshotOf(overview)],
+      ["/lesson/b-1/complete/", snapshotOf(complete)],
+      [
+        "/lesson/b-capstone/complete/",
+        snapshotOf(completeCapstone, {
+          course: beginnerDone,
+          milestones: levelCompleted,
+        }),
+      ],
+      [
+        "/level/b/complete/",
+        snapshotOf(completeCapstone, {
+          course: beginnerDone,
+          milestones: levelCompleted,
+        }),
+      ],
+      ["/course/complete/", snapshotOf(complete, { course: courseDone })],
+      ["/nope/", snapshotOf(overview)],
+    ];
+    for (const [path, snapshot] of screens) {
+      const mounted = renderMounted(path, snapshot, { slots: {} });
+      await screen.findByRole("heading", { level: 1 });
+      const hrefs = [...document.querySelectorAll("a[href]")]
+        .map((a) => a.getAttribute("href") ?? "")
+        .filter((href) => href.startsWith("/") && !href.startsWith("//"));
+      expect(hrefs.length, path).toBeGreaterThan(0);
+      for (const href of hrefs)
+        expect(href.split(/[?#]/)[0], `${path}: ${href}`).toMatch(/\/$/);
+      mounted.unmount();
+    }
+
+    // Browsing b-2 shows its preview; opening it navigates by its slash path.
+    const opened = renderMounted("/lesson/b-2/", snapshotOf(overview), {
+      slots: {},
+    });
+    const urls: string[] = [];
+    const record = (method: "pushState" | "replaceState") => {
+      const real = window.history[method].bind(window.history);
+      return vi
+        .spyOn(window.history, method)
+        .mockImplementation((data, unused, url) => {
+          urls.push(String(url));
+          real(data, unused, url);
+        });
+    };
+    const spies = [record("pushState"), record("replaceState")];
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open this lesson" }),
+    );
+    await waitFor(() => {
+      expect(opened.posts.map((p) => p.action.type)).toEqual(["lesson.open"]);
+    });
+    opened.send(snapshotOf(overviewAt("b-2"), { revision: 2 }));
+    await waitFor(() => {
+      expect(urls).toContain("/lesson/b-2/");
+    });
+    // Never the bare path, so the trailing-slash rule had nothing to replace.
+    expect(urls.filter((url) => !url.endsWith("/"))).toEqual([]);
+    for (const spy of spies) spy.mockRestore();
   });
 });

@@ -1,4 +1,3 @@
-import { Link, useNavigate } from "react-router";
 import type { PlayingLesson, Snapshot, StepDownLesson } from "@quest/contract";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
@@ -8,6 +7,7 @@ import { lessonEyebrow } from "../course/labels";
 import { useConnection } from "../live/LiveProvider";
 import { useActionProps } from "../live/useAction";
 import { useSlots } from "../mount/context";
+import { Link, useQuestNavigate } from "../mount/links";
 import { Pip } from "../pip/Pip";
 import { PageTitle } from "../shell/PageTitle";
 import { BOX, EYEBROW, QUIET_LINK } from "./layout";
@@ -63,7 +63,7 @@ export function Welcome() {
 }
 
 function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
-  const navigate = useNavigate();
+  const navigate = useQuestNavigate();
   const welcomeLine = useSlots().copy?.welcomeLine;
   const first = snapshot?.course.next ?? null;
   const welcomed = snapshot?.learner.welcomed === true;
@@ -155,7 +155,7 @@ function Resume({
   snapshot: Snapshot;
   lesson: PlayingLesson | StepDownLesson;
 }) {
-  const navigate = useNavigate();
+  const navigate = useQuestNavigate();
   const summary = summaryOf(snapshot, lesson.id);
   const [at, of] = placeOf(lesson);
   const go = () => void navigate(`/lesson/${lesson.id}/step`);

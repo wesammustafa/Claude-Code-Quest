@@ -137,8 +137,11 @@ test.describe("at 390 px", () => {
     const pinned = await box(bar(page));
     expect(pinned.y).toBeGreaterThanOrEqual(grown.y + grown.height - 0.5);
 
-    // Working in the terminal puts the strip back.
-    await page.getByRole("textbox", { name: "Terminal input" }).focus();
+    // Reading the terminal keeps the strip open; sending input puts it back.
+    const input = page.getByRole("textbox", { name: "Terminal input" });
+    await input.focus();
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+    await input.pressSequentially("ls");
     await expect(more).toHaveAttribute("aria-expanded", "false");
     expect((await box(pane(page))).height).toBeGreaterThanOrEqual(
       844 * 0.55 - 0.5,

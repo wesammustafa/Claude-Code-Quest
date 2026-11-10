@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Link, type LinkProps } from "react-router";
+import type { LinkProps } from "react-router";
 import { cx } from "../lib/cx";
+import { Link } from "../mount/links";
 import { Icon, type IconName } from "./Icon";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
