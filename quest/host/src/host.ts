@@ -15,6 +15,7 @@ import {
   evidence,
   folderOf,
   initialState,
+  inStepOf,
   introAsks,
   opensWithCheck,
   project,
@@ -46,6 +47,7 @@ import type {
   EngineState,
   Facts,
   HostInput,
+  JudgedInput,
   SavedProgress,
 } from "@quest/engine";
 import type { Flags } from "./flight.ts";
@@ -54,6 +56,8 @@ import type {
   FolderLook,
   Host,
   HostHeard,
+  HostInStep,
+  HostMilestone,
   HostOptions,
 } from "./types.ts";
 
@@ -124,6 +128,25 @@ const isMilestone = (e: QuestEvent) =>
   e.type === "level.completed" ||
   e.type === "course.completed" ||
   isNotice(e);
+// An event without its envelope, as a store keeps a pending milestone.
+function eventOf(envelope: EventEnvelope): QuestEvent {
+  const event: Partial<EventEnvelope> = structuredClone(envelope);
+  delete event.id;
+  delete event.revision;
+  delete event.serverTime;
+  return event as QuestEvent;
+}
+// A kept milestone a restart takes back: a milestone event, with its lesson.
+function keptMilestone(m: unknown): m is HostMilestone {
+  if (typeof m !== "object" || m === null) return false;
+  const { lesson, event } = m as { lesson?: unknown; event?: unknown };
+  return (
+    typeof lesson === "string" &&
+    typeof event === "object" &&
+    event !== null &&
+    isMilestone(event as QuestEvent)
+  );
+}
 // Where the Learner is, for an action based on an older place: the lesson,
 // its phase and the step on screen.
 const placeOf = (s: EngineState) =>
@@ -150,6 +173,7 @@ export function createHost({
   instance = globalThis.crypto.randomUUID(),
   home: givenHome,
   paths = posixPaths,
+  inStep: restored = null,
 }: HostOptions): Host {
   if (typeof instance !== "string" || !instance || instance.includes("."))
     throw new TypeError(`not an instance ID: ${instance}`);
@@ -189,6 +213,9 @@ export function createHost({
   let milestones: Pending[] = [];
   let view: EngineSnapshot | null = null;
   let viewJson: string | null = null;
+  // The input being reduced, until it is published: the state before it
+  // and its events, so a save inside it holds this turn's milestones.
+  let turn: { prev: EngineState; events: QuestEvent[] } | null = null;
 
   const snapshot = (): Snapshot | null =>
     view &&
@@ -214,22 +241,27 @@ export function createHost({
     for (const l of [...listeners]) l(heard);
   };
 
-  // After a reduce: a lesson that starts playing lapses the milestones of
-  // every other lesson; the revision grows where anything a tab sees
-  // changed; and each event goes out in its envelope, kept for a reconnect,
-  // a milestone pending too.
+  // The pending milestones after a reduce from `prev` to `next`: a lesson
+  // that starts playing lapses those of every other lesson.
+  function lapsed(prev: EngineState, next: EngineState): Pending[] {
+    const started = startedLesson(prev, next);
+    return started === null
+      ? milestones
+      : milestones.filter((m) => isNotice(m.envelope) || m.lesson === started);
+  }
+
+  // After a reduce: the milestones lapse; the revision grows where anything
+  // a tab sees changed; and each event goes out in its envelope, kept for a
+  // reconnect, a milestone pending too.
   function publish(
     prev: EngineState,
     state: EngineState,
     item: Item,
     events: QuestEvent[],
   ) {
-    const started = startedLesson(prev, state);
+    turn = null;
     const before = milestones.length;
-    if (started !== null)
-      milestones = milestones.filter(
-        (m) => isNotice(m.envelope) || m.lesson === started,
-      );
+    milestones = lapsed(prev, state);
     const next = project(state);
     const json = JSON.stringify(next);
     if (events.length || milestones.length !== before || json !== viewJson)
@@ -337,11 +369,16 @@ export function createHost({
   }
   // Those waiting for the queue to empty (Host.idle).
   const idlers: (() => void)[] = [];
+  function idle() {
+    if (!busy || closed) return Promise.resolve();
+    return new Promise<void>((resolve) => idlers.push(resolve));
+  }
   // One input reduced, and its effects run. With a `stamps` adapter (seam
   // S1), each stamp the engine asks for is answered in this same turn, from
   // what is on disk now, and the save runs once after them, so the save
   // that records a Step's opening holds its baselines.
   function reduceTurn(item: EngineInput): QuestEvent[] {
+    const prev = state as EngineState;
     const stamp = (s: EngineState, e: Item) =>
       engine.reduce(s, {
         now: clock.now(),
@@ -380,6 +417,7 @@ export function createHost({
       }
       effects = wantSave ? [...rest, { type: "save" }] : rest;
     }
+    turn = { prev, events };
     run(effects);
     return events;
   }
@@ -827,11 +865,27 @@ export function createHost({
         now: clock.now(),
         epoch: clock.epoch(),
         dir: ahead?.path,
+        ...(restored?.engine ? { inStep: restored.engine } : {}),
       });
       state = first;
       revision = 1;
       placeRevision = 1;
       place = placeOf(first);
+      // The milestones still pending before a restart, in envelopes of
+      // this instance: pending again, never events of the ring.
+      const kept = Array.isArray(restored?.milestones)
+        ? restored.milestones.filter(keptMilestone)
+        : [];
+      for (const m of kept)
+        milestones.push({
+          envelope: {
+            id: `${instance}.${String(++seq)}`,
+            revision,
+            serverTime: clock.epoch(),
+            ...m.event,
+          },
+          lesson: m.lesson,
+        });
       view = project(first);
       viewJson = JSON.stringify(view);
       // A save the store could not read: the first snapshot says so, a
@@ -923,9 +977,32 @@ export function createHost({
     snapshot,
     // Settles once every input taken so far is reduced, saved and published:
     // at once for a store that saves synchronously.
-    idle() {
-      if (!busy || closed) return Promise.resolve();
-      return new Promise<void>((resolve) => idlers.push(resolve));
+    idle,
+    // The pending milestones as the save being written should hold them:
+    // inside a turn, those its lesson leaves and the ones it marked.
+    inStep(): HostInStep | null {
+      if (!state) return null;
+      const now = state;
+      const pending = turn ? lapsed(turn.prev, now) : milestones;
+      return {
+        engine: inStepOf(now),
+        milestones: [
+          ...pending.map((m) => ({
+            lesson: m.lesson,
+            event: eventOf(m.envelope),
+          })),
+          ...(turn?.events ?? []).filter(isMilestone).map((event) => ({
+            lesson: now.lesson,
+            event: structuredClone(event),
+          })),
+        ],
+      };
+    },
+    judged(verdict: JudgedInput) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- a caller may send anything
+      if (verdict?.type !== "judged") throw new TypeError("not a judged input");
+      input(verdict);
+      return idle();
     },
     // The events after the one with this ID, oldest first ([] when it is the
     // newest), or null when it is not one this instance still holds: then

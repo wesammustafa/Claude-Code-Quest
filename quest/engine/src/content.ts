@@ -9,6 +9,7 @@ import { z } from "zod";
 import { frontmatter, type FrontValue } from "./frontmatter.ts";
 import { foldersOf, mapLinks, resolveLink, type GuideIndex } from "./links.ts";
 import type { Probe } from "./probes.ts";
+import type { HostJudgedBeat } from "./types.ts";
 import { inline } from "./text.ts";
 
 // ---- the parsed lesson ---------------------------------------------------------
@@ -1621,6 +1622,9 @@ export type CompiledLesson = ManifestLesson & {
   content: LessonContent;
   fingerprint: string;
   legacyFingerprint: string;
+  // The beats a host judges (seam S6), by "<step>.<index>": a build adds
+  // them; the guide's own compile never does.
+  judged?: Record<string, HostJudgedBeat>;
 };
 export interface CompiledCourse {
   levels: Manifest["levels"];

@@ -99,6 +99,7 @@ export function entryOf(
       fingerprint: lesson.fingerprint,
       legacyFingerprint: lesson.legacyFingerprint,
     }),
+    ...(lesson.judged && { judged: lesson.judged }),
   };
 }
 

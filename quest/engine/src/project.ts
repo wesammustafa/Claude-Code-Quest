@@ -65,6 +65,7 @@ import {
   hidesRuns,
   hintAvailable,
   hintStatus,
+  hostJudged,
   inCopy,
   isDone,
   isLastBeat,
@@ -590,7 +591,7 @@ function beatView(s: EngineState): BeatView {
     ask: beat.ask ?? null,
     self: beat.self ?? null,
     doneLabel: beat.doneLabel ?? null,
-    decidedBy: decidedBy(beat),
+    decidedBy: hostJudged(s) ? "check" : decidedBy(beat),
     ranIn: st.ranIn && !inCopy(s, st.ranIn) ? st.ranIn : null,
     watches: watchesOf(s),
     wait: beat.wait ? { text: beat.wait.text ?? null } : null,
@@ -645,6 +646,7 @@ function beatView(s: EngineState): BeatView {
     same: Boolean(st.same),
     slowWait: Boolean(st.slowWait),
     stale: Boolean(st.stale),
+    ...(st.note ? { note: st.note } : {}),
   };
 }
 
@@ -670,9 +672,15 @@ function recallOf(s: EngineState, beat: Beat) {
 // latest run that ran it this beat visit: passed, or Not yet while the beat
 // says Not yet; else it is pending too (ticket 344).
 function verificationOf(s: EngineState, beat: Beat) {
+  const st = beatState(s);
+  // A host-judged beat shows its last verdict's items (seam S6).
+  if (hostJudged(s))
+    return (st.passed ?? st.judged ?? []).map(({ text, pass }) => ({
+      text,
+      pass,
+    }));
   const v = beat.verify;
   if (v.kind !== "check") return [];
-  const st = beatState(s);
   const items = st.passed ?? s.checks[s.lesson]?.items ?? [];
   const slow = lessonIn(s).slow ?? [];
   return items
@@ -699,6 +707,12 @@ function brokenKind(message: string | null | undefined): BeatView["broken"] {
 }
 
 function hintView(s: EngineState, r: HintRung): HintView {
+  if (r.kind === "choice")
+    return {
+      kind: "choice",
+      legend: r.legend,
+      options: r.options.map((o) => ({ ...o })),
+    };
   if (r.kind !== "bottom") return { kind: r.kind, text: r.text };
   return {
     kind: "exact",

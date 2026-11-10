@@ -96,8 +96,23 @@ const WARMUP_EXPLAINER =
 const beatKey = (lesson: LessonId, step: StepId, index: number): BeatKey =>
   `${lesson}:${step}:${String(index)}`;
 
-/** A hint rung: the page's words, or the exact command with Copy. */
+/** A hint rung: the page's words, a choice's options, or the exact command with Copy. */
 function hintRung(hint: HintView, where: string | null): ReactNode {
+  if (hint.kind === "choice")
+    return (
+      <div className="grid gap-2">
+        <p>
+          <InlineText text={hint.legend} />
+        </p>
+        <ul className="grid gap-1">
+          {hint.options.map((option, i) => (
+            <li key={i}>
+              <InlineText text={option.text} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   if (hint.kind !== "exact") return hint.text;
   return hint.commands.map((command, i) => (
     <div key={i} className="grid gap-2">

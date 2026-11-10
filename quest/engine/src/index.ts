@@ -11,6 +11,7 @@ export {
   HELP_USED,
   IDLE_MS,
   initialState,
+  inStepOf,
   reduce,
 } from "./engine.ts";
 export { project, startedLesson } from "./project.ts";
@@ -58,6 +59,7 @@ export {
   hidesRuns,
   hintAvailable,
   hintStatus,
+  hostJudged,
   inCopy,
   introNotes,
   introOptions,
@@ -99,12 +101,17 @@ export type { EngineSnapshot } from "./project.ts";
 export type {
   BeatState,
   CheckItem,
+  ChoiceOption,
   CourseEntry,
   Effect,
   EngineInput,
+  EngineInStep,
   EngineState,
   Facts,
   HostInput,
+  HostJudgedBeat,
+  HostRung,
+  JudgedInput,
   LessonProgress,
   SavedProgress,
   Watch,

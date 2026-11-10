@@ -380,11 +380,19 @@ export interface BeatView {
   slowWait: boolean;
   /** The file has not changed since the step opened. */
   stale: boolean;
+  /** Seam S6: a host-judged beat's note under its passed lines, such as a missed bonus point's hint. */
+  note?: string;
 }
 
 /** A hint rung shown: a question, the Check's message, the page's words, or the exact command. */
 export type HintView =
   | { kind: "ask" | "check" | "quote"; text: string }
+  | {
+      /** Seam S6: a host-judged beat's choice of prompts, after Not yets in a row. */
+      kind: "choice";
+      legend: string;
+      options: { text: string; kind: "right" | "wrong"; because: string }[];
+    }
   | {
       kind: "exact";
       commands: {

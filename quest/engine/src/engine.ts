@@ -50,6 +50,7 @@ import type {
   CourseEntry,
   Effect,
   EngineInput,
+  EngineInStep,
   EngineState,
   Facts,
   Failing,
@@ -57,6 +58,8 @@ import type {
   HintRung,
   HostInput,
   HostInputOf,
+  HostJudgedBeat,
+  JudgedInput,
   LessonProgress,
   Outcome,
   SavedProgress,
@@ -124,6 +127,7 @@ export const ENGINE_FIELDS = [
   "epoch",
   "stepHelp",
   "changed",
+  "resume",
 ];
 
 const clone = <T>(x: T): T => structuredClone(x);
@@ -168,6 +172,7 @@ export function initialState({
   now = 0,
   epoch = 0,
   dir,
+  inStep = null,
 }: {
   course: CourseEntry[];
   saved?: SavedProgress | null;
@@ -176,12 +181,16 @@ export function initialState({
   epoch?: number;
   /** The folder --dir gave: the opening lesson's level's work folder. */
   dir?: string | undefined;
+  /** Seam S5: what inStepOf gave before a restart; null or absent changes nothing. */
+  inStep?: EngineInStep | null | undefined;
 }): EngineState {
   const progress: Record<LessonId, LessonProgress> = {};
   // The lessons whose steps changed since the Learner started them, and of
   // those the ones the Learner had a step open in.
   const changed: LessonId[] = [];
   const placed = new Set<LessonId>();
+  // Every lesson whose progress the changed steps started again.
+  const restarted = new Set<LessonId>();
   for (const l of course) {
     const p = saved?.lessons?.[l.id];
     const pr: LessonProgress = { ...blankProgress(), ...(p ?? {}) };
@@ -197,6 +206,7 @@ export function initialState({
     if ((pr.step || pr.done.length) && (pr.fingerprint ?? legacy) !== current) {
       if (pr.step || !pr.complete) changed.push(l.id);
       if (pr.step) placed.add(l.id);
+      restarted.add(l.id);
       progress[l.id] = {
         ...blankProgress(),
         complete: pr.complete,
@@ -226,7 +236,8 @@ export function initialState({
     else if (!(pr.beat >= 0 && pr.beat < step.beats.length)) pr.beat = 0;
     else if (!beatShown(pr, must(step.beats[pr.beat], "a saved beat")))
       pr.beat = shownBefore(pr, step, pr.beat);
-    // A saved pass holds only at the saved place, on a check beat (314).
+    // A saved pass holds only at the saved place, on a check beat (314) or
+    // a beat a host judges (seam S6).
     const kept = pr.passedCheck;
     if (
       kept &&
@@ -234,8 +245,9 @@ export function initialState({
         kept.step === pr.step &&
         kept.beat === pr.beat &&
         Array.isArray(kept.items) &&
-        steps.find((x) => x.id === pr.step)?.beats[pr.beat]?.verify.kind ===
-          "check"
+        (steps.find((x) => x.id === pr.step)?.beats[pr.beat]?.verify.kind ===
+          "check" ||
+          Boolean(l.judged?.[`${kept.step}.${String(kept.beat)}`]))
       )
     )
       delete pr.passedCheck;
@@ -336,7 +348,106 @@ export function initialState({
   // the copy it was given.
   const level = levelKey(s);
   if (dir !== undefined && level) setFolder(s, level, dir, []);
+  if (inStep) restoreInStep(s, inStep, restarted);
   return s;
+}
+
+// ---- in-Step state (seam S5) -------------------------------------------------
+// What the engine holds only in memory about the open Lesson's unfinished
+// Step: the help its steps used in this play, the beat's hint rung, unlock,
+// Not yet and streak, and a Step-down not yet taken. A store keeps it
+// beside the save, and initialState takes it back after a restart.
+export function inStepOf(s: EngineState): EngineInStep {
+  const prefix = `${s.lesson} `;
+  const help: Record<string, HelpUsed> = {};
+  for (const [key, used] of Object.entries(s.stepHelp))
+    if (key.startsWith(prefix)) help[key.slice(prefix.length)] = used;
+  // A resume not taken yet is still the place the Learner left.
+  const pending = s.resume?.lesson === s.lesson && !s.beat ? s.resume : null;
+  let at: EngineInStep["at"] = pending?.at ?? null;
+  if (onCard(s) && !isDone(s.beat)) {
+    const st = s.beat;
+    at = {
+      step: currentStep(s).id,
+      beat: s.pos.beat,
+      rung: st.rung,
+      confirm: st.confirm,
+      unlocked: st.unlocked,
+      notYets: st.notYets ?? 0,
+      fail: hintStatus(st) === "fail" && st.fail ? st.fail : null,
+      items: st.judged ?? null,
+    };
+  }
+  const stepDown: EngineInStep["stepDown"] =
+    s.phase === "step-down"
+      ? {
+          step: currentStep(s).id,
+          from: s.levelFrom ?? null,
+          to: must(s.levelTo, "a step-down has its level"),
+        }
+      : s.phase === "playing" && !s.beat
+        ? (pending?.stepDown ?? null)
+        : null;
+  return clone({ v: 1, lesson: s.lesson, help, at, stepDown });
+}
+
+// initialState's last pass: the help goes back into stepHelp, and the rest
+// waits in `resume` for the lesson to open. One for another version, for a
+// lesson the course lacks or whose steps changed, is dropped.
+function restoreInStep(
+  s: EngineState,
+  inStep: EngineInStep,
+  restarted: ReadonlySet<LessonId>,
+) {
+  // A store keeps it opaque, so its shape is checked, not trusted.
+  const kept = inStep as { v?: unknown; lesson?: unknown; help?: unknown };
+  if (
+    kept.v !== 1 ||
+    typeof kept.lesson !== "string" ||
+    typeof kept.help !== "object" ||
+    kept.help === null
+  )
+    return;
+  const content = contentOf(s, inStep.lesson);
+  if (!content || restarted.has(inStep.lesson)) return;
+  const ids = new Set([...content.steps, ...content.warmup].map((x) => x.id));
+  for (const [step, used] of Object.entries(inStep.help))
+    if (ids.has(step) && (HELP_USED as readonly string[]).includes(used))
+      s.stepHelp[`${inStep.lesson} ${step}`] = used;
+  s.resume = clone(inStep);
+}
+
+// The beat openBeat just opened takes the rung, unlock, streak and Not yet
+// a restart brought, where it is the beat they were taken on.
+function resumeBeat(s: CardState, at: NonNullable<EngineInStep["at"]>) {
+  const st = s.beat;
+  if (
+    at.step !== currentStep(s).id ||
+    at.beat !== s.pos.beat ||
+    isDone(st) ||
+    st.status === "broken"
+  )
+    return;
+  Object.assign(st, {
+    rung: at.rung,
+    confirm: at.confirm,
+    unlocked: at.unlocked,
+    notYets: at.notYets,
+  });
+  const fail = at.fail;
+  if (fail) {
+    // As a Not yet on screen: the arrival run that repeats it says nothing
+    // new, and one that differs is a real Not yet, as on a poll.
+    st.status = "fail";
+    st.fail = fail;
+    st.acted = true;
+    st.baseline = fail.paths ? fail.paths.join("\n") : (fail.hint ?? null);
+  }
+  if (at.items && hostJudged(s)) st.judged = at.items;
+  const rungs = rungsOf(s);
+  st.rung = Math.min(st.rung, rungs.length - 1);
+  st.confirm &&=
+    st.rung + 1 === rungs.length - 1 && rungs.at(-1)?.kind === "bottom";
 }
 
 // Where the Learner is (ticket 207): on a step card or on an overview. The
@@ -345,6 +456,13 @@ export function initialState({
 // screen): it only sits in the course.
 export const onCard = (s: EngineState): s is CardState =>
   s.phase === "playing" && Boolean(s.beat);
+// The host's mark on the beat at the place, or null (seam S6).
+const judgedMark = (s: EngineState): HostJudgedBeat | null =>
+  lessonOf(s)?.judged?.[answerKey(s)] ?? null;
+// The beat on the card, where a host judges it (seam S6): no verify of its
+// own runs, and only the host's `judged` input decides it.
+export const hostJudged = (s: EngineState): HostJudgedBeat | null =>
+  onCard(s) ? judgedMark(s) : null;
 const inOverview = (s: EngineState) =>
   s.phase === "overview" && Boolean(contentOf(s));
 
@@ -697,7 +815,7 @@ export const opensWithCheck = (s: EngineState) =>
 // What the wiring should keep an eye on for the beat on screen.
 // `dir` is the folder it runs in.
 export function watching(s: EngineState): Watch | null {
-  if (!onCard(s)) return null;
+  if (!onCard(s) || hostJudged(s)) return null;
   const dir = folderOf(s, s.lesson, currentStep(s));
   if (["done", "already"].includes(s.beat.status)) return null;
   const v = currentBeat(s).verify;
@@ -952,6 +1070,8 @@ export const hintStatus = (st: BeatState) =>
 // question for its FAIL message first, the lesson's words next, the bottom
 // line last.
 export function rungsOf(s: EngineState) {
+  const mark = hostJudged(s);
+  if (mark) return mark.ladder.map(rungOf);
   const beat = currentBeat(s);
   const lesson = must(contentOf(s), `no content for ${s.lesson}`);
   const st = beatState(s);
@@ -977,6 +1097,20 @@ export function rungsOf(s: EngineState) {
   return rungs;
 }
 
+// A host-judged beat's rung as the ladder shows it: its exact text is the
+// bottom rung, behind the same y/n.
+const rungOf = (r: HostJudgedBeat["ladder"][number]): HintRung =>
+  r.kind === "hint"
+    ? { kind: "quote", text: r.text }
+    : r.kind === "exact"
+      ? { kind: "bottom", lines: [{ text: r.text }] }
+      : {
+          kind: "choice",
+          legend: r.legend,
+          unlockAfterNotYets: r.unlockAfterNotYets,
+          options: r.options,
+        };
+
 // Where the step's state comes from (ticket 192): the earlier step a `back`
 // line names, with its place in play order and its title. The beat's own
 // line first; else the ladder block's for the item that FAILs, from a step
@@ -986,7 +1120,8 @@ export function backTo(s: EngineState) {
   if (!onCard(s) || isDone(s.beat)) return null;
   const st = s.beat;
   const steps = stepsOf(s);
-  const item = hintStatus(st) === "fail" ? st.fail?.item : null;
+  const item =
+    hintStatus(st) === "fail" && !hostJudged(s) ? st.fail?.item : null;
   const ladder = item
     ? must(contentOf(s), `no content for ${s.lesson}`).ladder.find(
         (l) => l.item === item,
@@ -1048,6 +1183,7 @@ export const hidesRuns = (s: EngineState) =>
 export function tryFirst(s: EngineState) {
   const beat = currentBeat(s);
   if (
+    hostJudged(s) ||
     beat.verify.kind === "check" ||
     beat.verify.kind === "probe" ||
     GIT.has(beat.verify.kind) ||
@@ -1121,6 +1257,13 @@ export function hintAvailable(s: EngineState) {
   if (currentBeat(s).kind === "type") return false;
   const rungs = rungsOf(s);
   if (!rungs.length || s.beat.rung >= rungs.length - 1) return false;
+  // A choice rung opens only after its Not yets in a row (seam S6).
+  const next = rungs[s.beat.rung + 1];
+  if (
+    next?.kind === "choice" &&
+    (s.beat.notYets ?? 0) < next.unlockAfterNotYets
+  )
+    return false;
   // A FAIL, r, a first wrong pick or two quiet minutes set `unlocked`.
   if (tierOf(s) === "challenge" && tryFirst(s)) return s.beat.unlocked;
   return true;
@@ -1174,8 +1317,9 @@ function openBeat(s: EngineState, effects: Effect[]) {
   // the run that passed it (ticket 314); a pass saved at another place is
   // over.
   const kept = p.passedCheck;
+  const mark = judgedMark(s);
   const keeps =
-    beat.verify.kind === "check" &&
+    (beat.verify.kind === "check" || mark !== null) &&
     kept?.step === step.id &&
     kept.beat === s.pos.beat;
   if (kept && !keeps) delete p.passedCheck;
@@ -1186,6 +1330,8 @@ function openBeat(s: EngineState, effects: Effect[]) {
   } else if (beat.codespace && s.facts.codespace) {
     st.status = "already";
     st.codespace = true;
+  } else if (mark) {
+    // The host's verdict decides it: nothing runs.
   } else if (beat.verify.kind === "check") {
     st.status = "opening";
     // A beat that checks only slow items runs them on arrival; mixed beats
@@ -1226,6 +1372,10 @@ function openBeat(s: EngineState, effects: Effect[]) {
     const shown = progressOf(s).whileShown;
     if (!shown.includes(offer)) shown.push(offer);
   }
+  const resume = s.resume;
+  delete s.resume;
+  if (resume?.lesson === s.lesson && resume.at)
+    resumeBeat(s as CardState, resume.at);
   effects.push({ type: "save" });
 }
 
@@ -1385,6 +1535,19 @@ function startLesson(s: EngineState, id: LessonId, effects: Effect[]) {
   // first play, or a replay of a lesson that keeps its Badge.
   const at = steps.findIndex((x) => x.id === p.step);
   const saved = steps[at];
+  // A Step-down on screen before a restart comes back as that Step-down.
+  const down = s.resume?.lesson === id ? s.resume.stepDown : null;
+  if (saved && down?.step === saved.id && TIERS.includes(down.to)) {
+    delete s.resume;
+    s.phase = "step-down";
+    s.levelTo = down.to;
+    s.levelFrom = down.from;
+    s.pos = { step: at, beat: 0 };
+    s.beat = null;
+    p.beat = 0;
+    effects.push({ type: "save" });
+    return;
+  }
   if (saved) {
     const beat = p.beat >= 0 && p.beat < saved.beats.length ? p.beat : 0;
     s.pos = {
@@ -1706,7 +1869,7 @@ function onCheck(
     evidence: ev.evidence,
     error: null,
   };
-  if (rRuns || !onCard(s) || ev.lesson !== s.lesson) return;
+  if (rRuns || !onCard(s) || ev.lesson !== s.lesson || hostJudged(s)) return;
   const beat = currentBeat(s);
   if (beat.verify.kind !== "check") return;
   const st = s.beat;
@@ -1795,7 +1958,7 @@ function onFile(
   effects: Effect[],
   rRuns: boolean,
 ) {
-  if (rRuns || !onCard(s)) return;
+  if (rRuns || !onCard(s) || hostJudged(s)) return;
   const v = currentBeat(s).verify;
   if (
     !isReadVerify(v) ||
@@ -1927,7 +2090,7 @@ function onGit(
   const w = watching(s);
   if (w?.git && !answersGit(w, ev)) return;
   s.git = { paths: ev.paths, error: null };
-  if (rRuns || !onCard(s)) return;
+  if (rRuns || !onCard(s) || hostJudged(s)) return;
   const beat = currentBeat(s);
   if (!isGitVerify(beat.verify)) return;
   const st = s.beat;
@@ -2009,7 +2172,7 @@ function onProbe(
   effects: Effect[],
   rRuns: boolean,
 ) {
-  if (rRuns || !onCard(s)) return;
+  if (rRuns || !onCard(s) || hostJudged(s)) return;
   const beat = currentBeat(s);
   const v = beat.verify;
   if (
@@ -2030,6 +2193,61 @@ function onProbe(
     effects,
     ev.pass ? null : { hint: ev.hint },
   );
+}
+
+// A host's verdict on the host-judged beat on the card (seam S6), read as a
+// Check result: a pass with `done` passes the beat, a pass without leaves
+// it open, and a miss is a Not yet whose rung never resets, as the ladder
+// is static. A verdict for another beat, or while the y/n is up, is none.
+function onJudged(s: EngineState, ev: JudgedInput, effects: Effect[]) {
+  if (
+    !hostJudged(s) ||
+    ev.beat !== beatKeyOf(s) ||
+    isDone(s.beat) ||
+    yesNo(s) ||
+    !Array.isArray(ev.items)
+  )
+    return false;
+  const st = beatState(s);
+  const items = clone(ev.items);
+  if (ev.pass && ev.done) {
+    Object.assign(st, {
+      status: "done",
+      passed: items,
+      fail: null,
+      feedback: null,
+      rung: -1,
+      confirm: false,
+    });
+    if (typeof ev.note === "string" && ev.note) st.note = ev.note;
+    progressOf(s).passedCheck = {
+      step: currentStep(s).id,
+      beat: s.pos.beat,
+      items: clone(items),
+    };
+  } else if (ev.pass) {
+    Object.assign(st, {
+      status: "waiting",
+      fail: null,
+      judged: items,
+      notYets: 0,
+    });
+  } else {
+    const failing = items.find((it) => !it.pass);
+    Object.assign(st, {
+      status: "fail",
+      fail: failing
+        ? { item: failing.text, hint: failing.hint }
+        : { hint: undefined },
+      judged: items,
+      unlocked: true,
+      acted: true,
+      idle: false,
+    });
+    s.lastActivity = s.now;
+  }
+  effects.push({ type: "save" });
+  return true;
 }
 
 // ---- the Learner's actions ---------------------------------------------------
@@ -2116,6 +2334,7 @@ const ACTIONS: ActionHandlers = {
       must(contentOf(s), `no content for ${s.lesson}`),
     );
     forgetHelp(s, s.lesson);
+    delete s.resume;
     s.changed = s.changed.filter((id) => id !== s.lesson);
     s.answeredNow = s.answeredNow.filter((k) => !k.startsWith(`${s.lesson}.`));
     chooseWarmups(s);
@@ -2134,6 +2353,7 @@ const ACTIONS: ActionHandlers = {
       ...(help && { help }),
     };
     forgetHelp(s, lesson);
+    if (s.resume?.lesson === lesson) delete s.resume;
     // A replay's summary lists its own passing runs, not the earlier play's.
     if (s.checks[lesson]) delete s.checks[lesson].passed;
     s.changed = s.changed.filter((id) => id !== lesson);
@@ -2245,7 +2465,7 @@ const ACTIONS: ActionHandlers = {
   // Self, none and self-kind beats: the Learner says it is done, and the
   // card goes on.
   "step.markDone"(s, _a, effects) {
-    if (!answering(s) || openQuestion(s)) return false;
+    if (!answering(s) || openQuestion(s) || hostJudged(s)) return false;
     const beat = currentBeat(s);
     if (decidedBy(beat) !== "learner") return false;
     beatState(s).status = "done";
@@ -2255,7 +2475,7 @@ const ACTIONS: ActionHandlers = {
   // "The session has ended": a git-clean beat with a done-label decides
   // only after it.
   "session.ended"(s, _a, effects) {
-    if (!answering(s) || openQuestion(s)) return false;
+    if (!answering(s) || openQuestion(s) || hostJudged(s)) return false;
     const beat = currentBeat(s);
     if (decidedBy(beat) !== "session") return false;
     const st = beatState(s);
@@ -2422,8 +2642,8 @@ function lookAt(s: EngineState, ev: EngineInput) {
 }
 
 // Applies one input to `s` in place and returns the input it handled: a
-// result about another folder comes back as `stale`, and an action whose
-// guard failed as null.
+// result about another folder comes back as `stale`, and an action or a
+// judged verdict whose guard failed as null.
 const isAction = (input: EngineInput): input is EngineAction & EngineInput =>
   Object.hasOwn(ACTIONS, input.type);
 
@@ -2545,6 +2765,7 @@ function apply(
       if (
         !rRuns &&
         onCard(s) &&
+        !hostJudged(s) &&
         currentBeat(s).verify.kind === "check" &&
         !["done", "already"].includes(s.beat.status)
       ) {
@@ -2566,6 +2787,7 @@ function apply(
       if (
         !rRuns &&
         onCard(s) &&
+        !hostJudged(s) &&
         currentBeat(s).verify.kind === "probe" &&
         !["done", "already"].includes(s.beat.status)
       ) {
@@ -2580,6 +2802,10 @@ function apply(
     case "file":
       onFile(s, ev, effects, rRuns);
       break;
+    // A verdict its guard refuses is handled as nothing, as an action is.
+    case "judged":
+      if (!onJudged(s, ev, effects)) return null;
+      break;
     case "stamp": {
       const stamps = s.progress[s.lesson]?.stamps;
       if (stamps && !(ev.key in stamps) && ev.stamp !== null) {
@@ -2593,6 +2819,7 @@ function apply(
       if (
         !rRuns &&
         onCard(s) &&
+        !hostJudged(s) &&
         GIT.has(currentBeat(s).verify.kind) &&
         !["done", "already"].includes(s.beat.status)
       ) {
@@ -2717,5 +2944,10 @@ export function reduce(prev: EngineState, input: EngineInput) {
   if (st && result) delete st.quiet;
   if (st?.run && st.status !== "opening" && (!st.run.changed || result))
     st.run = null;
-  return { state: s, effects, events: momentsOf(prev, s, handled) };
+  const events = momentsOf(prev, s, handled);
+  // The Not yets in a row on this beat visit (seam S5): a new beat starts
+  // with none, and a broken Check neither counts nor breaks the row.
+  if (st && events.some((e) => e.type === "check.notYet"))
+    st.notYets = (st.notYets ?? 0) + 1;
+  return { state: s, effects, events };
 }

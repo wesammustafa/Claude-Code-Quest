@@ -23,6 +23,8 @@ export type {
   Heard,
   Host,
   HostHeard,
+  HostInStep,
+  HostMilestone,
   HostOptions,
   RealOptions,
   StoreLoad,

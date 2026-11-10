@@ -12,8 +12,10 @@ import type {
   CourseEntry,
   Effect,
   EngineInput,
+  EngineInStep,
   EngineState,
   Facts,
+  JudgedInput,
   SavedProgress,
 } from "@quest/engine";
 import type { Children } from "./children.ts";
@@ -191,7 +193,20 @@ export interface EngineSeam {
     now?: number;
     epoch?: number;
     dir?: string | undefined;
+    inStep?: EngineInStep | null | undefined;
   }): EngineState;
+}
+
+/** A pending milestone as a store keeps it (seam S5): the event, without its envelope, and the lesson it came in. */
+export interface HostMilestone {
+  lesson: string;
+  event: QuestEvent;
+}
+
+/** What a restart takes back (seam S5): the engine's in-Step state and the pending milestones. */
+export interface HostInStep {
+  engine: EngineInStep;
+  milestones: HostMilestone[];
 }
 
 export interface HostOptions {
@@ -217,6 +232,8 @@ export interface HostOptions {
   home?: string | undefined;
   /** Path functions: posix by default, node:path in the Node entry (seam S1). */
   paths?: PathOps | undefined;
+  /** Seam S5: what Host.inStep() gave before a restart. */
+  inStep?: Partial<HostInStep> | null | undefined;
 }
 
 /**
@@ -257,6 +274,17 @@ export interface Host {
   ): Dispatched;
   /** Settles once every input so far is reduced, saved and published. */
   idle(): Promise<void>;
+  /**
+   * Seam S5: the engine's in-Step state and the pending milestones, as the
+   * save being written should hold them (a store calls it inside save);
+   * null before open().
+   */
+  inStep(): HostInStep | null;
+  /**
+   * Seam S6: reduces a host-judged verdict; settles once it is saved and
+   * published. Throws a TypeError for anything but a `judged` input.
+   */
+  judged(verdict: JudgedInput): Promise<void>;
   /** Null until open() resolves. */
   snapshot(): Snapshot | null;
   /** The envelopes after `id`, oldest first; null when this instance no longer holds it. */

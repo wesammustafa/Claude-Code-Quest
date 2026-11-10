@@ -36,6 +36,8 @@ export type {
   Heard,
   Host,
   HostHeard,
+  HostInStep,
+  HostMilestone,
   HostOptions,
   Probes,
   Stamps,

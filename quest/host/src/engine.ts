@@ -18,6 +18,7 @@ export {
   grewFrom,
   inCopy,
   initialState,
+  inStepOf,
   introAsks,
   isStaged,
   listing,

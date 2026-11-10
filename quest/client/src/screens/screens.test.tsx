@@ -1812,6 +1812,38 @@ describe("Lesson workspace, questions and hints (247)", () => {
     expect(await navigator.clipboard.readText()).toBe(code?.copy);
   });
 
+  test("a choice rung shows its legend and options", () => {
+    renderConnected(
+      "/lesson/b-1/step",
+      snapshotOf({
+        ...exactTaken,
+        hints: {
+          ...exactTaken.hints,
+          shown: [
+            {
+              kind: "choice",
+              legend: "Which prompt would you send?",
+              options: [
+                { text: "Save the version", kind: "right", because: "a" },
+                { text: "Tell me the version", kind: "wrong", because: "b" },
+                { text: "Fix it", kind: "wrong", because: "c" },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    const rung = [...document.querySelectorAll("[data-hint-rung]")].at(
+      -1,
+    ) as HTMLElement;
+    within(rung).getByText("Which prompt would you send?");
+    expect(
+      within(rung)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Save the version", "Tell me the version", "Fix it"]);
+  });
+
   test("a warm-up names the Lesson it looks back at", () => {
     renderConnected("/lesson/b-2/step", snapshotOf(warmupAsk));
     expect(document.querySelector("[data-warmup]")).toHaveTextContent(

@@ -96,6 +96,7 @@ export function fakeHost({
   env = {},
   platform = "linux",
   instance = null,
+  inStep = null,
   ...fakes
 } = {}) {
   const adapters = fakeAdapters({ root: ROOT, clock, tree, saved, ...fakes });
@@ -111,6 +112,7 @@ export function fakeHost({
     engine: tapped,
     ahead,
     ...(instance ? { instance } : {}),
+    ...(inStep ? { inStep } : {}),
   });
   const heard = [];
   host.subscribe((h) => heard.push(h));

@@ -1,6 +1,7 @@
 // The engine's own types (ticket 214): types and type imports only, so the
 // import walks that read this file find no code in it.
 import type {
+  BeatKey,
   EngineAction,
   FolderKey,
   HelpTier,
@@ -51,6 +52,43 @@ export interface CourseEntry {
   // read on its own.
   fingerprint?: string;
   legacyFingerprint?: string;
+  // The beats a host judges (seam S6), by "<step>.<index>" as answerKey has
+  // it. Absent for every beat the engine verifies itself.
+  judged?: Record<string, HostJudgedBeat>;
+}
+
+// ---- host-judged beats (seam S6) ---------------------------------------------
+// A rung of a host-judged beat's ladder: a hint, a choice of prompts that
+// opens after `unlockAfterNotYets` Not yets in a row, or the exact text.
+export type HostRung =
+  | { kind: "hint"; text: string }
+  | {
+      kind: "choice";
+      legend: string;
+      unlockAfterNotYets: number;
+      options: ChoiceOption[];
+    }
+  | { kind: "exact"; text: string };
+export interface ChoiceOption {
+  text: string;
+  kind: "right" | "wrong";
+  because: string;
+}
+// A beat whose verdict comes from the host, not from a verify the engine
+// runs: its ladder replaces the beat's own hints, in a fixed order.
+export interface HostJudgedBeat {
+  judge: "host";
+  ladder: HostRung[];
+}
+// A host's verdict on the beat on the card. `done: false` with `pass` is
+// a pass that leaves the beat open.
+export interface JudgedInput {
+  type: "judged";
+  beat: BeatKey;
+  pass: boolean;
+  items: CheckItem[];
+  done: boolean;
+  note?: string;
 }
 
 // ---- the engine's state (ticket 214) -------------------------------------------
@@ -195,6 +233,12 @@ export interface BeatState {
   asked?: number;
   running?: { n: number; m: number } | null;
   before?: BeatStatus | undefined;
+  // The Not yets in a row on this beat visit (seam S5).
+  notYets?: number;
+  // A host-judged beat's last verdict items, and the note under a pass
+  // (seam S6).
+  judged?: CheckItem[];
+  note?: string;
 }
 
 // What the host found at a folder.
@@ -264,6 +308,33 @@ export interface EngineState {
   // The help each step used in this play of its lesson: "<lesson> <step>".
   stepHelp: Record<string, HelpUsed>;
   changed: LessonId[];
+  // The in-Step state a restart brought (seam S5), until the first openBeat
+  // or startLesson takes or drops it.
+  resume?: EngineInStep;
+}
+
+// What the engine keeps only in memory about the unfinished Step (seam S5),
+// as plain JSON so a store can keep it opaque.
+export interface EngineInStep {
+  v: 1;
+  lesson: LessonId;
+  // The help each of the lesson's steps used in this play, by step id.
+  help: Record<StepId, HelpUsed>;
+  // The beat on the card, not done, and its help; null off a card.
+  at: {
+    step: StepId;
+    beat: number;
+    rung: number;
+    confirm: boolean;
+    unlocked: boolean;
+    notYets: number;
+    // The Not yet on screen, else null.
+    fail: Failing | Dirty | null;
+    // A host-judged beat's last verdict items, else null.
+    items: CheckItem[] | null;
+  } | null;
+  // A Step-down on screen and not yet taken.
+  stepDown: { step: StepId; from: HelpTier | null; to: HelpTier } | null;
 }
 
 // ---- inputs and effects ----------------------------------------------------------
@@ -347,6 +418,7 @@ export type HostInput = ResultFields &
       }
     // A result about another folder than its lesson's, as apply hands it on.
     | { type: "stale" }
+    | JudgedInput
   );
 
 // The host input of one type.
@@ -442,7 +514,13 @@ export type CardState = EngineState & { beat: BeatState };
 // message, a hint, or the bottom lines with the exact commands.
 export type HintRung =
   | { kind: "ask" | "check" | "quote"; text: string }
-  | { kind: "bottom"; lines: (Bottom | CodeLine)[] };
+  | { kind: "bottom"; lines: (Bottom | CodeLine)[] }
+  | {
+      kind: "choice";
+      legend: string;
+      unlockAfterNotYets: number;
+      options: ChoiceOption[];
+    };
 
 // What a result says, as the beat's verdict reads it: the file it is
 // about, that file's state, the evidence a pass shows, the file a glob

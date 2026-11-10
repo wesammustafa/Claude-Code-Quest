@@ -10,6 +10,7 @@ import {
   contentOf,
   currentBeat,
   currentStep,
+  hostJudged,
   isDone,
   isLastBeat,
   levelLessons,
@@ -63,6 +64,8 @@ const allComplete = (s: EngineState, lessons: readonly CourseEntry[]) =>
 // message, or the engine's line about a file or git status.
 const notYetLine = (s: EngineState) => {
   const fail = s.beat?.fail;
+  // A host-judged beat's Not yet is its first failing item's hint.
+  if (hostJudged(s)) return (fail && "hint" in fail ? fail.hint : "") ?? "";
   return (
     (fail && "hint" in fail ? fail.hint : undefined) ??
     cleanLine(
@@ -84,7 +87,9 @@ export function momentsOf(
   const st = next.beat;
   const same = sameBeat(prev, next) && was !== null && st !== null;
   const turned = same && !isDone(was) && isDone(st);
-  const checked = same && CHECKED.has(currentBeat(next).verify.kind);
+  const checked =
+    same &&
+    (CHECKED.has(currentBeat(next).verify.kind) || hostJudged(next) !== null);
   const warmup = same && currentStep(next).part === "Warm-up";
 
   // 1-2. A run the card says "Checking" for starts, and its items count.
@@ -111,7 +116,9 @@ export function momentsOf(
     checked &&
     st.status === "fail" &&
     (was.status !== "fail" ||
-      JSON.stringify(was.fail) !== JSON.stringify(st.fail))
+      JSON.stringify(was.fail) !== JSON.stringify(st.fail) ||
+      // Each judged miss is a Not yet of its own, the same one again too.
+      type === "judged")
   ) {
     events.push({ type: "check.notYet", evidence: notYetLine(next) });
     verdict = true;
