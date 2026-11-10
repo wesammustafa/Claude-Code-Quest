@@ -1,7 +1,13 @@
 // The engine's own types (ticket 214): types and type imports only, so the
 // import walks that read this file find no code in it.
+export type {
+  CheckItem,
+  ChoiceOption,
+  HostJudgedBeat,
+  HostRung,
+  JudgedInput,
+} from "./judged.ts";
 import type {
-  BeatKey,
   EngineAction,
   FolderKey,
   HelpTier,
@@ -10,6 +16,12 @@ import type {
   Mastery,
   StepId,
 } from "@quest/contract";
+import type {
+  CheckItem,
+  ChoiceOption,
+  HostJudgedBeat,
+  JudgedInput,
+} from "./judged.ts";
 import type {
   Bottom,
   CodeLine,
@@ -55,40 +67,6 @@ export interface CourseEntry {
   // The beats a host judges (seam S6), by "<step>.<index>" as answerKey has
   // it. Absent for every beat the engine verifies itself.
   judged?: Record<string, HostJudgedBeat>;
-}
-
-// ---- host-judged beats (seam S6) ---------------------------------------------
-// A rung of a host-judged beat's ladder: a hint, a choice of prompts that
-// opens after `unlockAfterNotYets` Not yets in a row, or the exact text.
-export type HostRung =
-  | { kind: "hint"; text: string }
-  | {
-      kind: "choice";
-      legend: string;
-      unlockAfterNotYets: number;
-      options: ChoiceOption[];
-    }
-  | { kind: "exact"; text: string };
-export interface ChoiceOption {
-  text: string;
-  kind: "right" | "wrong";
-  because: string;
-}
-// A beat whose verdict comes from the host, not from a verify the engine
-// runs: its ladder replaces the beat's own hints, in a fixed order.
-export interface HostJudgedBeat {
-  judge: "host";
-  ladder: HostRung[];
-}
-// A host's verdict on the beat on the card. `done: false` with `pass` is
-// a pass that leaves the beat open.
-export interface JudgedInput {
-  type: "judged";
-  beat: BeatKey;
-  pass: boolean;
-  items: CheckItem[];
-  done: boolean;
-  note?: string;
 }
 
 // ---- the engine's state (ticket 214) -------------------------------------------
@@ -154,16 +132,6 @@ export interface Facts {
 // already when the beat opened), a FAIL, or a Check that could not run.
 export type BeatStatus =
   "waiting" | "opening" | "done" | "already" | "fail" | "broken";
-
-// A Check item as a run reports it.
-export interface CheckItem {
-  index: number;
-  text: string;
-  pass: boolean;
-  hint: string;
-  slow?: boolean;
-  local?: boolean;
-}
 
 // What a beat's FAIL is about: a Check item's message, a file's or git's
 // not-yet line, or the paths a git-clean beat still finds.
