@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, test } from "vitest";
@@ -396,6 +396,63 @@ describe("the Steps outline", () => {
     );
     expect(current).toHaveLength(1);
     expect(current[0]).toHaveTextContent(/^Check.*current$/);
+  });
+
+  test("a completed step opens again from its row", async () => {
+    const user = userEvent.setup();
+    const page = renderConnected("/lesson/b-1/play", snapshotOf(playing));
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    const dialog = screen.getByRole("dialog", { name: "Steps" });
+    const first = within(dialog).getAllByRole("listitem")[0];
+    const target = playing.steps[0];
+    if (!first || !target) throw new Error("the first Step is missing");
+    await user.click(within(first).getByRole("button"));
+    await waitFor(() => {
+      expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Steps" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  test("Previous opens the step before, while Next is disabled at the end", async () => {
+    const user = userEvent.setup();
+    const page = renderConnected("/lesson/b-1/play", snapshotOf(playing));
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    const dialog = screen.getByRole("dialog", { name: "Steps" });
+    const target = playing.steps.at(-2);
+    if (!target) throw new Error("the previous Step is missing");
+    expect(within(dialog).getByRole("button", { name: "Next" })).toBeDisabled();
+    await user.click(within(dialog).getByRole("button", { name: "Previous" }));
+    await waitFor(() => {
+      expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
+    });
+  });
+
+  test("Next opens the step after a passed current step", async () => {
+    const user = userEvent.setup();
+    const current = playing.steps[2];
+    const target = playing.steps[3];
+    if (!current || !target || !playing.step || !playing.beat)
+      throw new Error("the middle Steps are missing");
+    const middle = {
+      ...playing,
+      steps: playing.steps.map((step, index) => ({
+        ...step,
+        state: index <= 2 ? ("done" as const) : ("todo" as const),
+      })),
+      step: { ...playing.step, id: current.id, index: 2 },
+      beat: { ...playing.beat, last: true, status: "done" as const },
+    };
+    const page = renderConnected("/lesson/b-1/play", snapshotOf(middle));
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    const dialog = screen.getByRole("dialog", { name: "Steps" });
+    await user.click(within(dialog).getByRole("button", { name: "Next" }));
+    await waitFor(() => {
+      expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
+    });
   });
 
   test("on the overview, the outline lists the steps to come", async () => {

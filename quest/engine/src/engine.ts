@@ -1164,11 +1164,7 @@ export function backOffered(s: EngineState) {
 // e: back to the step a back line names. Every saved file and done tick
 // stays; the fresh checks stamped there or later lose their stamps, so each
 // takes a new one as its step opens again and waits for new work.
-function goBack(
-  s: EngineState,
-  back: NonNullable<ReturnType<typeof backTo>>,
-  effects: Effect[],
-) {
+function goBack(s: EngineState, back: { at: number }, effects: Effect[]) {
   const p = progressOf(s);
   const steps = stepsOf(s);
   const opensAt = (key: string) => {
@@ -2468,6 +2464,21 @@ const ACTIONS: ActionHandlers = {
     const to = backOffered(s);
     if (!to) return false;
     goBack(s, to, effects);
+    return true;
+  },
+  // Open an earlier step, a completed later step, or the next step once this
+  // one has passed. Unfinished future steps cannot be skipped.
+  "step.visit"(s, { step }, effects) {
+    if (!onCard(s) || yesNo(s)) return false;
+    const steps = stepsOf(s);
+    const at = steps.findIndex((x) => x.id === step);
+    if (at < 0 || at === s.pos.step) return false;
+    if (at === s.pos.step + 1 && isDone(s.beat) && isLastBeat(s)) {
+      finishStep(s, effects);
+      return true;
+    }
+    if (at > s.pos.step && !progressOf(s).done.includes(step)) return false;
+    goBack(s, { at }, effects);
     return true;
   },
   // A typed-answer beat's options are its known wrong answers: it takes

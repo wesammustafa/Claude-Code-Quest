@@ -49,7 +49,7 @@ test("refused passes on a no-op and fails on a change", () => {
   assert.throws(() => d.refused("lesson.start"), /changed the state/);
   assert.equal(d.state.phase, "playing");
   assert.throws(() => d.act("key", { name: "enter" }), /not an action/);
-  assert.equal(ACTION_TYPES.length, 24);
+  assert.equal(ACTION_TYPES.length, 25);
 });
 
 test("the clock moves only on wait, and tick needs a time", () => {

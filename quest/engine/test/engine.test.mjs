@@ -214,6 +214,9 @@ function script() {
   assert.ok(back, "Y3 offers its back line");
   f.revisit();
   assert.equal(f.state.pos.step, back.at);
+  const first = f.state.progress[f.state.lesson].done[0];
+  f.act("step.visit", { step: first });
+  assert.equal(stepOf(f.state).id, first);
 
   // A lesson with no lesson file sits in the course and is never opened.
   const c = watched({

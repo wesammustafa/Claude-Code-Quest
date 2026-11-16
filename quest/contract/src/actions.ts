@@ -2,7 +2,7 @@
 // "Actions, events and the snapshot"). No action names a command, a script
 // or a file to read: a Check is chosen by Lesson id from the course file.
 // An action the Learner's place does not allow changes nothing. Types only.
-import type { BeatKey, FolderKey, LessonId } from "./common";
+import type { BeatKey, FolderKey, LessonId, StepId } from "./common";
 import type { EventId } from "./events";
 
 /** The Learner read the welcome. */
@@ -69,6 +69,12 @@ export interface StepSkipAction {
 /** Go back to the earlier step the snapshot's back offer names. */
 export interface StepRevisitAction {
   type: "step.revisit";
+}
+
+/** Open an earlier step, a completed later step, or the next step once this one has passed. */
+export interface StepVisitAction {
+  type: "step.visit";
+  step: StepId;
 }
 
 /** Pick an answer: `option` is its index in the beat's options. */
@@ -159,6 +165,7 @@ export type QuestAction =
   | StepBackAction
   | StepSkipAction
   | StepRevisitAction
+  | StepVisitAction
   | AnswerPickAction
   | AnswerRevealAction
   | AnswerTypeAction

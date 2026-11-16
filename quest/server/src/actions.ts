@@ -57,6 +57,7 @@ export const actionSchema = z.discriminatedUnion("type", [
   bare("step.back"),
   bare("step.skip"),
   bare("step.revisit"),
+  z.strictObject({ type: z.literal("step.visit"), step: id }),
   z.strictObject({ type: z.literal("answer.pick"), option }),
   bare("answer.reveal"),
   z.strictObject({

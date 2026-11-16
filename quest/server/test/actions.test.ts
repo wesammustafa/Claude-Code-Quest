@@ -32,6 +32,7 @@ const SAMPLES: Record<QuestActionType, QuestAction> = {
   "step.back": { type: "step.back" },
   "step.skip": { type: "step.skip" },
   "step.revisit": { type: "step.revisit" },
+  "step.visit": { type: "step.visit", step: "W2" },
   "answer.pick": { type: "answer.pick", option: 0 },
   "answer.reveal": { type: "answer.reveal" },
   "answer.type": { type: "answer.type", text: "plan mode" },

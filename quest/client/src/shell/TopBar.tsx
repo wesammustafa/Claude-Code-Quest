@@ -10,6 +10,7 @@ import { Panel } from "../components/Panel";
 import { LEVEL_NAMES, lessonEyebrow, lessonLabel } from "../course/labels";
 import { useRouteHandle, useSlots } from "../mount/context";
 import { Link, NavLink } from "../mount/links";
+import { useActionProps } from "../live/useAction";
 import { usePagePanel } from "../pages/PagePanel";
 import { summaryOf, useCourseSnapshot } from "../screens/lesson";
 import { BrandMark } from "./BrandMark";
@@ -50,27 +51,178 @@ const STEP_STATE: Record<StepSummary["state"], string> = {
   todo: "to do",
 };
 
-/** The active Lesson's steps in play order, each with its state in words. */
-function StepOutline({ steps }: { steps: StepSummary[] }) {
+function StepContent({ step }: { step: StepSummary }) {
   return (
-    <ol className="grid gap-2" data-step-outline="">
-      {steps.map((step) => (
-        <li
-          key={step.id}
-          {...(step.state === "current" ? { "aria-current": "step" } : {})}
-          className="grid gap-0.5 rounded-md border border-line px-3 py-2 aria-[current=step]:border-accent-mark"
+    <>
+      <span className="font-semibold">
+        <InlineText text={step.title} />
+      </span>
+      <span className="flex flex-wrap gap-2 text-sm text-muted">
+        <span>{step.part}</span>
+        {step.optional && <span>optional</span>}
+        <span>{STEP_STATE[step.state]}</span>
+      </span>
+    </>
+  );
+}
+
+function canVisit(
+  steps: readonly StepSummary[],
+  current: string | null,
+  index: number,
+): boolean {
+  const at = steps.findIndex((step) => step.id === current);
+  if (at < 0 || at === index) return false;
+  return (
+    index < at ||
+    steps[index]?.state === "done" ||
+    (index === at + 1 && steps[at]?.state === "done")
+  );
+}
+
+function StepRow({
+  step,
+  can,
+  onNavigate,
+}: {
+  step: StepSummary;
+  can: boolean;
+  onNavigate: () => void;
+}) {
+  const { pending, ...action } = useActionProps(
+    `step.visit.${step.id}`,
+    { type: "step.visit", step: step.id },
+    onNavigate,
+  );
+  if (!can)
+    return (
+      <div className="grid gap-0.5 px-3 py-2">
+        <StepContent step={step} />
+      </div>
+    );
+  return (
+    <button
+      type="button"
+      className="grid w-full cursor-pointer gap-0.5 rounded-md px-3 py-2 text-left transition-colors duration-(--duration-fast) hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+      data-pending={pending ? "" : undefined}
+      {...action}
+    >
+      <StepContent step={step} />
+    </button>
+  );
+}
+
+function StepNavigationAction({
+  step,
+  can,
+  onNavigate,
+  children,
+  icon,
+  iconEnd,
+}: {
+  step: StepSummary;
+  can: boolean;
+  onNavigate: () => void;
+  children: string;
+  icon?: IconName | undefined;
+  iconEnd?: IconName | undefined;
+}) {
+  const action = useActionProps(
+    `step.visit.${step.id}`,
+    { type: "step.visit", step: step.id },
+    onNavigate,
+  );
+  return (
+    <Button icon={icon} iconEnd={iconEnd} disabled={!can} {...action}>
+      {children}
+    </Button>
+  );
+}
+
+function StepNavigationButton({
+  step,
+  can,
+  onNavigate,
+  children,
+  icon,
+  iconEnd,
+}: {
+  step?: StepSummary | undefined;
+  can: boolean;
+  onNavigate: () => void;
+  children: string;
+  icon?: IconName | undefined;
+  iconEnd?: IconName | undefined;
+}) {
+  if (!step)
+    return (
+      <Button icon={icon} iconEnd={iconEnd} disabled>
+        {children}
+      </Button>
+    );
+  return (
+    <StepNavigationAction
+      step={step}
+      can={can}
+      onNavigate={onNavigate}
+      icon={icon}
+      iconEnd={iconEnd}
+    >
+      {children}
+    </StepNavigationAction>
+  );
+}
+
+/** The active Lesson's steps in play order, each with its state in words. */
+function StepOutline({
+  steps,
+  current,
+  onNavigate,
+}: {
+  steps: StepSummary[];
+  current: string | null;
+  onNavigate: () => void;
+}) {
+  const at = steps.findIndex((step) => step.id === current);
+  return (
+    <>
+      <ol className="grid gap-2" data-step-outline="">
+        {steps.map((step, index) => (
+          <li
+            key={step.id}
+            {...(step.state === "current" ? { "aria-current": "step" } : {})}
+            className="rounded-md border border-line aria-[current=step]:border-accent-mark"
+          >
+            <StepRow
+              step={step}
+              can={canVisit(steps, current, index)}
+              onNavigate={onNavigate}
+            />
+          </li>
+        ))}
+      </ol>
+      <nav
+        aria-label="Step navigation"
+        className="flex items-center justify-between gap-2 border-t border-line pt-3"
+      >
+        <StepNavigationButton
+          step={at > 0 ? steps[at - 1] : undefined}
+          can={canVisit(steps, current, at - 1)}
+          onNavigate={onNavigate}
+          icon="back"
         >
-          <span className="font-semibold">
-            <InlineText text={step.title} />
-          </span>
-          <span className="flex flex-wrap gap-2 text-sm text-muted">
-            <span>{step.part}</span>
-            {step.optional && <span>optional</span>}
-            <span>{STEP_STATE[step.state]}</span>
-          </span>
-        </li>
-      ))}
-    </ol>
+          Previous
+        </StepNavigationButton>
+        <StepNavigationButton
+          step={at >= 0 ? steps[at + 1] : undefined}
+          can={canVisit(steps, current, at + 1)}
+          onNavigate={onNavigate}
+          iconEnd="arrow"
+        >
+          Next
+        </StepNavigationButton>
+      </nav>
+    </>
   );
 }
 
@@ -136,6 +288,8 @@ export function TopBar() {
     snapshot.lesson.steps.length > 0
       ? snapshot.lesson.steps
       : null;
+  const currentStep =
+    snapshot?.lesson.phase === "playing" ? snapshot.lesson.step?.id : null;
   const card = snapshot?.learner.card ?? [];
 
   return (
@@ -228,7 +382,11 @@ export function TopBar() {
           </p>
         )}
         {steps ? (
-          <StepOutline steps={steps} />
+          <StepOutline
+            steps={steps}
+            current={currentStep ?? null}
+            onNavigate={closePanel}
+          />
         ) : (
           <p className="text-sm text-muted">No step outline for this Lesson.</p>
         )}
