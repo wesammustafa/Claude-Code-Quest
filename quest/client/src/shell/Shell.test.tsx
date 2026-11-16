@@ -8,6 +8,7 @@ import {
   fullCourse,
   overview,
   overviewAt,
+  passedMiddle,
   playing,
   snapshotOf,
   stepDown,
@@ -401,14 +402,24 @@ describe("the Steps outline", () => {
   test("a completed step opens again from its row", async () => {
     const user = userEvent.setup();
     const page = renderConnected("/lesson/b-1/play", snapshotOf(playing));
+    const firstTarget = playing.steps[0];
+    if (!playing.step || !firstTarget)
+      throw new Error("the first Step is missing");
+    page.answer(
+      snapshotOf({
+        ...playing,
+        step: { ...playing.step, id: firstTarget.id, index: 0 },
+      }),
+    );
     await user.click(screen.getByRole("button", { name: "Steps" }));
     const dialog = screen.getByRole("dialog", { name: "Steps" });
     const first = within(dialog).getAllByRole("listitem")[0];
-    const target = playing.steps[0];
-    if (!first || !target) throw new Error("the first Step is missing");
+    if (!first) throw new Error("the first Step row is missing");
     await user.click(within(first).getByRole("button"));
     await waitFor(() => {
-      expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
+      expect(page.posts).toEqual([
+        { type: "step.visit", step: firstTarget.id },
+      ]);
     });
     await waitFor(() => {
       expect(
@@ -431,27 +442,81 @@ describe("the Steps outline", () => {
     });
   });
 
+  test("a retained done step stays current, and only Next opens its unfinished successor", async () => {
+    const user = userEvent.setup();
+    renderConnected("/lesson/b-1/play", snapshotOf(passedMiddle));
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    const dialog = screen.getByRole("dialog", { name: "Steps" });
+    const items = within(dialog).getAllByRole("listitem");
+    expect(items[2]).toHaveAttribute("aria-current", "step");
+    expect(items[2]).toHaveTextContent("done");
+    if (!items[3]) throw new Error("the next Step row is missing");
+    expect(within(items[3]).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Next" })).toBeEnabled();
+  });
+
+  test("the exact-command confirmation disables every Step navigation", async () => {
+    const user = userEvent.setup();
+    const page = renderConnected(
+      "/lesson/b-1/play",
+      snapshotOf({
+        ...passedMiddle,
+        hints: { ...passedMiddle.hints, confirmExact: true },
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    const dialog = screen.getByRole("dialog", { name: "Steps" });
+    const first = within(dialog).getAllByRole("listitem")[0];
+    if (!first) throw new Error("the first Step row is missing");
+    expect(within(first).queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Previous" }),
+    ).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Next" })).toBeDisabled();
+    expect(page.posts).toEqual([]);
+  });
+
+  test("an answer that did not reach the requested step leaves the panel open", async () => {
+    const user = userEvent.setup();
+    const page = renderConnected("/lesson/b-1/play", snapshotOf(passedMiddle));
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    const dialog = screen.getByRole("dialog", { name: "Steps" });
+    const target = passedMiddle.steps[1];
+    if (!target) throw new Error("the previous Step is missing");
+    await user.click(within(dialog).getByRole("button", { name: "Previous" }));
+    await waitFor(() => {
+      expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
+    });
+    await waitFor(() => {
+      expect(
+        within(dialog).getByRole("button", { name: "Previous" }),
+      ).not.toHaveAttribute("aria-disabled", "true");
+    });
+    expect(dialog).toBeInTheDocument();
+  });
+
   test("Next opens the step after a passed current step", async () => {
     const user = userEvent.setup();
-    const current = playing.steps[2];
-    const target = playing.steps[3];
-    if (!current || !target || !playing.step || !playing.beat)
+    const target = passedMiddle.steps[3];
+    if (!target || !passedMiddle.step)
       throw new Error("the middle Steps are missing");
-    const middle = {
-      ...playing,
-      steps: playing.steps.map((step, index) => ({
-        ...step,
-        state: index <= 2 ? ("done" as const) : ("todo" as const),
-      })),
-      step: { ...playing.step, id: current.id, index: 2 },
-      beat: { ...playing.beat, last: true, status: "done" as const },
-    };
-    const page = renderConnected("/lesson/b-1/play", snapshotOf(middle));
+    const page = renderConnected("/lesson/b-1/play", snapshotOf(passedMiddle));
+    page.answer(
+      snapshotOf({
+        ...passedMiddle,
+        step: { ...passedMiddle.step, id: target.id, index: 3 },
+      }),
+    );
     await user.click(screen.getByRole("button", { name: "Steps" }));
     const dialog = screen.getByRole("dialog", { name: "Steps" });
     await user.click(within(dialog).getByRole("button", { name: "Next" }));
     await waitFor(() => {
       expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Steps" }),
+      ).not.toBeInTheDocument();
     });
   });
 

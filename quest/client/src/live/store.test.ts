@@ -673,7 +673,10 @@ describe("actions", () => {
     const { store, source, calls } = tab();
     source().emit("snapshot", snap("a", 4));
     answer = () => ok(snap("a", 5));
-    expect(await store.act(action)).toEqual({ applied: true });
+    expect(await store.act(action)).toEqual({
+      applied: true,
+      snapshot: snap("a", 5),
+    });
     expect(calls[0]).toMatchObject({
       url: "/api/actions",
       method: "POST",
@@ -743,7 +746,7 @@ describe("actions", () => {
     expect(await store.act(action, "finish")).toEqual({ applied: false });
     expect(calls).toHaveLength(1);
     resolve(ok(snap("a", 5)));
-    expect(await first).toEqual({ applied: true });
+    expect(await first).toEqual({ applied: true, snapshot: snap("a", 5) });
     expect(store.getState().pending).toEqual(new Set());
   });
 });

@@ -77,7 +77,7 @@ export interface ClientSlots {
   checkLinesExtra?: ComponentType<{ beat: BeatKey; pass: boolean }>;
   /** Text in place of a pending Check bubble's running line; null restores it. */
   checkWaiting?: External<string | null>;
-  /** Called synchronously inside the Next click, before the action is sent. */
+  /** Called synchronously inside a forward Next click, from the action bar or Steps panel, before the action is sent. */
   onStepNext?: (step: StepId) => void;
 }
 

@@ -14,6 +14,7 @@ import {
   levelCompleted,
   overview,
   overviewAt,
+  passedMiddle,
   playing,
   playingWith,
   snapshotOf,
@@ -371,6 +372,44 @@ describe("every slot where 5.10 places it", () => {
       ]);
     });
   });
+
+  test.each([
+    { label: "Next", row: false },
+    { label: "a completed forward row", row: true },
+  ])(
+    "onStepNext runs before step.visit from the Steps panel's $label",
+    async ({ row }) => {
+      const current = passedMiddle.step;
+      const target = passedMiddle.steps[3];
+      if (!current || !target) throw new Error("the middle Steps are missing");
+      const mounted = renderMounted(
+        STEP,
+        snapshotOf({
+          ...passedMiddle,
+          steps: passedMiddle.steps.map((step, index) => ({
+            ...step,
+            state:
+              index <= (row ? 3 : 2) ? ("done" as const) : ("todo" as const),
+          })),
+        }),
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Steps" }));
+      const dialog = screen.getByRole("dialog", { name: "Steps" });
+      await userEvent.click(
+        row
+          ? within(dialog).getByRole("button", {
+              name: new RegExp(target.title),
+            })
+          : within(dialog).getByRole("button", { name: "Next" }),
+      );
+      expect(mounted.heard).toEqual([`next:${current.id}:0`]);
+      await waitFor(() => {
+        expect(mounted.posts.map((p) => p.action)).toEqual([
+          { type: "step.visit", step: target.id },
+        ]);
+      });
+    },
+  );
 
   test("browser router: a slashless path is replaced with its slash form, added routes render inside the shell, a welcome handle hides the top bar, a settings handle opens Settings, and nav current marks hold on slash paths", async () => {
     const routes = [

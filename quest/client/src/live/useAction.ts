@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import type { QuestAction } from "@quest/contract";
+import type { QuestAction, Snapshot } from "@quest/contract";
 import { useAct, useActionsEnabled } from "./LiveProvider";
 
 /** What a Button spreads to send one action. */
@@ -11,19 +11,19 @@ export interface ActionProps {
 
 /**
  * Sends an action under its key, unless actions are off or the key is
- * already in flight; `then` runs after an applied answer.
+ * already in flight; `then` receives the snapshot an applied answer returns.
  */
 export function useSend(): (
   key: string,
   action: QuestAction,
-  then?: () => void,
+  then?: (snapshot: Snapshot) => void,
 ) => void {
   const { act, pending } = useAct();
   const enabled = useActionsEnabled();
   return (key, action, then) => {
     if (!enabled || pending(key)) return;
     void act(action, key).then((outcome) => {
-      if (outcome.applied) then?.();
+      if (outcome.applied) then?.(outcome.snapshot);
     });
   };
 }
@@ -37,7 +37,7 @@ export function useSend(): (
 export function useActionProps(
   key: string,
   action: QuestAction,
-  then?: () => void,
+  then?: (snapshot: Snapshot) => void,
 ): ActionProps {
   const { pending } = useAct();
   const enabled = useActionsEnabled();

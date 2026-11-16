@@ -73,26 +73,45 @@ function canVisit(
 ): boolean {
   const at = steps.findIndex((step) => step.id === current);
   if (at < 0 || at === index) return false;
-  return (
-    index < at ||
-    steps[index]?.state === "done" ||
-    (index === at + 1 && steps[at]?.state === "done")
-  );
+  return index < at || steps[index]?.state === "done";
+}
+
+function nextFrom(
+  steps: readonly StepSummary[],
+  current: string | null,
+  index: number,
+): StepSummary["id"] | null {
+  const at = steps.findIndex((step) => step.id === current);
+  return at >= 0 &&
+    index === at + 1 &&
+    steps[at]?.state === "done" &&
+    steps[index] !== undefined
+    ? steps[at].id
+    : null;
 }
 
 function StepRow({
   step,
   can,
   onNavigate,
+  onNext,
 }: {
   step: StepSummary;
   can: boolean;
   onNavigate: () => void;
+  onNext?: (() => void) | undefined;
 }) {
   const { pending, ...action } = useActionProps(
     `step.visit.${step.id}`,
     { type: "step.visit", step: step.id },
-    onNavigate,
+    (next) => {
+      if (
+        (next.lesson.phase === "playing" ||
+          next.lesson.phase === "step-down") &&
+        next.lesson.step?.id === step.id
+      )
+        onNavigate();
+    },
   );
   if (!can)
     return (
@@ -106,6 +125,10 @@ function StepRow({
       className="grid w-full cursor-pointer gap-0.5 rounded-md px-3 py-2 text-left transition-colors duration-(--duration-fast) hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       data-pending={pending ? "" : undefined}
       {...action}
+      onClick={(event) => {
+        if (onNext && action["aria-disabled"] !== true) onNext();
+        action.onClick(event);
+      }}
     >
       <StepContent step={step} />
     </button>
@@ -116,6 +139,7 @@ function StepNavigationAction({
   step,
   can,
   onNavigate,
+  onNext,
   children,
   icon,
   iconEnd,
@@ -123,6 +147,7 @@ function StepNavigationAction({
   step: StepSummary;
   can: boolean;
   onNavigate: () => void;
+  onNext?: (() => void) | undefined;
   children: string;
   icon?: IconName | undefined;
   iconEnd?: IconName | undefined;
@@ -130,10 +155,26 @@ function StepNavigationAction({
   const action = useActionProps(
     `step.visit.${step.id}`,
     { type: "step.visit", step: step.id },
-    onNavigate,
+    (next) => {
+      if (
+        (next.lesson.phase === "playing" ||
+          next.lesson.phase === "step-down") &&
+        next.lesson.step?.id === step.id
+      )
+        onNavigate();
+    },
   );
   return (
-    <Button icon={icon} iconEnd={iconEnd} disabled={!can} {...action}>
+    <Button
+      icon={icon}
+      iconEnd={iconEnd}
+      disabled={!can}
+      {...action}
+      onClick={(event) => {
+        if (onNext && action["aria-disabled"] !== true) onNext();
+        action.onClick(event);
+      }}
+    >
       {children}
     </Button>
   );
@@ -143,6 +184,7 @@ function StepNavigationButton({
   step,
   can,
   onNavigate,
+  onNext,
   children,
   icon,
   iconEnd,
@@ -150,6 +192,7 @@ function StepNavigationButton({
   step?: StepSummary | undefined;
   can: boolean;
   onNavigate: () => void;
+  onNext?: (() => void) | undefined;
   children: string;
   icon?: IconName | undefined;
   iconEnd?: IconName | undefined;
@@ -165,6 +208,7 @@ function StepNavigationButton({
       step={step}
       can={can}
       onNavigate={onNavigate}
+      onNext={onNext}
       icon={icon}
       iconEnd={iconEnd}
     >
@@ -176,13 +220,18 @@ function StepNavigationButton({
 function StepNavigation({
   steps,
   current,
+  locked,
   onNavigate,
+  onStepNext,
 }: {
   steps: StepSummary[];
   current: string | null;
+  locked: boolean;
   onNavigate: () => void;
+  onStepNext?: ((step: StepSummary["id"]) => void) | undefined;
 }) {
   const at = steps.findIndex((step) => step.id === current);
+  const advance = nextFrom(steps, current, at + 1);
   return (
     <nav
       aria-label="Step navigation"
@@ -190,7 +239,7 @@ function StepNavigation({
     >
       <StepNavigationButton
         step={at > 0 ? steps[at - 1] : undefined}
-        can={canVisit(steps, current, at - 1)}
+        can={!locked && canVisit(steps, current, at - 1)}
         onNavigate={onNavigate}
         icon="back"
       >
@@ -198,8 +247,15 @@ function StepNavigation({
       </StepNavigationButton>
       <StepNavigationButton
         step={at >= 0 ? steps[at + 1] : undefined}
-        can={canVisit(steps, current, at + 1)}
+        can={!locked && (canVisit(steps, current, at + 1) || advance !== null)}
         onNavigate={onNavigate}
+        onNext={
+          advance !== null && onStepNext
+            ? () => {
+                onStepNext(advance);
+              }
+            : undefined
+        }
         iconEnd="arrow"
       >
         Next
@@ -212,27 +268,41 @@ function StepNavigation({
 function StepOutline({
   steps,
   current,
+  locked,
   onNavigate,
+  onStepNext,
 }: {
   steps: StepSummary[];
   current: string | null;
+  locked: boolean;
   onNavigate: () => void;
+  onStepNext?: ((step: StepSummary["id"]) => void) | undefined;
 }) {
   return (
     <ol className="grid gap-2" data-step-outline="">
-      {steps.map((step, index) => (
-        <li
-          key={step.id}
-          {...(step.state === "current" ? { "aria-current": "step" } : {})}
-          className="rounded-md border border-line aria-[current=step]:border-accent-mark"
-        >
-          <StepRow
-            step={step}
-            can={canVisit(steps, current, index)}
-            onNavigate={onNavigate}
-          />
-        </li>
-      ))}
+      {steps.map((step, index) => {
+        const advance = nextFrom(steps, current, index);
+        return (
+          <li
+            key={step.id}
+            {...(step.id === current ? { "aria-current": "step" } : {})}
+            className="rounded-md border border-line aria-[current=step]:border-accent-mark"
+          >
+            <StepRow
+              step={step}
+              can={!locked && canVisit(steps, current, index)}
+              onNavigate={onNavigate}
+              onNext={
+                advance !== null && onStepNext
+                  ? () => {
+                      onStepNext(advance);
+                    }
+                  : undefined
+              }
+            />
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -283,7 +353,7 @@ export function TopBar() {
   const closePanel = () => {
     setPanel(null);
   };
-  const { topBarEnd: End } = useSlots();
+  const { topBarEnd: End, onStepNext } = useSlots();
   // A route whose handle asks for Settings opens it on each arrival.
   const settingsRoute = useRouteHandle().settings === true;
   const { key } = useLocation();
@@ -300,7 +370,10 @@ export function TopBar() {
       ? snapshot.lesson.steps
       : null;
   const currentStep =
-    snapshot?.lesson.phase === "playing" ? snapshot.lesson.step?.id : null;
+    snapshot?.lesson.phase === "playing" ||
+    snapshot?.lesson.phase === "step-down"
+      ? snapshot.lesson.step?.id
+      : null;
   const card = snapshot?.learner.card ?? [];
 
   return (
@@ -391,7 +464,12 @@ export function TopBar() {
             <StepNavigation
               steps={steps}
               current={currentStep ?? null}
+              locked={
+                snapshot?.lesson.phase === "playing" &&
+                snapshot.lesson.hints.confirmExact
+              }
               onNavigate={closePanel}
+              onStepNext={onStepNext}
             />
           ) : undefined
         }
@@ -405,7 +483,12 @@ export function TopBar() {
           <StepOutline
             steps={steps}
             current={currentStep ?? null}
+            locked={
+              snapshot?.lesson.phase === "playing" &&
+              snapshot.lesson.hints.confirmExact
+            }
             onNavigate={closePanel}
+            onStepNext={onStepNext}
           />
         ) : (
           <p className="text-sm text-muted">No step outline for this Lesson.</p>

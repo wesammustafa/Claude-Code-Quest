@@ -56,7 +56,8 @@ export interface LiveState {
 }
 
 export type ActOutcome =
-  { applied: true } | { applied: false; error?: ActionError };
+  | { applied: true; snapshot: Snapshot }
+  | { applied: false; error?: ActionError };
 
 /** Events of one revision that arrive this close together go as one batch. */
 export const BATCH_MS = 16;
@@ -348,8 +349,11 @@ export function createLiveStore(deps: LiveDeps): LiveStore {
       try {
         const answer = await post(action);
         if (answer === null) return { applied: false };
-        if (answer.status === 200 && readActionResponse(answer.body) !== null)
-          return { applied: true };
+        if (answer.status === 200) {
+          const applied = readActionResponse(answer.body);
+          if (applied !== null)
+            return { applied: true, snapshot: applied.snapshot };
+        }
         const error =
           answer.status === 409 ? null : readActionError(answer.body);
         return error === null ? { applied: false } : { applied: false, error };

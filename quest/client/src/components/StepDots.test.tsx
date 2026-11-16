@@ -35,3 +35,21 @@ test("takes each step's state as given, where it is not simply the order", () =>
   expect(items[0]).toHaveAttribute("aria-current", "step");
   expect(items[1]).toHaveTextContent("Step 2, Plan: done");
 });
+
+test("keeps the current step marked when its completion is retained", () => {
+  render(
+    <StepDots
+      steps={["Look around", "Plan", "Check"]}
+      at={1}
+      states={["done", "done", "todo"]}
+    />,
+  );
+  const items = screen.getAllByRole("listitem");
+  expect(items.map((li) => li.getAttribute("data-state"))).toEqual([
+    "done",
+    "now",
+    "todo",
+  ]);
+  expect(items[1]).toHaveAttribute("aria-current", "step");
+  expect(items.filter((li) => li.hasAttribute("aria-current"))).toHaveLength(1);
+});

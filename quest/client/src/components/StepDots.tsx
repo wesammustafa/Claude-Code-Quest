@@ -7,7 +7,8 @@ export interface StepDotsProps {
   at: number;
   /**
    * Each step's state, where it is not simply the order: a step done after
-   * a later one, or skipped. Overrides the states `at` gives.
+   * a later one, or skipped. Overrides the states `at` gives, except that
+   * the current index stays current when a revisit retains its done state.
    */
   states?: readonly StepState[];
 }
@@ -21,15 +22,9 @@ export function StepDots({ steps, at, states }: StepDotsProps) {
       {steps.map((title, i) => {
         const given = states?.[i];
         const state =
-          given === undefined
-            ? i < at
-              ? "done"
-              : i === at
-                ? "now"
-                : "todo"
-            : given === "current"
-              ? "now"
-              : given;
+          i === at || given === "current"
+            ? "now"
+            : (given ?? (i < at ? "done" : "todo"));
         return (
           <li
             key={`${String(i)}-${title}`}

@@ -1202,6 +1202,18 @@ export function playingWith({
   };
 }
 
+/** A revisited, passed middle step, with its completion retained. */
+export const passedMiddle = playingWith({
+  step: { id: "W3", index: 2 },
+  beat: { decidedBy: "learner", last: true, status: "done" },
+  lesson: {
+    steps: playing.steps.map((step, index) => ({
+      ...step,
+      state: index <= 2 ? ("done" as const) : ("todo" as const),
+    })),
+  },
+});
+
 /** A watched file beat (b-2 Y4's shape): its Done when line, before a look. */
 const fileBeat = {
   decidedBy: "watch" as const,
