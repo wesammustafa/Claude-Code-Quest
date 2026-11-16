@@ -98,21 +98,13 @@ function StepRow({
 }: {
   step: StepSummary;
   can: boolean;
-  onNavigate: () => void;
+  onNavigate: (step: StepSummary["id"]) => void;
   onNext?: (() => void) | undefined;
 }) {
-  const { pending, ...action } = useActionProps(
-    `step.visit.${step.id}`,
-    { type: "step.visit", step: step.id },
-    (next) => {
-      if (
-        (next.lesson.phase === "playing" ||
-          next.lesson.phase === "step-down") &&
-        next.lesson.step?.id === step.id
-      )
-        onNavigate();
-    },
-  );
+  const { pending, ...action } = useActionProps(`step.visit.${step.id}`, {
+    type: "step.visit",
+    step: step.id,
+  });
   if (!can)
     return (
       <div className="grid gap-0.5 px-3 py-2">
@@ -126,7 +118,10 @@ function StepRow({
       data-pending={pending ? "" : undefined}
       {...action}
       onClick={(event) => {
-        if (onNext && action["aria-disabled"] !== true) onNext();
+        if (action["aria-disabled"] !== true) {
+          onNext?.();
+          onNavigate(step.id);
+        }
         action.onClick(event);
       }}
     >
@@ -146,24 +141,16 @@ function StepNavigationAction({
 }: {
   step: StepSummary;
   can: boolean;
-  onNavigate: () => void;
+  onNavigate: (step: StepSummary["id"]) => void;
   onNext?: (() => void) | undefined;
   children: string;
   icon?: IconName | undefined;
   iconEnd?: IconName | undefined;
 }) {
-  const action = useActionProps(
-    `step.visit.${step.id}`,
-    { type: "step.visit", step: step.id },
-    (next) => {
-      if (
-        (next.lesson.phase === "playing" ||
-          next.lesson.phase === "step-down") &&
-        next.lesson.step?.id === step.id
-      )
-        onNavigate();
-    },
-  );
+  const action = useActionProps(`step.visit.${step.id}`, {
+    type: "step.visit",
+    step: step.id,
+  });
   return (
     <Button
       icon={icon}
@@ -171,7 +158,10 @@ function StepNavigationAction({
       disabled={!can}
       {...action}
       onClick={(event) => {
-        if (onNext && action["aria-disabled"] !== true) onNext();
+        if (action["aria-disabled"] !== true) {
+          onNext?.();
+          onNavigate(step.id);
+        }
         action.onClick(event);
       }}
     >
@@ -191,7 +181,7 @@ function StepNavigationButton({
 }: {
   step?: StepSummary | undefined;
   can: boolean;
-  onNavigate: () => void;
+  onNavigate: (step: StepSummary["id"]) => void;
   onNext?: (() => void) | undefined;
   children: string;
   icon?: IconName | undefined;
@@ -227,7 +217,7 @@ function StepNavigation({
   steps: StepSummary[];
   current: string | null;
   locked: boolean;
-  onNavigate: () => void;
+  onNavigate: (step: StepSummary["id"]) => void;
   onStepNext?: ((step: StepSummary["id"]) => void) | undefined;
 }) {
   const at = steps.findIndex((step) => step.id === current);
@@ -275,7 +265,7 @@ function StepOutline({
   steps: StepSummary[];
   current: string | null;
   locked: boolean;
-  onNavigate: () => void;
+  onNavigate: (step: StepSummary["id"]) => void;
   onStepNext?: ((step: StepSummary["id"]) => void) | undefined;
 }) {
   return (
@@ -350,7 +340,9 @@ export function TopBar() {
   // shows its crumbs alone.
   const active = lesson !== null && snapshot?.lesson.id === lesson.id;
   const [panel, setPanel] = useState<OpenPanel>(null);
+  const [visiting, setVisiting] = useState<StepSummary["id"] | null>(null);
   const closePanel = () => {
+    setVisiting(null);
     setPanel(null);
   };
   const { topBarEnd: End, onStepNext } = useSlots();
@@ -374,6 +366,12 @@ export function TopBar() {
     snapshot?.lesson.phase === "step-down"
       ? snapshot.lesson.step?.id
       : null;
+  // An async host publishes the visit after its action's response. Close
+  // only when the live snapshot reaches the step the click requested.
+  if (visiting !== null && currentStep === visiting) {
+    setVisiting(null);
+    setPanel(null);
+  }
   const card = snapshot?.learner.card ?? [];
 
   return (
@@ -468,7 +466,7 @@ export function TopBar() {
                 snapshot?.lesson.phase === "playing" &&
                 snapshot.lesson.hints.confirmExact
               }
-              onNavigate={closePanel}
+              onNavigate={setVisiting}
               onStepNext={onStepNext}
             />
           ) : undefined
@@ -487,7 +485,7 @@ export function TopBar() {
               snapshot?.lesson.phase === "playing" &&
               snapshot.lesson.hints.confirmExact
             }
-            onNavigate={closePanel}
+            onNavigate={setVisiting}
             onStepNext={onStepNext}
           />
         ) : (

@@ -406,10 +406,13 @@ describe("the Steps outline", () => {
     if (!playing.step || !firstTarget)
       throw new Error("the first Step is missing");
     page.answer(
-      snapshotOf({
-        ...playing,
-        step: { ...playing.step, id: firstTarget.id, index: 0 },
-      }),
+      snapshotOf(
+        {
+          ...playing,
+          step: { ...playing.step, id: firstTarget.id, index: 0 },
+        },
+        { revision: 2 },
+      ),
     );
     await user.click(screen.getByRole("button", { name: "Steps" }));
     const dialog = screen.getByRole("dialog", { name: "Steps" });
@@ -482,7 +485,8 @@ describe("the Steps outline", () => {
     await user.click(screen.getByRole("button", { name: "Steps" }));
     const dialog = screen.getByRole("dialog", { name: "Steps" });
     const target = passedMiddle.steps[1];
-    if (!target) throw new Error("the previous Step is missing");
+    if (!target || !passedMiddle.step)
+      throw new Error("the previous Step is missing");
     await user.click(within(dialog).getByRole("button", { name: "Previous" }));
     await waitFor(() => {
       expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
@@ -493,6 +497,47 @@ describe("the Steps outline", () => {
       ).not.toHaveAttribute("aria-disabled", "true");
     });
     expect(dialog).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Close" }));
+    page.send(
+      snapshotOf(
+        {
+          ...passedMiddle,
+          step: { ...passedMiddle.step, id: target.id, index: 1 },
+        },
+        { revision: 2 },
+      ),
+    );
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    expect(screen.getByRole("dialog", { name: "Steps" })).toBeInTheDocument();
+  });
+
+  test("a step that opens on a later snapshot closes the panel then", async () => {
+    const user = userEvent.setup();
+    const page = renderConnected("/lesson/b-1/play", snapshotOf(passedMiddle));
+    const target = passedMiddle.steps[1];
+    if (!target || !passedMiddle.step)
+      throw new Error("the previous Step is missing");
+    await user.click(screen.getByRole("button", { name: "Steps" }));
+    const dialog = screen.getByRole("dialog", { name: "Steps" });
+    await user.click(within(dialog).getByRole("button", { name: "Previous" }));
+    await waitFor(() => {
+      expect(page.posts).toEqual([{ type: "step.visit", step: target.id }]);
+    });
+    expect(dialog).toBeInTheDocument();
+    page.send(
+      snapshotOf(
+        {
+          ...passedMiddle,
+          step: { ...passedMiddle.step, id: target.id, index: 1 },
+        },
+        { revision: 2 },
+      ),
+    );
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Steps" }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   test("Next opens the step after a passed current step", async () => {
@@ -502,10 +547,13 @@ describe("the Steps outline", () => {
       throw new Error("the middle Steps are missing");
     const page = renderConnected("/lesson/b-1/play", snapshotOf(passedMiddle));
     page.answer(
-      snapshotOf({
-        ...passedMiddle,
-        step: { ...passedMiddle.step, id: target.id, index: 3 },
-      }),
+      snapshotOf(
+        {
+          ...passedMiddle,
+          step: { ...passedMiddle.step, id: target.id, index: 3 },
+        },
+        { revision: 2 },
+      ),
     );
     await user.click(screen.getByRole("button", { name: "Steps" }));
     const dialog = screen.getByRole("dialog", { name: "Steps" });
