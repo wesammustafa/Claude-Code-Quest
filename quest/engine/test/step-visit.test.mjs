@@ -1,6 +1,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { driver, save, stepOf } from "./drive.mjs";
+import { project } from "../src/project.ts";
 
 function at(step, done, extra = {}) {
   const d = driver({
@@ -48,4 +49,12 @@ test("step.visit advances past a completed current step", () => {
   d.act("step.visit", { step: "W4" });
   assert.equal(stepOf(d.state).id, "W4");
   assert.deepEqual(d.state.progress["b-1"].done, ["W1", "W2", "W3"]);
+});
+
+test("step.visit advances from a revisited completed step to its unfinished successor", () => {
+  const d = at("W3", ["W1"]);
+  d.act("step.visit", { step: "W1" });
+  assert.equal(project(d.state).lesson.steps[0]?.state, "done");
+  d.act("step.visit", { step: "W2" });
+  assert.equal(stepOf(d.state).id, "W2");
 });

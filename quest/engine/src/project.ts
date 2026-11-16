@@ -270,7 +270,7 @@ const outlineOf = (
     tier: tierAt(tiers, i),
     state:
       i === current
-        ? passedNow
+        ? passedNow || done.includes(x.id)
           ? "done"
           : "current"
         : done.includes(x.id)

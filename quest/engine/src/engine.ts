@@ -2473,8 +2473,13 @@ const ACTIONS: ActionHandlers = {
     const steps = stepsOf(s);
     const at = steps.findIndex((x) => x.id === step);
     if (at < 0 || at === s.pos.step) return false;
-    if (at === s.pos.step + 1 && isDone(s.beat) && isLastBeat(s)) {
-      finishStep(s, effects);
+    const passed = isDone(s.beat) && isLastBeat(s);
+    if (
+      at === s.pos.step + 1 &&
+      (passed || progressOf(s).done.includes(currentStep(s).id))
+    ) {
+      if (passed) finishStep(s, effects);
+      else goBack(s, { at }, effects);
       return true;
     }
     if (at > s.pos.step && !progressOf(s).done.includes(step)) return false;
