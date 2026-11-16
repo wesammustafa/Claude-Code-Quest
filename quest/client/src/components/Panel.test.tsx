@@ -44,6 +44,22 @@ function renderInRoot(bar = false) {
   return { root, ...render(<Harness bar={bar} />, { container: root }) };
 }
 
+test("renders its footer outside the scrollable body", () => {
+  render(
+    <Panel
+      title="Steps"
+      open
+      onClose={() => undefined}
+      footer={<button type="button">Next</button>}
+    >
+      <p>Outline</p>
+    </Panel>,
+  );
+  const next = screen.getByRole("button", { name: "Next" });
+  expect(next.closest("[data-panel-footer]")).not.toBeNull();
+  expect(next.closest("[data-panel-body]")).toBeNull();
+});
+
 test("opens a named dialog outside the page, focuses Close and makes the page inert", async () => {
   const user = userEvent.setup();
   const { root } = renderInRoot();

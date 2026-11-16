@@ -173,8 +173,7 @@ function StepNavigationButton({
   );
 }
 
-/** The active Lesson's steps in play order, each with its state in words. */
-function StepOutline({
+function StepNavigation({
   steps,
   current,
   onNavigate,
@@ -185,44 +184,56 @@ function StepOutline({
 }) {
   const at = steps.findIndex((step) => step.id === current);
   return (
-    <>
-      <ol className="grid gap-2" data-step-outline="">
-        {steps.map((step, index) => (
-          <li
-            key={step.id}
-            {...(step.state === "current" ? { "aria-current": "step" } : {})}
-            className="rounded-md border border-line aria-[current=step]:border-accent-mark"
-          >
-            <StepRow
-              step={step}
-              can={canVisit(steps, current, index)}
-              onNavigate={onNavigate}
-            />
-          </li>
-        ))}
-      </ol>
-      <nav
-        aria-label="Step navigation"
-        className="flex items-center justify-between gap-2 border-t border-line pt-3"
+    <nav
+      aria-label="Step navigation"
+      className="flex items-center justify-between gap-2"
+    >
+      <StepNavigationButton
+        step={at > 0 ? steps[at - 1] : undefined}
+        can={canVisit(steps, current, at - 1)}
+        onNavigate={onNavigate}
+        icon="back"
       >
-        <StepNavigationButton
-          step={at > 0 ? steps[at - 1] : undefined}
-          can={canVisit(steps, current, at - 1)}
-          onNavigate={onNavigate}
-          icon="back"
+        Previous
+      </StepNavigationButton>
+      <StepNavigationButton
+        step={at >= 0 ? steps[at + 1] : undefined}
+        can={canVisit(steps, current, at + 1)}
+        onNavigate={onNavigate}
+        iconEnd="arrow"
+      >
+        Next
+      </StepNavigationButton>
+    </nav>
+  );
+}
+
+/** The active Lesson's steps in play order, each with its state in words. */
+function StepOutline({
+  steps,
+  current,
+  onNavigate,
+}: {
+  steps: StepSummary[];
+  current: string | null;
+  onNavigate: () => void;
+}) {
+  return (
+    <ol className="grid gap-2" data-step-outline="">
+      {steps.map((step, index) => (
+        <li
+          key={step.id}
+          {...(step.state === "current" ? { "aria-current": "step" } : {})}
+          className="rounded-md border border-line aria-[current=step]:border-accent-mark"
         >
-          Previous
-        </StepNavigationButton>
-        <StepNavigationButton
-          step={at >= 0 ? steps[at + 1] : undefined}
-          can={canVisit(steps, current, at + 1)}
-          onNavigate={onNavigate}
-          iconEnd="arrow"
-        >
-          Next
-        </StepNavigationButton>
-      </nav>
-    </>
+          <StepRow
+            step={step}
+            can={canVisit(steps, current, index)}
+            onNavigate={onNavigate}
+          />
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -375,6 +386,15 @@ export function TopBar() {
         title="Steps"
         open={active && panel === "steps"}
         onClose={closePanel}
+        footer={
+          steps ? (
+            <StepNavigation
+              steps={steps}
+              current={currentStep ?? null}
+              onNavigate={closePanel}
+            />
+          ) : undefined
+        }
       >
         {lesson && (
           <p className="text-sm text-muted">

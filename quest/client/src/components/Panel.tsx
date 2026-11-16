@@ -21,6 +21,8 @@ export interface PanelProps {
   onClose: () => void;
   /** The wider sheet, for reading a lesson page. */
   wide?: boolean;
+  /** Kept outside the body's scroll area, such as Previous and Next. */
+  footer?: ReactNode;
   children: ReactNode;
 }
 
@@ -123,6 +125,7 @@ export function Panel({
   open,
   onClose,
   wide = false,
+  footer,
   children,
 }: PanelProps) {
   const titleId = useId();
@@ -229,6 +232,14 @@ export function Panel({
           >
             {children}
           </div>
+          {footer && (
+            <div
+              data-panel-footer=""
+              className="shrink-0 border-t border-line px-5.5 py-3"
+            >
+              {footer}
+            </div>
+          )}
         </section>
       </div>
     </FixedLayer>
