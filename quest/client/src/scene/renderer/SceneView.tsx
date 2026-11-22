@@ -1,11 +1,19 @@
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, type CameraProps } from "@react-three/fiber";
 import { useEffect, useRef, type ReactNode } from "react";
 import type { SceneProps } from "../../mount/types";
 import { pixelRatioCap } from "../tier";
 import { Ground } from "./Ground";
 
-/** Where the camera stands and looks: over the ground, toward the far distance. */
-const CAMERA = { position: [0, 2.4, 8] as const, fov: 45, near: 0.1, far: 120 };
+/**
+ * Where the camera stands and looks: over the ground, toward the far
+ * distance. One object, so a new render of the canvas never sets it again.
+ */
+const CAMERA: CameraProps = {
+  position: [0, 2.4, 8],
+  fov: 45,
+  near: 0.1,
+  far: 120,
+};
 const LOOK_AT = [0, 0.6, -8] as const;
 /** The desktop's slow sway of the camera, side to side, in radians per second and units. */
 const SWAY_RATE = 0.06;
@@ -44,7 +52,7 @@ export function SceneView({
         antialias: tier === "desktop",
         powerPreference: tier === "phone" ? "low-power" : "default",
       }}
-      camera={{ ...CAMERA, position: [...CAMERA.position] }}
+      camera={CAMERA}
       onCreated={({ gl, camera }) => {
         const canvas = gl.domElement;
         canvas.setAttribute("aria-hidden", "true");
