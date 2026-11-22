@@ -110,6 +110,28 @@ describe("screen transitions, on", () => {
     );
   });
 
+  test("the cap counts from the first frame that shows the copy, so a page busy rendering still shows the exit", async () => {
+    const frames: FrameRequestCallback[] = [];
+    mounted({});
+    vi.stubGlobal("requestAnimationFrame", (run: FrameRequestCallback) => {
+      frames.push(run);
+      return frames.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => undefined);
+    await go("Progress");
+    await new Promise((resolve) => setTimeout(resolve, CAP_MS * 2));
+    expect(copies()).toHaveLength(1);
+    act(() => {
+      for (const run of frames.splice(0)) run(performance.now());
+    });
+    await waitFor(
+      () => {
+        expect(copies()).toEqual([]);
+      },
+      { timeout: CAP_MS * 3 },
+    );
+  });
+
   test("a route change mid-transition copies the entering screen where it stands, and nothing waits", async () => {
     mounted({});
     await go("Progress");

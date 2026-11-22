@@ -107,9 +107,11 @@ export function copyLeaving(screen: HTMLElement): LeavingCopy {
 
 /**
  * Lays `copy` into `layer` (fixed over the viewport) where its screen
- * stood, and removes it when its exit ends, or at `capMs` at the latest
- * (a hidden page runs no animation), then calls `gone`. Returns the
- * removal, for an unmount.
+ * stood, and removes it when its exit ends, or `capMs` after the first
+ * frame that shows it at the latest (a hidden page runs no animation), then
+ * calls `gone`. Counted from that frame, a page busy rendering the new
+ * screen still shows the exit rather than losing the copy before it is
+ * drawn. Returns the removal, for an unmount.
  */
 export function showLeaving(
   layer: HTMLElement,
@@ -135,7 +137,17 @@ export function showLeaving(
       // A canvas that cannot be read leaves its copy blank.
     }
   }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const latest = () => {
+    timer = setTimeout(remove, capMs);
+  };
+  const frame =
+    typeof requestAnimationFrame === "function"
+      ? requestAnimationFrame(latest)
+      : null;
+  if (frame === null) latest();
   const remove = () => {
+    if (frame !== null) cancelAnimationFrame(frame);
     clearTimeout(timer);
     node.removeEventListener("animationend", ended);
     node.removeEventListener("animationcancel", ended);
@@ -148,6 +160,5 @@ export function showLeaving(
   };
   node.addEventListener("animationend", ended);
   node.addEventListener("animationcancel", ended);
-  const timer = setTimeout(remove, capMs);
   return remove;
 }
