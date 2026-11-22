@@ -8,7 +8,7 @@ export interface CheckStartedEvent {
   type: "check.started";
 }
 
-/** A running Check finished item `n` of `m`. */
+/** A running Check started item `n` of `m`. */
 export interface CheckProgressEvent {
   type: "check.progress";
   n: number;
