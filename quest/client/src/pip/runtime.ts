@@ -8,7 +8,10 @@ import wasmUrl from "@rive-app/webgl2/rive.wasm?url";
 import type { ComponentType } from "react";
 import buildRecord from "../../pip/build-record.json?raw";
 import rivUrl from "../../pip/pip.riv?url";
+import { webgl2Available } from "../lib/webgl";
 import type { PipRiveProps } from "./PipRive";
+
+export { webgl2Available };
 
 /** What a Pip needs to draw the rig: the adapter component and the loaded file. */
 export interface PipRuntime {
@@ -54,25 +57,6 @@ export function loadPipRuntime(): Promise<PipRuntime | null> {
     },
   );
   return loading;
-}
-
-/**
- * Whether this browser gives a page WebGL2. Probed on a throwaway canvas,
- * whose context is released at once, so a browser without it never fetches
- * the runtime. A browser that refuses the runtime's own context later still
- * keeps the poster quietly: openRig makes that context itself, not the first
- * Pip.
- */
-export function webgl2Available(): boolean {
-  if (typeof WebGL2RenderingContext === "undefined") return false;
-  try {
-    const gl = document.createElement("canvas").getContext("webgl2");
-    if (gl === null) return false;
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**

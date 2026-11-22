@@ -4,7 +4,7 @@
 import { useSyncExternalStore } from "react";
 import { useReducedMotion } from "../lib/page";
 import type { SceneTier } from "../mount/types";
-import { webgl2Available } from "../pip/runtime";
+import { webgl2Available } from "../lib/webgl";
 
 /**
  * What counts as a phone: a coarse pointer (touch first) in a viewport whose
