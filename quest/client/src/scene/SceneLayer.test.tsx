@@ -82,8 +82,20 @@ function standIn(
 type SceneMove = (change: ScreenChange) => "under" | "instead";
 
 const LOOK = {
-  light: { sky: "#fbf6ef", ground: "#efe4d3" },
-  dark: { sky: "#0b1020", ground: "#141b33" },
+  light: {
+    sky: "#fbf6ef",
+    ground: "#f0e5d5",
+    light: "#fff6ee",
+    ambient: 2.9,
+    key: 1,
+  },
+  dark: {
+    sky: "#0b1020",
+    ground: "#1f2a4d",
+    light: "#ffd9c9",
+    ambient: 2.6,
+    key: 2.4,
+  },
 };
 
 function sceneWith(

@@ -63,11 +63,23 @@ export interface SceneMount {
 
 export type SceneTheme = "light" | "dark";
 
-/** The Scene's colours in one theme, as CSS hex colours. */
+/**
+ * The Scene's colours in one theme, as CSS hex colours, and its light. The
+ * mount sets them so text over the Scene keeps its contrast in that theme.
+ */
 export interface SceneLook {
   /** The sky and the far distance, which the ground fades into. */
   sky: string;
   ground: string;
+  /** The light's colour. */
+  light: string;
+  /**
+   * The light's intensities, in Three.js's units (π lights a face fully):
+   * `ambient` falls from the whole sky, `key` from one side, where the
+   * slopes catch it.
+   */
+  ambient: number;
+  key: number;
 }
 
 /**

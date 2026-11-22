@@ -38,6 +38,8 @@ export function SceneView({
       frameloop={frameloop}
       dpr={[1, pixelRatioCap(tier)]}
       shadows={tier === "desktop"}
+      // The look's colours as given, with no filmic tone curve over them.
+      flat
       gl={{
         antialias: tier === "desktop",
         powerPreference: tier === "phone" ? "low-power" : "default",
@@ -54,10 +56,11 @@ export function SceneView({
     >
       <color attach="background" args={[look.sky]} />
       <fog attach="fog" args={[look.sky, 14, 60]} />
-      <hemisphereLight args={[look.sky, look.ground, 1.6]} />
+      <hemisphereLight args={[look.light, look.ground, look.ambient]} />
       <directionalLight
-        position={[6, 10, 4]}
-        intensity={1.2}
+        color={look.light}
+        position={[8, 5, 2]}
+        intensity={look.key}
         castShadow={tier === "desktop"}
         shadow-mapSize={[1024, 1024]}
       />

@@ -3,8 +3,8 @@ import { PlaneGeometry } from "three";
 
 /** The ground's size, its facets across, and how high its slopes rise, in scene units. */
 const SIZE = 120;
-const FACETS = 60;
-const RISE = 0.9;
+const FACETS = 40;
+const RISE = 1.4;
 
 /**
  * Soft rolling slopes: a sum of slow waves, flat near the camera and rising
