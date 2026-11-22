@@ -9,13 +9,20 @@ import {
 import { useLocation, useMatches, useNavigate } from "react-router";
 import type { WhereKind } from "../components/where-kind";
 import type { LiveDeps } from "../live/store";
-import type { ClientSlots, External, QuestRouteHandle } from "./types";
+import type {
+  ClientSlots,
+  External,
+  QuestRouteHandle,
+  ScreenTransitions,
+} from "./types";
 
 export interface MountValue {
   router: "hash" | "browser";
   /** Null where the client was rendered without a mount (a test's own router): the page's globals then. */
   live: LiveDeps | null;
   slots: ClientSlots;
+  /** Screen transitions, when the mount turns them on; null keeps today's rise. */
+  transitions: ScreenTransitions | null;
 }
 
 /** Without a mount the client is the Local app: the hash router, the page's transport, no slot. */
@@ -23,6 +30,7 @@ export const MountContext = createContext<MountValue>({
   router: "hash",
   live: null,
   slots: {},
+  transitions: null,
 });
 
 export function useMount(): MountValue {

@@ -7,6 +7,7 @@ import type { BeatKey, LessonId, StepId } from "@quest/contract";
 import type { CheckLineState } from "../components/check-line-state";
 import type { WhereKind } from "../components/where-kind";
 import type { LiveDeps } from "../live/store";
+import type { PipScreen } from "../pip/screen-name";
 
 export type { CheckLineState, LiveDeps, WhereKind };
 
@@ -27,6 +28,41 @@ export interface ClientMount {
   /** Added screens, inside the shell before the not-found route; browser router only. */
   routes?: RouteObject[];
   slots?: ClientSlots;
+  /**
+   * Screen transitions: each route change animates the leaving screen out
+   * and the new one in. Without it (the Local app) the new screen rises in
+   * and the old one is gone at once.
+   */
+  transitions?: ScreenTransitions;
+}
+
+/** How the screens change when the mount turns screen transitions on. */
+export interface ScreenTransitions {
+  /**
+   * The mount's own move for a screen change, such as a camera move behind
+   * the screens. Called once per route change, before the new screen's first
+   * frame. `"under"` plays the move under the screens' exit and enter;
+   * `"instead"` plays it in their place. It ends within `change.cap`.
+   */
+  move?: (change: ScreenChange) => "under" | "instead";
+}
+
+/** A route change, as the mount's move is told it. */
+export interface ScreenChange {
+  from: ScreenOnShow;
+  to: ScreenOnShow;
+  /** The Motion standard's cap in milliseconds (--duration-slow; 120 under reduced motion). */
+  cap: number;
+  /** Reduced motion is on: the move is a cross-fade with no travel. */
+  reduced: boolean;
+  /** Aborted at the cap, or when a new route change interrupts the move: it ends where it stands. */
+  signal: AbortSignal;
+}
+
+/** A screen by its path (with no trailing `/`) and the name Pip's director gives it. */
+export interface ScreenOnShow {
+  path: string;
+  screen: PipScreen;
 }
 
 export interface ClientSlots {

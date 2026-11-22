@@ -4,6 +4,7 @@
 // as an argument, so the director never reads a clock; createPipDirector
 // injects one. It replaces the Terminal app's card mood.
 import type { EventEnvelope } from "@quest/contract";
+import type { PipScreen } from "./screen-name";
 import type {
   PipMode,
   PipModel,
@@ -77,24 +78,7 @@ export const OFFER_INTENSITY = 0.5;
  */
 export const RESULT_REACTION_MS = 1500;
 
-/**
- * The screen the browser shows, by the spec's view names (`levelup` is the
- * Step-down). The spec gives Level complete and course complete no view name;
- * the owner gave them their own (2026-10-26).
- */
-export type PipScreen =
-  | "welcome"
-  | "resume"
-  | "map"
-  | "intro"
-  | "step"
-  | "levelup"
-  | "complete"
-  | "next"
-  | "levelComplete"
-  | "courseComplete"
-  | "progress"
-  | "other";
+export type { PipScreen };
 
 // Level complete and course complete are full moments, so Pip is large there
 // as on Complete (the owner's decision, 2026-10-26).

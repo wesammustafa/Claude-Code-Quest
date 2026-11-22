@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -8,26 +9,32 @@ import {
 import { Outlet } from "react-router";
 import { Notice, type NoticeKind } from "../components/Notice";
 import { useHeightProperty } from "../lib/height-property";
+import { useMotionTokens } from "../lib/motion";
 import { LiveProvider, useConnection } from "../live/LiveProvider";
 import type { Connection } from "../live/store";
 import {
   RouteHandleContext,
   useMatchedHandle,
+  useMount,
   useRouteHandle,
   useScreenPath,
   useTrailingSlash,
 } from "../mount/context";
 import { PagePanelProvider } from "../pages/PagePanel";
 import { PipStageProvider } from "../pip/PipStage";
+import { screenFor } from "../pip/screens";
 import { PendingMoment } from "../screens/LevelComplete";
 import { useCourseSnapshot } from "../screens/lesson";
 import { useLessonRoute } from "../screens/useLessonRoute";
 import { MountNotices } from "./MountNotices";
+import { enterClass, ScreenChanges } from "./ScreenChanges";
 import { SaveNotices } from "./SaveNotices";
 import { TopBar } from "./TopBar";
 
 /** How long the wait for the first snapshot lasts before the screen says it is busy, so a snapshot that comes at once shows no flash. */
 export const WAITING_MS = 150;
+
+const MS_PER_SECOND = 1000;
 
 const NOTICES: Record<Connection, NoticeKind | null> = {
   waiting: null,
@@ -121,7 +128,8 @@ export function Shell() {
 /**
  * Every screen's frame: the top bar (left out on Welcome, where Pip and one
  * action stand alone), the connection notice under it, and the screen itself, which
- * enters with a short rise. Pip's stage spans every screen, so one director
+ * enters with a short rise. A mount that turns screen transitions on gets
+ * an exit and an enter in place of the rise (ScreenChanges, seam S11). Pip's stage spans every screen, so one director
  * follows the Learner from screen to screen. After a new screen the window scrolls to the top
  * and focus moves to its heading (useScreenFocus). The sticky top's height feeds
  * the page's scroll padding, so focus never lands behind it. Until the first
@@ -144,6 +152,16 @@ function Frame(): ReactNode {
   const longWait = useLongWait(connection);
   useLessonRoute();
   useScreenFocus(screen, pathname);
+  const { transitions } = useMount();
+  const motion = useMotionTokens();
+  const phase = useCourseSnapshot()?.lesson.phase;
+  const shown = useMemo(
+    () => ({
+      path: pathname,
+      screen: screenFor(pathname, phase, handle.screen),
+    }),
+    [pathname, phase, handle.screen],
+  );
 
   return (
     <div className="min-h-dvh bg-bg bg-(image:--glow) bg-no-repeat">
@@ -154,18 +172,26 @@ function Frame(): ReactNode {
         <SaveNotices />
         <MountNotices />
       </div>
-      <div
-        ref={screen}
-        key={pathname}
-        data-screen=""
-        {...(longWait
-          ? { "aria-busy": true, "data-connection": "waiting" }
-          : {})}
-        className="animate-rise"
+      <ScreenChanges
+        screen={shown}
+        live={screen}
+        transitions={transitions}
+        cap={motion.slow * MS_PER_SECOND}
+        reduced={motion.reduced}
       >
-        {(welcome || journey) && <PendingMoment />}
-        <Outlet />
-      </div>
+        <div
+          ref={screen}
+          key={pathname}
+          data-screen=""
+          {...(longWait
+            ? { "aria-busy": true, "data-connection": "waiting" }
+            : {})}
+          className={enterClass(transitions)}
+        >
+          {(welcome || journey) && <PendingMoment />}
+          <Outlet />
+        </div>
+      </ScreenChanges>
     </div>
   );
 }

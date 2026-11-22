@@ -23,6 +23,9 @@ export type {
   LiveDeps,
   Notice,
   QuestRouteHandle,
+  ScreenChange,
+  ScreenOnShow,
+  ScreenTransitions,
   WhereKind,
 } from "./mount/types";
 export { Journey } from "./screens/Journey";
@@ -52,6 +55,7 @@ export function mountQuest(root: HTMLElement, mount: ClientMount): () => void {
     router: kind,
     live: mount.live,
     slots: mount.slots ?? {},
+    transitions: mount.transitions ?? null,
   };
   const reactRoot = createRoot(root);
   reactRoot.render(

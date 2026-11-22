@@ -16,6 +16,7 @@ import type {
   InsertResult,
   LessonAccess,
   Notice,
+  ScreenTransitions,
 } from "../src/mount/types";
 import { resetPageCache } from "../src/pages/fetch";
 import { FakeEventSource } from "./live";
@@ -144,12 +145,21 @@ export function fakeLive(
 
 /**
  * Mounts the client at `path` on the browser router with every slot set
- * (or `slots` in their place), connected with `snapshot` (unless null).
+ * (or `slots` in their place), connected with `snapshot` (unless null),
+ * with screen transitions when `transitions` is given.
  */
 export function renderMounted(
   path: string,
   snapshot: Snapshot | null,
-  { routes, slots: own }: { routes?: RouteObject[]; slots?: ClientSlots } = {},
+  {
+    routes,
+    slots: own,
+    transitions,
+  }: {
+    routes?: RouteObject[];
+    slots?: ClientSlots;
+    transitions?: ScreenTransitions;
+  } = {},
 ): Mounted {
   FakeEventSource.reset();
   resetPageCache();
@@ -239,6 +249,7 @@ export function renderMounted(
     router: "browser",
     slots,
     ...(routes ? { routes } : {}),
+    ...(transitions ? { transitions } : {}),
   };
   const root = document.createElement("div");
   document.body.append(root);

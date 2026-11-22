@@ -235,6 +235,14 @@
   --animate-drop: drop var(--duration-base) var(--ease-out) both;
   --animate-pop: pop var(--duration-base) var(--ease-spring);
   --animate-breathe: breathe 2.4s var(--ease-in-out) infinite;
+  /*
+    Screen transitions, when a mount turns them on (seam S11): the new screen
+    rises in over --duration-base while a copy of the leaving one fades and
+    lifts away over --duration-fast, from wherever it stood. Both end within
+    the cap, --duration-slow, which a mount's own move keeps to as well.
+  */
+  --animate-screen-in: rise var(--duration-base) var(--ease-out) both;
+  --animate-screen-out: screen-out var(--duration-fast) var(--ease-out) both;
 
   @keyframes rise {
     from {
@@ -274,6 +282,30 @@
     50% {
       opacity: 0.55;
     }
+  }
+  @keyframes screen-out {
+    from {
+      opacity: var(--screen-from-opacity, 1);
+      transform: var(--screen-from-transform, none);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(calc(var(--rise) / -2));
+    }
+  }
+}
+
+/*
+  The leaving screen's exit under reduced motion. Only the reduced variant
+  names it, and Tailwind writes a @theme keyframe only for an animation a
+  class uses, so it sits outside @theme.
+*/
+@keyframes screen-fade-out {
+  from {
+    opacity: var(--screen-from-opacity, 1);
+  }
+  to {
+    opacity: 0;
   }
 }
 
@@ -391,5 +423,9 @@
     --pop-from: 1;
     --ease-spring: var(--ease-out);
     --animate-breathe: none;
+    /* A screen change is a cross-fade: opacity alone, no transform at all. */
+    --animate-screen-in: fade var(--duration-base) var(--ease-out) both;
+    --animate-screen-out: screen-fade-out var(--duration-fast) var(--ease-out)
+      both;
   }
 }
