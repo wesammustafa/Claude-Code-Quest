@@ -62,9 +62,11 @@ function saveData(): boolean {
 
 function onSaveData(changed: () => void): () => void {
   const c = connection();
-  c?.addEventListener("change", changed);
+  // A browser whose connection tells no change keeps the value it started with.
+  if (typeof c?.addEventListener !== "function") return () => undefined;
+  c.addEventListener("change", changed);
   return () => {
-    c?.removeEventListener("change", changed);
+    c.removeEventListener("change", changed);
   };
 }
 

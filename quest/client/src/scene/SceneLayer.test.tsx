@@ -474,6 +474,15 @@ describe("the tiers", () => {
         });
       },
     ],
+    [
+      "Save-Data, from a connection that tells no change",
+      () => {
+        Object.defineProperty(navigator, "connection", {
+          configurable: true,
+          value: { saveData: true },
+        });
+      },
+    ],
   ] as const)
     test(`${name}: the still shows, no renderer loads, and the frame drops its background once the still has loaded`, async () => {
       set();
