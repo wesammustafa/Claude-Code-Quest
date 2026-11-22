@@ -1,14 +1,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cx } from "../lib/cx";
+import type { CheckLineState } from "./check-line-state";
 import { Icon } from "./Icon";
 
-/**
- * Where a line of the Check stands: still being checked, met, not met yet,
- * not known because the Check could not run (rose, never a judgement), or a
- * slow line that runs only on Check again (ticket 314).
- */
-export type CheckLineState =
-  "waiting" | "pass" | "notYet" | "broken" | "pending";
+export type { CheckLineState };
 
 export interface CheckLine {
   /** The Check's line, in the engine's words. */
@@ -18,6 +13,8 @@ export interface CheckLine {
   state?: CheckLineState;
   /** What the Check saw, shown under the line. */
   evidence?: ReactNode;
+  /** The page's own part for this line (the mount's `checkLine` slot), after its evidence. */
+  extra?: ReactNode;
 }
 
 export interface CheckLinesProps {
@@ -122,6 +119,7 @@ export function CheckLines({ lines }: CheckLinesProps) {
                   {line.evidence}
                 </div>
               )}
+              {line.extra}
             </div>
           </li>
         );

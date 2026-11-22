@@ -18,6 +18,7 @@ import {
   playing,
   playingWith,
   snapshotOf,
+  watchPassed,
 } from "../e2e/snapshots";
 import { renderMounted } from "../test/mounted";
 import { Journey, Welcome } from "./mount";
@@ -344,6 +345,63 @@ describe("every slot where 5.10 places it", () => {
     const lines = one("[data-step-card] [data-pip-target=lines]");
     expect(before(lines, extra)).toBe(true);
     expect(one("[data-step-card]")).toContainElement(extra);
+  });
+
+  test("checkLine with each Check line, after its evidence, with the beat, index, state and plain words", () => {
+    renderMounted(STEP, step);
+    const rows = [
+      ...document.querySelectorAll<HTMLElement>(
+        "[data-step-card] [data-pip-target=lines] > li",
+      ),
+    ];
+    expect(rows).toHaveLength(2);
+    const told = rows.map((row) => {
+      const slots = row.querySelectorAll<HTMLElement>("[data-test-check-line]");
+      expect(slots).toHaveLength(1);
+      const slot = slots[0] as HTMLElement;
+      // The row's last part, after the words and what the Check saw.
+      expect(slot.parentElement?.lastElementChild).toBe(slot);
+      return JSON.parse(slot.dataset.testCheckLine ?? "null") as unknown;
+    });
+    expect(told).toEqual([
+      {
+        beat: "b-1:C:0",
+        index: 0,
+        state: "pass",
+        text: "`claude --version` prints a Claude Code version",
+        evidence: [],
+      },
+      {
+        beat: "b-1:C:0",
+        index: 1,
+        state: "notYet",
+        text: "the claim in `practice/b-1/onboarding.md` that the code contradicts is corrected",
+        evidence: [
+          "`practice/b-1/onboarding.md` hasn't changed yet. Find the claim the code contradicts, as Your turn step 2 describes, and correct that line in your editor.",
+        ],
+      },
+    ]);
+    // The rows read as they do without the slot.
+    expect(rows.map((row) => row.textContent)).toEqual([
+      "Passes: `claude --version` prints a Claude Code version".replaceAll(
+        "`",
+        "",
+      ),
+      "Not yet: the claim in practice/b-1/onboarding.md that the code contradicts is corrected" +
+        "practice/b-1/onboarding.md hasn't changed yet. Find the claim the code contradicts, as Your turn step 2 describes, and correct that line in your editor.",
+    ]);
+  });
+
+  test("checkLine is told a matched file and the passing look's text as evidence words", () => {
+    renderMounted(STEP, snapshotOf(watchPassed));
+    const slot = one("[data-step-card] [data-test-check-line]");
+    expect(JSON.parse(slot.dataset.testCheckLine ?? "null")).toEqual({
+      beat: "b-1:C:0",
+      index: 0,
+      state: "pass",
+      text: "Done when `notes.md` exists.",
+      evidence: ["Found `notes.md`.", "# Notes"],
+    });
   });
 
   test("checkWaiting replaces the running line on a pending Check bubble and null restores it", () => {

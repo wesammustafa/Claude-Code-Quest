@@ -4,10 +4,11 @@
 import type { ComponentType } from "react";
 import type { RouteObject } from "react-router";
 import type { BeatKey, LessonId, StepId } from "@quest/contract";
+import type { CheckLineState } from "../components/check-line-state";
 import type { WhereKind } from "../components/where-kind";
 import type { LiveDeps } from "../live/store";
 
-export type { LiveDeps, WhereKind };
+export type { CheckLineState, LiveDeps, WhereKind };
 
 /**
  * A value the page holds outside React and the client reads as it changes.
@@ -75,10 +76,28 @@ export interface ClientSlots {
   notices?: External<readonly Notice[]>;
   /** Under a beat's Check lines. */
   checkLinesExtra?: ComponentType<{ beat: BeatKey; pass: boolean }>;
+  /** With each of a beat's Check lines, after what the Check saw under it. */
+  checkLine?: ComponentType<CheckLineSlotProps>;
   /** Text in place of a pending Check bubble's running line; null restores it. */
   checkWaiting?: External<string | null>;
   /** Called synchronously inside a forward Next click, from the action bar or Steps panel, before the action is sent. */
   onStepNext?: (step: StepId) => void;
+}
+
+/** One Check line, as the `checkLine` slot is told it. */
+export interface CheckLineSlotProps {
+  beat: BeatKey;
+  /** The line's place among the beat's Check lines, from 0. */
+  index: number;
+  state: CheckLineState;
+  /** The line's words, as plain text: a backticked span is code on screen. */
+  text: string;
+  /**
+   * What shows under the line, in order, as plain text: the Not yet words
+   * (backticks as in `text`), "Found `<path>`." for a matched file, and what
+   * the passing look saw, as it is. Empty when nothing shows.
+   */
+  evidence: readonly string[];
 }
 
 /** The beat on screen, as the practice pane is told it. */

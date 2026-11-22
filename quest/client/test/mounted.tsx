@@ -224,6 +224,8 @@ export function renderMounted(
     checkLinesExtra: ({ beat, pass }) => (
       <p data-test-lines-extra="">{`${beat} ${pass ? "pass" : "miss"}`}</p>
     ),
+    // Empty, so a line's words read as without it: its props, as JSON.
+    checkLine: (props) => <span data-test-check-line={JSON.stringify(props)} />,
     checkWaiting,
     // With the number of actions posted so far, to show it runs first.
     onStepNext: (step) => {

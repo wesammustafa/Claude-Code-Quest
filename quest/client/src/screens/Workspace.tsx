@@ -298,6 +298,7 @@ function Play({
   const priorNote = cardNote(step, lesson.capstone);
   const Pane = slots.practicePane;
   const ExtraLines = slots.checkLinesExtra;
+  const LineSlot = slots.checkLine;
   const whereSlot = slots.where;
   const target = {
     where: where?.kind ?? null,
@@ -424,7 +425,7 @@ function Play({
           {lines.length > 0 && (
             <CheckLines
               key={runKey}
-              lines={lines.map((line) => ({
+              lines={lines.map((line, index) => ({
                 text: <InlineText text={line.text} />,
                 ok: line.state === "pass",
                 state: line.state,
@@ -432,6 +433,19 @@ function Play({
                 line.found !== undefined ||
                 line.evidence !== undefined
                   ? { evidence: <Evidence line={line} /> }
+                  : {}),
+                ...(LineSlot
+                  ? {
+                      extra: (
+                        <LineSlot
+                          beat={beatKey(lesson.id, step.id, beat.index)}
+                          index={index}
+                          state={line.state}
+                          text={line.text}
+                          evidence={evidenceWords(line)}
+                        />
+                      ),
+                    }
                   : {}),
               }))}
             />
@@ -565,6 +579,15 @@ function Evidence({ line }: { line: BeatCheckLine }) {
       )}
     </>
   );
+}
+
+/** What Evidence shows under a line, as the `checkLine` slot is told it. */
+function evidenceWords(line: BeatCheckLine): string[] {
+  const words: string[] = [];
+  if (line.fail !== undefined) words.push(line.fail);
+  if (line.found !== undefined) words.push(`Found \`${line.found}\`.`);
+  if (line.evidence !== undefined) words.push(line.evidence);
+  return words;
 }
 
 const BACK_NOTE = "workspace-back-note";

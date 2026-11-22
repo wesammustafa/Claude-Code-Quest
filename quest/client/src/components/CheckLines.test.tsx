@@ -147,3 +147,23 @@ test("a line the Check could not run reads in rose, from tokens, with its own wo
   for (const node of container.querySelectorAll("[class]"))
     expectStylesFromTokens(node.getAttribute("class") ?? "");
 });
+
+test("a line's extra renders last in its row; a line without one renders exactly as before", () => {
+  const { container, rerender } = render(<CheckLines lines={LINES} />);
+  const before = container.innerHTML;
+  rerender(
+    <CheckLines
+      lines={LINES.map((line, i) =>
+        i === 1 ? { ...line, extra: <a href="#x">Open it</a> } : line,
+      )}
+    />,
+  );
+  const items = screen.getAllByRole("listitem");
+  const link = within(items[1] as HTMLElement).getByRole("link", {
+    name: "Open it",
+  });
+  expect(link.parentElement?.lastElementChild).toBe(link);
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+  rerender(<CheckLines lines={LINES} />);
+  expect(container.innerHTML).toBe(before);
+});
