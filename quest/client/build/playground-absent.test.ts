@@ -1,7 +1,8 @@
 // @vitest-environment node
 // The Pip Playground is development-only: the release build holds neither its
 // route nor its code, its stylesheet or the approved board, and no crop of the
-// board is committed. This builds the client as `npm run build` does, in
+// board is committed. The Scene (seam S12) is off in the Local app: its
+// release build holds no Three.js, React Three Fiber or Scene renderer. This builds the client as `npm run build` does, in
 // memory, so `npm run test:quest` checks it with no browser and no dist.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -148,6 +149,27 @@ describe("the release build", () => {
     ];
     const found = files.flatMap((file) => {
       if (!/\.(js|css|html|json|svg|txt)$/.test(file.name)) return [];
+      const text = file.bytes.toString("utf8");
+      return traces
+        .filter((trace) => trace.test(text))
+        .map((trace) => `${file.name}: ${String(trace)}`);
+    });
+    expect(found).toEqual([]);
+  });
+});
+
+describe("the Local app's release build, with the Scene off", () => {
+  test("holds no Three.js, React Three Fiber or the Scene's renderer", () => {
+    const traces = [
+      // Three.js marks the page it runs in; React Three Fiber's own messages.
+      /__THREE__/,
+      /R3F: /,
+      /react-three-fiber/i,
+      // The renderer's own marks.
+      /data-scene-canvas/,
+    ];
+    const found = files.flatMap((file) => {
+      if (!/\.(js|css|html)$/.test(file.name)) return [];
       const text = file.bytes.toString("utf8");
       return traces
         .filter((trace) => trace.test(text))

@@ -79,6 +79,12 @@ export const SUPPLIED_LICENSES: Readonly<Record<string, SuppliedLicense>> = {
     source:
       "https://github.com/rive-app/rive-wasm/blob/dc6c23329b5395591aad6fb9cc29c30fa75e87cc/LICENSE",
   },
+  // The v9.8.2 tag's commit; the package's own gitHead is not on GitHub.
+  "@react-three/fiber@9.8.2": {
+    file: "quest/release/licenses/react-three-fiber-v9.8.2-LICENSE",
+    source:
+      "https://github.com/pmndrs/react-three-fiber/blob/d74622ea8ed717f7212d7e19d65ff3e325508389/LICENSE",
+  },
 };
 
 /** Third-party code a package compiled or copied into the files it ships, with that code's notice. */
@@ -212,6 +218,21 @@ export const EMBEDDED_NOTICES: Readonly<Record<string, EmbeddedNotices>> = {
         file: `${RIVE_EMBEDDED}/sanitize-url-LICENSE`,
         source:
           "https://github.com/braintree/sanitize-url/blob/ff8da9bb5fc68761658046365a842c8202dd2d3c/LICENSE",
+      },
+    ],
+  },
+  // @react-three/fiber 9.8.2 carries a build of React's reconciler in its
+  // react-reconciler/ folder, version 19.3.0 by its own reconcilerVersion:
+  // React's v19.3.0 commit, also react-reconciler 0.34.0's.
+  "@react-three/fiber": {
+    version: "9.8.2",
+    notices: [
+      {
+        project: "React's reconciler (react-reconciler)",
+        license: "MIT",
+        file: "quest/release/licenses/react-three-fiber-9.8.2-embedded/react-LICENSE",
+        source:
+          "https://github.com/facebook/react/blob/1d34f91dfde6bba84d08b683aaba164c7194dacb/LICENSE",
       },
     ],
   },

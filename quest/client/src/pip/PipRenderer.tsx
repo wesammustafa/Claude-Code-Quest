@@ -35,7 +35,7 @@ import {
 
 // Pip's box at each size, in spacing units: 76 and 208 px, the posters' own
 // sizes (pip/posters.ts), so a poster and the rig sit in exactly one place.
-const BOX: Readonly<Record<RigSize, string>> = {
+export const BOX: Readonly<Record<RigSize, string>> = {
   beside: "size-19",
   hero: "size-52",
 };

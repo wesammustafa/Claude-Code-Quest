@@ -13,6 +13,7 @@ import type {
   ClientSlots,
   External,
   QuestRouteHandle,
+  SceneMount,
   ScreenTransitions,
 } from "./types";
 
@@ -23,6 +24,8 @@ export interface MountValue {
   slots: ClientSlots;
   /** Screen transitions, when the mount turns them on; null keeps today's rise. */
   transitions: ScreenTransitions | null;
+  /** The Scene, when the mount turns it on; null keeps the screens' own background. */
+  scene: SceneMount | null;
 }
 
 /** Without a mount the client is the Local app: the hash router, the page's transport, no slot. */
@@ -31,6 +34,7 @@ export const MountContext = createContext<MountValue>({
   live: null,
   slots: {},
   transitions: null,
+  scene: null,
 });
 
 export function useMount(): MountValue {

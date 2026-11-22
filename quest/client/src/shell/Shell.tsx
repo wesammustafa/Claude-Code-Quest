@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -12,6 +13,7 @@ import { useHeightProperty } from "../lib/height-property";
 import { useMotionTokens } from "../lib/motion";
 import { LiveProvider, useConnection } from "../live/LiveProvider";
 import type { Connection } from "../live/store";
+import { cx } from "../lib/cx";
 import {
   RouteHandleContext,
   useMatchedHandle,
@@ -20,12 +22,15 @@ import {
   useScreenPath,
   useTrailingSlash,
 } from "../mount/context";
+import type { ScreenTransitions } from "../mount/types";
 import { PagePanelProvider } from "../pages/PagePanel";
 import { PipStageProvider } from "../pip/PipStage";
 import { screenFor } from "../pip/screens";
 import { PendingMoment } from "../screens/LevelComplete";
 import { useCourseSnapshot } from "../screens/lesson";
 import { useLessonRoute } from "../screens/useLessonRoute";
+import { createSceneHub, SceneContext } from "../scene/context";
+import { SceneLayer, sceneStops } from "../scene/SceneLayer";
 import { MountNotices } from "./MountNotices";
 import { enterClass, ScreenChanges } from "./ScreenChanges";
 import { SaveNotices } from "./SaveNotices";
@@ -137,7 +142,11 @@ export function Shell() {
  * (`aria-busy`, `data-connection="waiting"`) for the styles to show. On a
  * Lesson's route the path follows the engine's place (useLessonRoute). On
  * Welcome and the journey a Level or course moment still waiting gets a link.
- * An added route's handle can ask for either screen's frame.
+ * An added route's handle can ask for either screen's frame. A mount that
+ * turns the Scene on gets its layer behind the screen, outside the keyed
+ * screen so it persists (seam S12); once the Scene shows, the frame paints
+ * no background of its own except on a Lesson's step, and the Scene's move
+ * plays a screen change ahead of the mount's own.
  */
 function Frame(): ReactNode {
   useTrailingSlash();
@@ -152,7 +161,7 @@ function Frame(): ReactNode {
   const longWait = useLongWait(connection);
   useLessonRoute();
   useScreenFocus(screen, pathname);
-  const { transitions } = useMount();
+  const { transitions, scene } = useMount();
   const motion = useMotionTokens();
   const phase = useCourseSnapshot()?.lesson.phase;
   const shown = useMemo(
@@ -162,36 +171,63 @@ function Frame(): ReactNode {
     }),
     [pathname, phase, handle.screen],
   );
+  const [hub] = useState(createSceneHub);
+  const [sceneShown, setSceneShown] = useState(false);
+  const onSceneShown = useCallback((on: boolean) => {
+    setSceneShown(on);
+  }, []);
+  const clear = scene !== null && sceneShown && !sceneStops(shown.screen);
+  const changes = useMemo(
+    (): ScreenTransitions | null =>
+      transitions === null || scene === null
+        ? transitions
+        : {
+            move: (change) =>
+              (hub.move() ?? transitions.move)?.(change) ?? "under",
+          },
+    [transitions, scene, hub],
+  );
 
   return (
-    <div className="min-h-dvh bg-bg bg-(image:--glow) bg-no-repeat">
-      {/* The top bar and the connection notice under it stay at the top of the window together, outside the animated screen. */}
-      <div ref={top} data-top="" className="sticky top-0 z-20">
-        {!welcome && <TopBar />}
-        <Notice kind={NOTICES[connection]} />
-        <SaveNotices />
-        <MountNotices />
-      </div>
-      <ScreenChanges
-        screen={shown}
-        live={screen}
-        transitions={transitions}
-        cap={motion.slow * MS_PER_SECOND}
-        reduced={motion.reduced}
+    <SceneContext value={hub}>
+      <div
+        {...(clear ? { "data-scene-behind": "" } : {})}
+        className={cx(
+          "min-h-dvh",
+          !clear && "bg-bg bg-(image:--glow) bg-no-repeat",
+        )}
       >
-        <div
-          ref={screen}
-          key={pathname}
-          data-screen=""
-          {...(longWait
-            ? { "aria-busy": true, "data-connection": "waiting" }
-            : {})}
-          className={enterClass(transitions)}
-        >
-          {(welcome || journey) && <PendingMoment />}
-          <Outlet />
+        {scene !== null && (
+          <SceneLayer scene={scene} screen={shown} onShown={onSceneShown} />
+        )}
+        {/* The top bar and the connection notice under it stay at the top of the window together, outside the animated screen. */}
+        <div ref={top} data-top="" className="sticky top-0 z-20">
+          {!welcome && <TopBar />}
+          <Notice kind={NOTICES[connection]} />
+          <SaveNotices />
+          <MountNotices />
         </div>
-      </ScreenChanges>
-    </div>
+        <ScreenChanges
+          screen={shown}
+          live={screen}
+          transitions={changes}
+          cap={motion.slow * MS_PER_SECOND}
+          reduced={motion.reduced}
+        >
+          <div
+            ref={screen}
+            key={pathname}
+            data-screen=""
+            {...(longWait
+              ? { "aria-busy": true, "data-connection": "waiting" }
+              : {})}
+            className={enterClass(transitions)}
+          >
+            {(welcome || journey) && <PendingMoment />}
+            <Outlet />
+          </div>
+        </ScreenChanges>
+      </div>
+    </SceneContext>
   );
 }

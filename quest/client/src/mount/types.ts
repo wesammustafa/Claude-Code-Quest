@@ -3,7 +3,7 @@
 // screens and slots. The Local app passes none of it but `live`.
 import type { ComponentType } from "react";
 import type { RouteObject } from "react-router";
-import type { BeatKey, LessonId, StepId } from "@quest/contract";
+import type { ActiveLesson, BeatKey, LessonId, StepId } from "@quest/contract";
 import type { CheckLineState } from "../components/check-line-state";
 import type { WhereKind } from "../components/where-kind";
 import type { LiveDeps } from "../live/store";
@@ -34,6 +34,68 @@ export interface ClientMount {
    * and the old one is gone at once.
    */
   transitions?: ScreenTransitions;
+  /**
+   * The Scene: one 3D space behind every screen but a Lesson's step. Without
+   * it (the Local app) the screens paint their own background, as always,
+   * and the page loads no 3D code.
+   */
+  scene?: SceneMount;
+}
+
+/** How the mount turns the Scene on. */
+export interface SceneMount {
+  /**
+   * Loads the Scene's renderer: the page's own `import("@quest/client/scene")`,
+   * so only a page that turns the Scene on bundles it. Called once, after the
+   * first paint, the first time a screen that shows the Scene is on show.
+   * A rejection keeps the still images, or today's screens without them.
+   */
+  load: () => Promise<{ default: ComponentType<SceneProps> }>;
+  /** The Scene's colours in each theme. */
+  look: Readonly<Record<SceneTheme, SceneLook>>;
+  /**
+   * The still image of a place, shown in place of the rendered Scene where
+   * it cannot or should not run (no WebGL2, reduced motion, Save-Data, a
+   * failure); null when there is none, which leaves today's screens.
+   */
+  still?: (at: { screen: ScreenOnShow; theme: SceneTheme }) => string | null;
+}
+
+export type SceneTheme = "light" | "dark";
+
+/** The Scene's colours in one theme, as CSS hex colours. */
+export interface SceneLook {
+  /** The sky and the far distance, which the ground fades into. */
+  sky: string;
+  ground: string;
+}
+
+/**
+ * How the Scene is drawn: `"desktop"` in full, `"phone"` at a capped pixel
+ * ratio with no shadows or post effects and a frame only when something
+ * moves, `"still"` as still images with no render loop.
+ */
+export type SceneTier = "desktop" | "phone" | "still";
+
+/** What the Scene's renderer is told. */
+export interface SceneProps {
+  screen: ScreenOnShow;
+  /** The active Lesson, its phase and, while playing, its Step, as the snapshot says; null before the first snapshot. */
+  lesson: LessonId | null;
+  phase: ActiveLesson["phase"] | null;
+  step: StepId | null;
+  tier: Exclude<SceneTier, "still">;
+  /**
+   * False while a Lesson's step shows (a Step-down too) or the page is
+   * hidden: the render loop is stopped and nothing is drawn.
+   */
+  running: boolean;
+  theme: SceneTheme;
+  look: SceneLook;
+  /** Called once the first frame is drawn; the Scene then fades in. */
+  onReady: () => void;
+  /** Called when the renderer cannot go on (its WebGL context is lost): the still images show. */
+  onLost: () => void;
 }
 
 /** How the screens change when the mount turns screen transitions on. */

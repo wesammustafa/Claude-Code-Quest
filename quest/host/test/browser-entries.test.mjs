@@ -3,7 +3,10 @@
 // course data (@quest/engine/course-data) and the client, reach no node:
 // module through their relative imports. #crypto is followed to its
 // browser file, as a bundler with the "browser" condition resolves it.
-// Cross-package runtime imports stay relative, so the walk sees them.
+// Cross-package runtime imports stay relative, so the walk sees them. The
+// Local app's entry reaches no Three.js or React Three Fiber either: only
+// the Scene's renderer (seam S12) imports them, and only a page that turns
+// the Scene on loads it.
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -49,6 +52,8 @@ function resolveFile(base) {
 function walk(entries) {
   const problems = [];
   const seen = new Set();
+  // Each package imported by name, with the first file that imports it.
+  const packages = new Map();
   const queue = entries.map((e) => join(QUEST, e));
   while (queue.length) {
     const file = queue.pop();
@@ -73,10 +78,19 @@ function walk(entries) {
         problems.push(
           `${short}: imports ${spec} by package, not by relative path`,
         );
+      else if (!spec.startsWith("@quest/") && !packages.has(spec))
+        packages.set(spec, short);
     }
   }
-  return { problems, seen };
+  return { problems, seen, packages };
 }
+
+/** The Scene's 3D packages among a walk's named imports, each with the file that imports it. */
+const THREE_D = /^(?:three|@react-three\/[^/]+)(?:\/|$)/;
+const threeD = (packages) =>
+  [...packages]
+    .filter(([spec]) => THREE_D.test(spec))
+    .map(([spec, file]) => `${file}: imports ${spec}`);
 
 test("the browser entries reach no node: module", () => {
   const { problems, seen } = walk(ENTRIES);
@@ -93,5 +107,23 @@ test("the walk finds a node: import planted in the host core", () => {
   assert.ok(
     problems.some((p) => p.includes("node:os")),
     problems.join("\n"),
+  );
+});
+
+test("the Local app's entry and the client mount reach no Three.js or React Three Fiber", () => {
+  const { packages } = walk(["client/src/main.tsx", "client/src/mount.tsx"]);
+  assert.deepEqual(threeD(packages), []);
+  assert.ok(packages.has("react"), "the walk records named imports");
+});
+
+test("the walk finds Three.js and React Three Fiber in the Scene's renderer", () => {
+  const found = threeD(walk(["client/src/scene/renderer/scene.tsx"]).packages);
+  assert.ok(
+    found.some((p) => p.endsWith("imports three")),
+    found.join("\n"),
+  );
+  assert.ok(
+    found.some((p) => p.endsWith("imports @react-three/fiber")),
+    found.join("\n"),
   );
 });

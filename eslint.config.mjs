@@ -48,6 +48,26 @@ export default defineConfig([
       ],
     },
   },
+  // Only the Scene's renderer brings Three.js and React Three Fiber, so a
+  // page with the Scene off (the Local app) bundles neither (seam S12).
+  {
+    files: ["quest/client/**/*.{ts,tsx,mts,cts}"],
+    ignores: ["quest/client/src/scene/renderer/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["three", "three/*", "@react-three/*"],
+              message:
+                "Only the Scene's renderer (src/scene/renderer) imports 3D code.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // The engine is pure: it runs inside the host and never reaches back into
   // the host, the server or the browser (ticket 214).
   {

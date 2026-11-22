@@ -23,6 +23,11 @@ export type {
   LiveDeps,
   Notice,
   QuestRouteHandle,
+  SceneLook,
+  SceneMount,
+  SceneProps,
+  SceneTheme,
+  SceneTier,
   ScreenChange,
   ScreenOnShow,
   ScreenTransitions,
@@ -56,6 +61,7 @@ export function mountQuest(root: HTMLElement, mount: ClientMount): () => void {
     live: mount.live,
     slots: mount.slots ?? {},
     transitions: mount.transitions ?? null,
+    scene: mount.scene ?? null,
   };
   const reactRoot = createRoot(root);
   reactRoot.render(
