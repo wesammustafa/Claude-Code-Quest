@@ -138,14 +138,7 @@ export function showLeaving(
     }
   }
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const latest = () => {
-    timer = setTimeout(remove, capMs);
-  };
-  const frame =
-    typeof requestAnimationFrame === "function"
-      ? requestAnimationFrame(latest)
-      : null;
-  if (frame === null) latest();
+  let frame: number | null = null;
   const remove = () => {
     if (frame !== null) cancelAnimationFrame(frame);
     clearTimeout(timer);
@@ -158,7 +151,14 @@ export function showLeaving(
   const ended = (e: Event) => {
     if (e.target === node) remove();
   };
+  const latest = () => {
+    frame = null;
+    timer = setTimeout(remove, capMs);
+  };
   node.addEventListener("animationend", ended);
   node.addEventListener("animationcancel", ended);
+  if (typeof requestAnimationFrame === "function")
+    frame = requestAnimationFrame(latest);
+  else latest();
   return remove;
 }

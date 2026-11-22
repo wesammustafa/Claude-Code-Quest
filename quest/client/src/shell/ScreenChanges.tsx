@@ -34,7 +34,7 @@ interface Change {
  * copies the entering screen where it stands, so the next exit goes on from
  * there and nothing waits; an earlier copy keeps fading on its own. The
  * mount's move is told each change before its first frame and aborted at
- * the cap or by the next change. A class, since only
+ * the cap, by the next change or on unmount. A class, since only
  * getSnapshotBeforeUpdate reads the leaving screen before React removes it.
  */
 export class ScreenChanges extends Component<Props> {

@@ -132,6 +132,23 @@ describe("screen transitions, on", () => {
     );
   });
 
+  test("a page with no requestAnimationFrame still shows the copy and removes it at the cap", async () => {
+    mounted({});
+    vi.stubGlobal("requestAnimationFrame", undefined);
+    vi.stubGlobal("cancelAnimationFrame", undefined);
+    // A plain click: user-event's pointer moves would ask Pip for a frame.
+    const main = screen.getByRole("navigation", { name: "Main" });
+    fireEvent.click(within(main).getByRole("link", { name: "Progress" }));
+    await screen.findByRole("heading", { level: 1, name: "Progress" });
+    expect(copies()).toHaveLength(1);
+    await waitFor(
+      () => {
+        expect(copies()).toEqual([]);
+      },
+      { timeout: CAP_MS * 3 },
+    );
+  });
+
   test("a route change mid-transition copies the entering screen where it stands, and nothing waits", async () => {
     mounted({});
     await go("Progress");
@@ -226,7 +243,7 @@ describe("screen transitions, on", () => {
     expect(changes[0]?.cap).toBe(REDUCED_CAP_MS);
   });
 
-  test("the unmount ends the move and removes every copy", async () => {
+  test("the unmount ends the move and runs each copy's removal, which lets go of its listeners", async () => {
     const changes: ScreenChange[] = [];
     const { unmount } = mounted({
       move: (change) => {
@@ -235,11 +252,18 @@ describe("screen transitions, on", () => {
       },
     });
     await go("Progress");
-    expect(copies()).toHaveLength(1);
+    const [copy] = copies();
+    expect(copy).toBeDefined();
+    // The layer leaves with the root, so the copy's own removal is seen in
+    // what it lets go of, not in the page.
+    const dropped = vi.spyOn(copy as HTMLElement, "removeEventListener");
     act(() => {
       unmount();
     });
-    expect(copies()).toEqual([]);
+    expect(dropped.mock.calls.map(([type]) => type).sort()).toEqual([
+      "animationcancel",
+      "animationend",
+    ]);
     expect(changes[0]?.signal.aborted).toBe(true);
   });
 });
