@@ -4,9 +4,10 @@
 // drag, a pinch, a scroll and the pull-back control move Pip and the
 // camera, and a tap on a Station opens exactly what its link opens. The
 // screen's Pip stands down for the 2D Pip floating over the Scene, or,
-// with the mount's 3D Pip, stays for the Scene's renderer to hold. The
-// Stations are lit from the snapshot alone. With the Scene off, and on
-// the other Levels, the Journey is as it was. The renderer is a stand-in
+// with the mount's 3D Pip, stays for the Scene's renderer to hold, which
+// then stands him in the stage's empty box on the path. The Stations are
+// lit from the snapshot alone. With the Scene off, and on the other
+// Levels, the Journey is as it was. The renderer is a stand-in
 // that draws each Station where the test says: jsdom has no WebGL.
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { useContext, useEffect, type ReactNode } from "react";
@@ -14,8 +15,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { fullCourse, overview, snapshotOf } from "../../e2e/snapshots";
 import { renderMounted } from "../../test/mounted";
 import type { SceneMount, SceneProps } from "../mount/types";
+import { BOX } from "../pip/PipRenderer";
 import { SceneContext } from "./context";
 import { WHOLE_LEVEL } from "./JourneyStage";
+import { findPipSpot } from "./pip-spot";
 import { journeyPathOf, type JourneyPath, type StationPoint } from "./path";
 import { resetTierProbes } from "./tier";
 
@@ -35,10 +38,13 @@ interface Heard {
   path: JourneyPath | null;
 }
 
-function sceneWith(heard: Heard): SceneMount {
+function sceneWith(heard: Heard, { holds = false } = {}): SceneMount {
   function StandIn(props: SceneProps): ReactNode {
     heard.props.push(props);
-    const path = journeyPathOf(useContext(SceneContext));
+    const hub = useContext(SceneContext);
+    const path = journeyPathOf(hub);
+    // As the 3D Pip's renderer does once his model is placed (seam S13).
+    useEffect(() => (holds ? hub.holdPip() : undefined), [hub]);
     useEffect(() => {
       heard.path = path;
       path.setReady(true);
@@ -101,11 +107,13 @@ afterEach(() => {
 });
 
 const stage = () => document.querySelector<HTMLElement>("[data-journey-stage]");
+const screenPip = () =>
+  document.querySelector("[data-pip]:not([data-pip=icon])");
 const link = (lesson: string) =>
   document.querySelector<HTMLAnchorElement>(`a[href="/lesson/${lesson}/"]`);
 
 /** The Journey of the full course, b-1 to b-3 complete, with the Scene drawing. */
-async function onPath({ pip = false } = {}): Promise<{
+async function onPath({ pip = false, holds = false } = {}): Promise<{
   heard: Heard;
   page: ReturnType<typeof renderMounted>;
   path: JourneyPath;
@@ -114,7 +122,7 @@ async function onPath({ pip = false } = {}): Promise<{
   const page = renderMounted(
     "/journey/",
     snapshotOf(overview, { course: fullCourse }),
-    { scene: { ...sceneWith(heard), ...(pip ? { pip } : {}) } },
+    { scene: { ...sceneWith(heard, { holds }), ...(pip ? { pip } : {}) } },
   );
   await waitFor(() => {
     expect(stage()).not.toBeNull();
@@ -306,7 +314,35 @@ describe("the Journey path, with the Scene drawing", () => {
     await onPath({ pip: true });
     expect(document.querySelector("[data-scene-pip]")).toBeNull();
     expect(document.querySelector("[data-pip-stood-down]")).toBeNull();
+    expect(document.querySelector("[data-pip-stage]")).toBeNull();
     expect(document.querySelector('[data-pip="beside"]')).not.toBeNull();
+  });
+
+  test("while the 3D Pip's renderer holds Pip, the stage leaves the 2D Pip's box empty where the Scene puts his feet, and the renderer stands him there", async () => {
+    const { path } = await onPath({ pip: true, holds: true });
+    expect(document.querySelector("[data-scene-pip]")).toBeNull();
+    expect(screenPip()).toBeNull();
+    const spot = document.querySelector<HTMLElement>("[data-pip-stage]");
+    expect(spot).toHaveAttribute("data-pip-stood-down", "beside");
+    expect(spot).toHaveClass(BOX.beside);
+    expect(spot?.closest("[aria-hidden]")).not.toBeNull();
+    // The Next card's empty box is there too: the stage's comes first.
+    expect(document.querySelectorAll("[data-pip-stood-down]")).toHaveLength(2);
+    expect(findPipSpot()).toBe(spot);
+    const placed = () => spot?.parentElement;
+    expect(placed()?.hidden).toBe(false);
+    expect(placed()?.style.transform).toBe(
+      "translate(100px, 230px) translate(-50%, -100%)",
+    );
+    // It follows the point as the Scene moves it, and hides with it.
+    act(() => {
+      path.setView({ points: POINTS, pip: { x: 200, y: 230 } });
+    });
+    expect(placed()?.style.transform).toContain("translate(200px, 230px)");
+    act(() => {
+      path.setView({ points: POINTS, pip: null });
+    });
+    expect(placed()?.hidden).toBe(true);
   });
 
   test("the other Levels keep today's screen: no band, and the screen's own Pip", async () => {

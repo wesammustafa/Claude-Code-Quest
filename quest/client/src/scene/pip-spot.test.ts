@@ -23,6 +23,18 @@ describe("findPipSpot", () => {
     expect(findPipSpot()?.id).toBe("live");
   });
 
+  test("prefers the Journey stage's box on the path over the screen's other box, wherever each sits", () => {
+    document.body.innerHTML = `
+      <div data-screen-leaving><span data-pip-stood-down="beside" data-pip-stage=""></span></div>
+      <main>
+        <span id="next" data-pip-stood-down="beside"></span>
+        <div><span id="stage" data-pip-stood-down="beside" data-pip-stage=""></span></div>
+      </main>`;
+    expect(findPipSpot()?.id).toBe("stage");
+    document.querySelector("#stage")?.remove();
+    expect(findPipSpot()?.id).toBe("next");
+  });
+
   test("is null on a screen with no Pip", () => {
     document.body.innerHTML = `<span data-pip="icon"></span><main></main>`;
     expect(findPipSpot()).toBeNull();
