@@ -3,10 +3,10 @@ import type { Snapshot } from "@quest/contract";
 import { ButtonLink } from "../components/Button";
 import { InlineText } from "../components/InlineText";
 import { Tier } from "../components/Tier";
-import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { Pip } from "../pip/Pip";
 import { usePipLook } from "../pip/PipStage";
+import { BadgeShelfHint, SceneBadge } from "../scene/SceneBadge";
 import { PageTitle } from "../shell/PageTitle";
 import { BOX, COLUMN, EYEBROW } from "./layout";
 import { OpenLessonButton } from "./OpenLessonButton";
@@ -96,6 +96,7 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
         <h2 id="progress-badges" className="text-lg">
           Badges
         </h2>
+        <BadgeShelfHint earned={counts.lessons.done > 0} />
         {snapshot.course.levels.map((level) => (
           <div key={level.id} className="grid gap-2">
             <h3 className="text-sm text-muted">{LEVEL_NAMES[level.id]}</h3>
@@ -104,11 +105,12 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
                 (s) =>
                   s.badge !== null && (
                     <li key={s.id}>
-                      <LessonBadge
+                      <SceneBadge
                         lesson={s.id}
                         name={s.badge}
                         earned={s.complete}
                         size="sm"
+                        turns
                       />
                     </li>
                   ),

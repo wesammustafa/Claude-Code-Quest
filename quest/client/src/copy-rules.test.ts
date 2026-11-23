@@ -268,19 +268,19 @@ describe("the app's own words (spec Copy rules)", () => {
 });
 
 // The Scene's own words (Questerm's copy rules, its 5.11, and its 09 for the
-// Scene): the Scene and its sound are never called a world, and nothing in
-// them names a mission, a beat, XP, a score, a rank, a level up, an
-// achievement, a trophy or a medal, says "Quest" alone or says "Game over".
-// Read wider than the prose above: a single capitalised word is a control's
-// name ("Sound"), so it is read too.
+// Scene): the Scene, its sound, the Badge reveal and the Badge shelf are
+// never called a world, and nothing in them names a mission, a beat, XP, a
+// score, a rank, a level up, an achievement, a trophy or a medal, says
+// "Quest" alone or says "Game over". Read wider than the prose above: a
+// single capitalised word is a control's name ("Sound"), so it is read too.
 const SCENE_BANNED: readonly RegExp[] = [
   /\bworlds?\b/i,
   /\bmissions?\b/i,
   /\bbeats?\b/i,
   /\bXP\b/i,
-  /\bscores?\b/i,
+  /\bscor(?:e|es|ed|ing)\b/i,
   /\branks?\b/i,
-  /\blevel(?:led)? up\b/i,
+  /\blevel(?:l?ed)? up\b/i,
   /\bachievements?\b/i,
   /\btroph(?:y|ies)\b/i,
   /\bmedals?\b/i,
@@ -333,8 +333,11 @@ const SCENE_WORDS = Object.entries(sources)
   );
 
 describe("the Scene's words (Questerm's 5.11 and 09)", () => {
-  test("the Scene and its sound name no banned word, and the mute control's words are read", () => {
+  test("the Scene and its sound name no banned word, and the mute control's and the Badge shelf's words are read", () => {
     expect(SCENE_WORDS.map(({ words }) => words)).toContain("Sound");
+    expect(SCENE_WORDS.map(({ words }) => words)).toContain(
+      "Drag an earned badge to turn it.",
+    );
     expect(
       SCENE_WORDS.flatMap(({ file, words }) =>
         matching(SCENE_BANNED, words).map(
@@ -363,6 +366,18 @@ describe("the Scene's words (Questerm's 5.11 and 09)", () => {
       "Game Over",
       "A pause \u2014 then on",
       "Nice work \u{1F389}",
+      "Welcome to the world.",
+      "Next beat",
+      "You earned 50 XP.",
+      "Your score: 3",
+      "Top rank!",
+      "You levelled up!",
+      "You leveled up!",
+      "A new achievement",
+      "Trophy case",
+      "Gold medal",
+      "Quest complete",
+      "A new badge \u2014 Explorer",
     ]) {
       const quoted = quote(bad);
       const found = sceneWordsOf("x.tsx", `const x = ${quoted};`).flatMap(

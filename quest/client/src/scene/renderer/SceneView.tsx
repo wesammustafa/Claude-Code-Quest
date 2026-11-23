@@ -2,6 +2,7 @@ import { Canvas, useFrame, type CameraProps } from "@react-three/fiber";
 import { useEffect, useRef, type ReactNode } from "react";
 import type { SceneProps } from "../../mount/types";
 import { pixelRatioCap } from "../tier";
+import { SceneBadges } from "./badges/SceneBadges";
 import { Ground } from "./Ground";
 
 /**
@@ -31,6 +32,7 @@ export function SceneView({
   tier,
   running,
   look,
+  theme,
   onReady,
   onLost,
 }: SceneProps): ReactNode {
@@ -89,6 +91,7 @@ export function SceneView({
       />
       <Ground color={look.ground} shadows={tier === "desktop"} />
       {tier === "desktop" && <Sway />}
+      <SceneBadges theme={theme} />
       <FirstFrame onReady={onReady} />
     </Canvas>
   );

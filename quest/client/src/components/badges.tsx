@@ -194,6 +194,7 @@ export interface LessonBadgeProps {
   earned: boolean;
   size?: BadgeSize;
   reveal?: boolean;
+  pop?: boolean;
   caption?: boolean;
 }
 

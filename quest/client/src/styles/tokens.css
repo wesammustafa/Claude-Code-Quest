@@ -243,6 +243,11 @@
   */
   --animate-screen-in: rise var(--duration-base) var(--ease-out) both;
   --animate-screen-out: screen-out var(--duration-fast) var(--ease-out) both;
+  /*
+    A Scene moment's end state shown in its place, where the moment cannot
+    play (the still tier, seam S12): a fade of at most reduced motion's 120 ms.
+  */
+  --animate-cross-fade: fade var(--duration-cross-fade) var(--ease-out) both;
 
   @keyframes rise {
     from {
@@ -318,6 +323,10 @@
   --duration-moment: 560ms;
   /* A turning mark, such as a disclosure's chevron: a rotation is travel, so reduced motion snaps it. */
   --duration-turn: 220ms;
+  /* The Scene's Badge reveal, a moment outside the screen transitions' cap that any key or click skips. */
+  --duration-reveal: 1500ms;
+  /* A Scene moment's end state shown in its place: reduced motion's longest fade, in either setting. */
+  --duration-cross-fade: 120ms;
   --stagger: 40ms;
   /* The status words wait this long after Pip's Reaction starts (components/Says.tsx, through Motion). */
   --says-delay: 80ms;
@@ -414,6 +423,7 @@
     --duration-slow: 120ms;
     --duration-moment: 120ms;
     --duration-turn: 0ms;
+    --duration-reveal: 0ms;
     --stagger: 0ms;
     --rise: 0px;
     --press-y: 0px;

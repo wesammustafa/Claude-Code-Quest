@@ -5,13 +5,13 @@ import { Button, ButtonLink } from "../components/Button";
 import { CheckLines } from "../components/CheckLines";
 import { InlineText } from "../components/InlineText";
 import { Tier } from "../components/Tier";
-import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { useSlots } from "../mount/context";
 import { Link } from "../mount/links";
 import { githubTree, pageIndex } from "../pages/fetch";
 import { ReadLesson } from "../pages/ReadLesson";
 import { Pip } from "../pip/Pip";
+import { SceneBadge } from "../scene/SceneBadge";
 import { PageTitle } from "../shell/PageTitle";
 import { LessonGate } from "./LessonGate";
 import { BOX, EYEBROW, MOMENT, QUIET_LINK } from "./layout";
@@ -105,12 +105,13 @@ export function LessonComplete() {
       >
         <InlineText text={lesson.title} />
       </PageTitle>
-      <LessonBadge
+      <SceneBadge
         lesson={lesson.id}
         name={lesson.badge}
         earned
         size="lg"
         reveal={reveal}
+        lights={passed}
       />
       <span role="status" className="sr-only">
         {reveal && lesson.badge !== null ? `${NEW_BADGE}: ${lesson.badge}` : ""}

@@ -5,14 +5,24 @@ import { popEntrance, useMotionTokens } from "../lib/motion";
 
 export type BadgeShape = "circle" | "hexagon" | "shield";
 
-// One family on a 64 grid: a shape per Level.
-const SHAPES: Record<BadgeShape, ReactNode> = {
+// One family on a 64 grid: a shape per Level. The Scene's 3D Badges are
+// made from this same art (scene/badge-art.ts), so a change here changes them.
+export const BADGE_SHAPES: Record<BadgeShape, ReactNode> = {
   circle: <circle cx="32" cy="32" r="25" />,
   hexagon: <path d="M32 6.5 54 19.2v25.6L32 57.5 10 44.8V19.2z" />,
   shield: (
     <path d="M32 6 53 13.5v17.2C53 44 44.2 53.4 32 58 19.8 53.4 11 44 11 30.7V13.5z" />
   ),
 };
+
+/** A capstone's inner ring: its shape again, at this scale about the centre (the ring's transform below). */
+export const BADGE_RING_SCALE = 0.78;
+
+/** Where a Lesson's 24-grid symbol sits on the 64 grid: this far from the top and the left. */
+export const BADGE_SYMBOL_AT = 20;
+
+/** An unearned Badge's dashes, in the 64 grid's units: dash, then gap. */
+export const BADGE_DASH = "4 3";
 
 // A capstone is a quarter larger, with an inner ring. xs sits in a list row
 // (Progress), xl is the Lesson complete reveal.
@@ -26,7 +36,7 @@ const SIZES = {
 export type BadgeSize = keyof typeof SIZES;
 
 // The symbol's stroke, on its 24 grid: thicker at xs so it holds at 28 px.
-const SYMBOL_STROKE: Record<BadgeSize, string> = {
+export const BADGE_SYMBOL_STROKE: Record<BadgeSize, string> = {
   xs: "2.6",
   sm: "1.8",
   lg: "1.8",
@@ -48,6 +58,11 @@ export interface BadgeProps {
   /** Pops in, the moment it is earned; it always shows its caption. */
   reveal?: boolean;
   /**
+   * Whether a revealed Badge pops. Off where the Scene shows the moment
+   * itself, or its end state in its place: the caption still shows.
+   */
+  pop?: boolean;
+  /**
    * The name under the shape, with "Not yet" until earned. It repeats the
    * image's name, so screen readers skip it. Off for a row that names it.
    */
@@ -67,6 +82,7 @@ export function Badge({
   name,
   symbol,
   reveal = false,
+  pop = true,
   caption = true,
 }: BadgeProps) {
   const entrance = popEntrance(useMotionTokens());
@@ -89,21 +105,27 @@ export function Badge({
     >
       <m.g
         data-badge-shape=""
-        initial={reveal ? entrance.initial : false}
+        initial={reveal && pop ? entrance.initial : false}
         animate={entrance.animate}
         transition={entrance.transition}
       >
-        <g strokeDasharray={earned ? undefined : "4 3"}>{SHAPES[shape]}</g>
+        <g strokeDasharray={earned ? undefined : BADGE_DASH}>
+          {BADGE_SHAPES[shape]}
+        </g>
         {capstone && (
           <g
+            // BADGE_RING_SCALE, as the SVG has always written it.
             transform="translate(32 32) scale(.78) translate(-32 -32)"
-            strokeDasharray={earned ? undefined : "4 3"}
+            strokeDasharray={earned ? undefined : BADGE_DASH}
           >
-            {SHAPES[shape]}
+            {BADGE_SHAPES[shape]}
           </g>
         )}
         {symbol !== undefined && (
-          <g transform="translate(20 20)" strokeWidth={SYMBOL_STROKE[size]}>
+          <g
+            transform={`translate(${String(BADGE_SYMBOL_AT)} ${String(BADGE_SYMBOL_AT)})`}
+            strokeWidth={BADGE_SYMBOL_STROKE[size]}
+          >
             {symbol}
           </g>
         )}
