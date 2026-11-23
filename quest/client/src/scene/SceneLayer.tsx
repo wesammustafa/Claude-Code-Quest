@@ -119,6 +119,7 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
           theme={theme}
           look={scene.look[theme]}
           onLost={onLost}
+          pip={scene.pip === true}
         />
       ) : (
         still !== null && <Still key={still} src={still} onShown={onShown} />

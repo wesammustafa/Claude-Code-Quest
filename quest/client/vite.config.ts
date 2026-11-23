@@ -75,6 +75,9 @@ export default defineConfig({
     // dist/app/.vite/manifest.json: the size budgets read it; statics does not ship it.
     manifest: true,
   },
+  // The 3D Pip's model (seam S13) is an asset like the posters: the model
+  // test reads its bytes as one.
+  assetsInclude: ["**/*.glb"],
   server: { host: "127.0.0.1", port: 4318, strictPort: true },
   preview: {
     host: "127.0.0.1",

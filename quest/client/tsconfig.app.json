@@ -12,6 +12,8 @@
     "test",
     "e2e/snapshots.ts",
     "pip/contract.ts",
+    "pip/model/contract.ts",
+    "pip/model/glb.ts",
     "pip/posters.ts",
     "pip/ready.ts",
     "pip/contract-page"

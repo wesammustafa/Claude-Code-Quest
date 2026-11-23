@@ -18,6 +18,7 @@
     "e2e": "playwright test -c quest/client/playwright.config.ts",
     "pip:build": "node quest/client/pip/build.ts",
     "pip:turn": "node quest/client/pip/turn.ts",
+    "pip:stand-in": "node quest/client/pip/model/stand-in.ts",
     "dev": "npm run course:compile && node quest/server/dev.ts",
     "verify": "npm run guide:selftest && npm run guide && npm run typecheck && npm run lint && npm run test:quest && npm run test:checks && npm run test:starter",
     "template": "npm run template --workspace @quest/release --",

@@ -4,6 +4,7 @@ import type { SceneProps } from "../../mount/types";
 import { pixelRatioCap } from "../tier";
 import { SceneBadges } from "./badges/SceneBadges";
 import { Ground } from "./Ground";
+import { ScenePip } from "./pip/ScenePip";
 
 /**
  * Where the camera stands and looks: over the ground, toward the far
@@ -26,15 +27,18 @@ const SWAY = 0.8;
  * a phone draws at a capped pixel ratio, with no shadows or post effects,
  * and only when something changes; stopped, it draws nothing. Today it
  * holds a placeholder ground in the mount's colours; the landscapes come
- * later. A lost WebGL context hands over to the still images.
+ * later. With the mount's `pip` it draws the 3D Pip too (seam S13). A lost
+ * WebGL context hands over to the still images.
  */
 export function SceneView({
+  screen,
   tier,
   running,
   look,
   theme,
   onReady,
   onLost,
+  pip = false,
 }: SceneProps): ReactNode {
   const frameloop = !running ? "never" : tier === "phone" ? "demand" : "always";
   const lost = useRef(onLost);
@@ -93,6 +97,7 @@ export function SceneView({
       {tier === "desktop" && <Sway />}
       <SceneBadges theme={theme} />
       <FirstFrame onReady={onReady} />
+      {pip && <ScenePip screen={screen} tier={tier} />}
     </Canvas>
   );
 }

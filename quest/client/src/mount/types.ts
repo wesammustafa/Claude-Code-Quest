@@ -59,6 +59,13 @@ export interface SceneMount {
    * failure); null when there is none, which leaves today's screens.
    */
   still?: (at: { screen: ScreenOnShow; theme: SceneTheme }) => string | null;
+  /**
+   * Seam S13: true draws Pip in the Scene with the 3D renderer, from the
+   * same director, wherever the Scene draws; the screen's own Pip stands
+   * down once the model has loaded and drawn. Absent, the screens keep
+   * their own Pip over the Scene.
+   */
+  pip?: boolean;
 }
 
 export type SceneTheme = "light" | "dark";
@@ -108,6 +115,8 @@ export interface SceneProps {
   onReady: () => void;
   /** Called when the renderer cannot go on (its WebGL context is lost): the still images show. */
   onLost: () => void;
+  /** Seam S13: the mount's `pip`, so the renderer draws the 3D Pip. */
+  pip?: boolean;
 }
 
 /** How the screens change when the mount turns screen transitions on. */
