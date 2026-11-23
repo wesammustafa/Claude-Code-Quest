@@ -1,37 +1,74 @@
 import { Canvas, useFrame, type CameraProps } from "@react-three/fiber";
-import { useEffect, useRef, type ReactNode } from "react";
-import type { SceneProps } from "../../mount/types";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
+import type { SceneProps, ScreenOnShow } from "../../mount/types";
 import { pixelRatioCap } from "../tier";
+import { CameraRig } from "./CameraRig";
+import { FOV } from "./camera";
+import { Landscape, litStations } from "./Landscape";
 import { SceneBadges } from "./badges/SceneBadges";
-import { Ground } from "./Ground";
 import { ScenePip } from "./pip/ScenePip";
 
-/**
- * Where the camera stands and looks: over the ground, toward the far
- * distance. One object, so a new render of the canvas never sets it again.
- */
-const CAMERA: CameraProps = {
-  position: [0, 2.4, 8],
-  fov: 45,
-  near: 0.1,
-  far: 120,
-};
-const LOOK_AT = [0, 0.6, -8] as const;
-/** The desktop's slow sway of the camera, side to side, in radians per second and units. */
-const SWAY_RATE = 0.06;
-const SWAY = 0.8;
+/** The camera's lens; the rig sets where it stands. One object, so a new render of the canvas never sets it again. */
+const CAMERA: CameraProps = { fov: FOV, near: 0.1, far: 160 };
+
+/** How far the fog starts and where it hides the hills in the look's sky. */
+const FOG = [30, 110] as const;
+
+/** A followed value: read it with `get`, hear it change with `subscribe`. */
+interface Followed<T> {
+  get: () => T;
+  subscribe: (fn: () => void) => () => void;
+}
+
+/** A value the renderer reads as it changes, so a new screen re-renders none of the canvas. */
+function useFollowed<T>(value: T): Followed<T> {
+  const [held] = useState(() => {
+    let current = value;
+    const listeners = new Set<() => void>();
+    return {
+      get: () => current,
+      set: (next: T) => {
+        if (Object.is(next, current)) return;
+        current = next;
+        for (const fn of [...listeners]) fn();
+      },
+      subscribe: (fn: () => void) => {
+        listeners.add(fn);
+        return () => {
+          listeners.delete(fn);
+        };
+      },
+    };
+  });
+  useLayoutEffect(() => {
+    held.set(value);
+  }, [held, value]);
+  return held;
+}
 
 /**
  * The Scene's renderer (seam S12): one canvas, `aria-hidden` and never in
- * the Tab order. A desktop draws every frame, with shadows and a slow sway;
- * a phone draws at a capped pixel ratio, with no shadows or post effects,
- * and only when something changes; stopped, it draws nothing. Today it
- * holds a placeholder ground in the mount's colours; the landscapes come
- * later. With the mount's `pip` it draws the 3D Pip too (seam S13). A lost
- * WebGL context hands over to the still images.
+ * the Tab order, drawing the Beginner landscape (ticket 52) with its light
+ * baked into its colours, so it needs no shadow map; the light here is for
+ * the 3D Badges and, with the mount's `pip`, the 3D Pip (seam S13). A
+ * desktop draws every frame, with antialiasing and a slow sway over the
+ * meadow; a phone draws at a capped pixel ratio, and only when something
+ * changes; stopped, it draws nothing. The screen is followed rather than
+ * rendered, so a screen change re-renders nothing in the canvas: the
+ * camera rig and the 3D Pip read it. A lost WebGL context hands over to
+ * the still images.
  */
 export function SceneView({
   screen,
+  stations,
   tier,
   running,
   look,
@@ -56,59 +93,71 @@ export function SceneView({
     },
     [],
   );
-  return (
-    <Canvas
-      data-scene-canvas=""
-      data-scene-frameloop={frameloop}
-      frameloop={frameloop}
-      dpr={[1, pixelRatioCap(tier)]}
-      shadows={tier === "desktop"}
-      // The look's colours as given, with no filmic tone curve over them.
-      flat
-      gl={{
-        antialias: tier === "desktop",
-        powerPreference: tier === "phone" ? "low-power" : "default",
-      }}
-      camera={CAMERA}
-      onCreated={({ gl, camera }) => {
-        const canvas = gl.domElement;
-        canvas.setAttribute("aria-hidden", "true");
-        const onContextLost = () => {
-          lost.current();
-        };
-        canvas.addEventListener("webglcontextlost", onContextLost);
-        detach.current = () => {
-          canvas.removeEventListener("webglcontextlost", onContextLost);
-        };
-        camera.lookAt(...LOOK_AT);
-      }}
-    >
-      <color attach="background" args={[look.sky]} />
-      <fog attach="fog" args={[look.sky, 14, 60]} />
-      <hemisphereLight args={[look.light, look.ground, look.ambient]} />
-      <directionalLight
-        color={look.light}
-        position={[8, 5, 2]}
-        intensity={look.key}
-        castShadow={tier === "desktop"}
-        shadow-mapSize={[1024, 1024]}
-      />
-      <Ground color={look.ground} shadows={tier === "desktop"} />
-      {tier === "desktop" && <Sway />}
-      <SceneBadges theme={theme} />
-      <FirstFrame onReady={onReady} />
-      {pip && <ScenePip screen={screen} tier={tier} />}
-    </Canvas>
+  const shown = useFollowed<ScreenOnShow>(screen);
+  const lit = litStations(stations)
+    .map((on) => (on ? "1" : "0"))
+    .join("");
+  // The same element while nothing it draws changes, so React leaves the canvas alone.
+  return useMemo(
+    () => (
+      <Canvas
+        data-scene-canvas=""
+        data-scene-frameloop={frameloop}
+        data-scene-lit={lit}
+        frameloop={frameloop}
+        dpr={[1, pixelRatioCap(tier)]}
+        // The look's colours as given, with no filmic tone curve over them.
+        flat
+        gl={{
+          antialias: tier === "desktop",
+          powerPreference: tier === "phone" ? "low-power" : "default",
+        }}
+        camera={CAMERA}
+        onCreated={({ gl }) => {
+          const canvas = gl.domElement;
+          canvas.setAttribute("aria-hidden", "true");
+          const onContextLost = () => {
+            lost.current();
+          };
+          canvas.addEventListener("webglcontextlost", onContextLost);
+          detach.current = () => {
+            canvas.removeEventListener("webglcontextlost", onContextLost);
+          };
+        }}
+      >
+        <color attach="background" args={[look.sky]} />
+        <fog attach="fog" args={[look.sky, ...FOG]} />
+        <hemisphereLight args={[look.light, look.ground, look.ambient]} />
+        <directionalLight
+          color={look.light}
+          position={[8, 5, 2]}
+          intensity={look.key}
+        />
+        <Landscape look={look} lit={lit} />
+        <CameraRig
+          screen={shown}
+          stations={stations}
+          sway={tier === "desktop"}
+        />
+        <SceneBadges theme={theme} />
+        <FirstFrame onReady={onReady} />
+        {pip && <FollowedPip screen={shown} tier={tier} />}
+      </Canvas>
+    ),
+    [frameloop, lit, tier, look, theme, pip, shown, stations, onReady],
   );
 }
 
-/** The desktop's sway: the camera drifts side to side, looking at the same point. */
-function Sway(): null {
-  useFrame(({ camera, clock }) => {
-    camera.position.x = Math.sin(clock.elapsedTime * SWAY_RATE) * SWAY;
-    camera.lookAt(...LOOK_AT);
-  });
-  return null;
+/** The 3D Pip on the followed screen: only it renders again when the screen changes. */
+function FollowedPip({
+  screen,
+  tier,
+}: {
+  screen: Followed<ScreenOnShow>;
+  tier: SceneProps["tier"];
+}): ReactNode {
+  const current = useSyncExternalStore(screen.subscribe, screen.get);
+  return <ScenePip screen={current} tier={tier} />;
 }
 
 /** Tells the layer once the first frame is being drawn. */

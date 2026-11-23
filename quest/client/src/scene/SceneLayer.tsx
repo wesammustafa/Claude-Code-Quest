@@ -2,6 +2,7 @@ import {
   Component,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentType,
@@ -10,7 +11,13 @@ import {
 import { cx } from "../lib/cx";
 import { usePageHidden, useResolvedTheme } from "../lib/page";
 import { afterFirstPaint } from "../lib/paint";
-import type { SceneMount, SceneProps, ScreenOnShow } from "../mount/types";
+import type { LevelId, Snapshot } from "@quest/contract";
+import type {
+  SceneMount,
+  SceneProps,
+  SceneStation,
+  ScreenOnShow,
+} from "../mount/types";
 import type { PipScreen } from "../pip/screen-name";
 import { useCourseSnapshot } from "../screens/lesson";
 import { useSceneTier } from "./tier";
@@ -51,7 +58,9 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
   const tier = useSceneTier();
   const theme = useResolvedTheme();
   const hidden = usePageHidden();
-  const lesson = useCourseSnapshot()?.lesson ?? null;
+  const snapshot = useCourseSnapshot();
+  const lesson = snapshot?.lesson ?? null;
+  const stations = useStations(snapshot);
   const stopped = sceneStops(screen.screen);
   const [loaded, setLoaded] = useState<Loaded>({ state: "waiting" });
   const [lost, setLost] = useState(false);
@@ -114,6 +123,7 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
           lesson={lesson?.id ?? null}
           phase={lesson?.phase ?? null}
           step={lesson?.phase === "playing" ? (lesson.step?.id ?? null) : null}
+          stations={stations}
           tier={tier}
           running={!stopped && !hidden}
           theme={theme}
@@ -125,6 +135,38 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
         still !== null && <Still key={still} src={still} onShown={onShown} />
       )}
     </div>
+  );
+}
+
+const NO_STATIONS: readonly SceneStation[] = [];
+
+/**
+ * Every Lesson of the course as its Station, from the snapshot's
+ * `LessonSummary.complete` alone; the same array until a Lesson's complete
+ * changes, so a new snapshot draws nothing new.
+ */
+function useStations(snapshot: Snapshot | null): readonly SceneStation[] {
+  const key =
+    snapshot?.course.levels
+      .map((level) =>
+        level.lessons
+          .map((l) => `${level.id}:${l.id}:${l.complete ? "1" : "0"}`)
+          .join(","),
+      )
+      .join(";") ?? "";
+  return useMemo(
+    () =>
+      key === ""
+        ? NO_STATIONS
+        : key.split(/[;,]/).map((entry) => {
+            const [level = "", id = "", done = "0"] = entry.split(":");
+            return {
+              level: level as LevelId,
+              lesson: id,
+              complete: done === "1",
+            };
+          }),
+    [key],
   );
 }
 

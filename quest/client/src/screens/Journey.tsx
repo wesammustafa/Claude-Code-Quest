@@ -1,5 +1,16 @@
-import { useCallback, useRef, useState, type KeyboardEvent } from "react";
-import type { LessonSummary, LevelId, Snapshot } from "@quest/contract";
+import {
+  useCallback,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type KeyboardEvent,
+} from "react";
+import type {
+  LessonId,
+  LessonSummary,
+  LevelId,
+  Snapshot,
+} from "@quest/contract";
 import { Button, ButtonLink } from "../components/Button";
 import { Disclosure } from "../components/Disclosure";
 import { Icon } from "../components/Icon";
@@ -9,10 +20,13 @@ import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { cx } from "../lib/cx";
 import { useBelow } from "../lib/media";
+import { useMount } from "../mount/context";
 import { Link } from "../mount/links";
 import { pageIndex, type PageEntry } from "../pages/fetch";
 import { usePagePanel } from "../pages/PagePanel";
 import { Pip } from "../pip/Pip";
+import { JourneyStage } from "../scene/JourneyStage";
+import { stationForKey, useJourneyPath } from "../scene/path";
 import { PageTitle } from "../shell/PageTitle";
 import { EYEBROW, WIDE } from "./layout";
 import { OpenLessonButton } from "./OpenLessonButton";
@@ -180,7 +194,15 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
     tabs.current[to]?.focus();
   };
 
+  const onPath = useOnPath(level?.id);
+  const links = useRef(new Map<LessonId, HTMLAnchorElement>());
+  const link = useCallback(
+    (lesson: LessonId) => links.current.get(lesson) ?? null,
+    [],
+  );
+
   if (!level) return null;
+  const stations = level.lessons.map((l) => l.id);
   return (
     <main className={WIDE}>
       <JourneyHeader />
@@ -261,6 +283,14 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
         ))}
       </div>
 
+      {onPath && (
+        <JourneyStage
+          lessons={stations}
+          home={current?.id ?? null}
+          link={link}
+        />
+      )}
+
       <section
         id="level-panel"
         role="tabpanel"
@@ -279,7 +309,23 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
           )}
         >
           {level.lessons.map((lesson) => (
-            <Node key={lesson.id} lesson={lesson} current={current} />
+            <Node
+              key={lesson.id}
+              lesson={lesson}
+              current={current}
+              station={
+                onPath
+                  ? {
+                      register: (el) => {
+                        if (el) links.current.set(lesson.id, el);
+                        else links.current.delete(lesson.id);
+                      },
+                      stations,
+                      link,
+                    }
+                  : null
+              }
+            />
           ))}
         </ol>
       </section>
@@ -287,6 +333,26 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
       <NextBand snapshot={snapshot} place={place} />
     </main>
   );
+}
+
+/**
+ * Whether the Level's Lessons are a path through the Scene here (09 9.3):
+ * the mount turns the Scene on, its renderer draws, and the Level is
+ * Beginner, the one landscape so far (Intermediate and Advanced keep this
+ * screen as it is until ticket 57).
+ */
+function useOnPath(level: LevelId | undefined): boolean {
+  const scene = useMount().scene !== null;
+  const path = useJourneyPath();
+  const ready = useSyncExternalStore(path.subscribe, path.ready, () => false);
+  return scene && ready && level === "beginner";
+}
+
+/** A Lesson link's part in the Journey's path: its Station, and the keys that move Pip along. */
+interface NodeStation {
+  register: (el: HTMLAnchorElement | null) => void;
+  stations: readonly LessonId[];
+  link: (lesson: LessonId) => HTMLAnchorElement | null;
 }
 
 const NODE_STATE = {
@@ -300,11 +366,15 @@ const NODE_STATE = {
 function Node({
   lesson,
   current,
+  station,
 }: {
   lesson: LessonSummary;
   current: LessonSummary | null;
+  /** On the Scene's path: focus moves Pip to its Station, and the arrow keys move along. */
+  station: NodeStation | null;
 }) {
   const state = nodeState(lesson, current);
+  const path = useJourneyPath();
   const label = lessonLabel(lesson.number, lesson.capstone);
   return (
     <li className="relative grid gap-1.5 text-sm max-lg:grid-cols-[auto_minmax(0,1fr)] max-lg:items-center max-lg:gap-3.5 lg:content-start lg:justify-items-center lg:px-1.5 lg:text-center">
@@ -312,6 +382,24 @@ function Node({
         to={`/lesson/${lesson.id}`}
         aria-label={`${label}: ${lesson.title}, ${state}`}
         data-state={state}
+        {...(station === null
+          ? {}
+          : {
+              ref: station.register,
+              onFocus: () => {
+                path.setAt(lesson.id);
+              },
+              onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => {
+                const to = stationForKey(
+                  station.stations,
+                  lesson.id,
+                  event.key,
+                );
+                if (to === null) return;
+                event.preventDefault();
+                station.link(to)?.focus();
+              },
+            })}
         className={cx(
           "grid size-8.5 place-items-center rounded-full border-2 no-underline",
           "transition-[translate,scale,border-color] duration-(--duration-fast) ease-out hover:scale-(--hover-scale)",

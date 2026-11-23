@@ -3,7 +3,13 @@
 // screens and slots. The Local app passes none of it but `live`.
 import type { ComponentType } from "react";
 import type { RouteObject } from "react-router";
-import type { ActiveLesson, BeatKey, LessonId, StepId } from "@quest/contract";
+import type {
+  ActiveLesson,
+  BeatKey,
+  LessonId,
+  LevelId,
+  StepId,
+} from "@quest/contract";
 import type { CheckLineState } from "../components/check-line-state";
 import type { WhereKind } from "../components/where-kind";
 import type { LiveDeps } from "../live/store";
@@ -87,6 +93,28 @@ export interface SceneLook {
    */
   ambient: number;
   key: number;
+  /** The landscapes' own colours, baked under the same light. */
+  landscape: LandscapeLook;
+}
+
+/** The colours of a Level's landscape in one theme, as CSS hex colours; the hills are the look's `ground`. */
+export interface LandscapeLook {
+  /** The low ground round the path. */
+  meadow: string;
+  path: string;
+  /** The Stations' plinths and unlit beacons, rocks and tree trunks. */
+  stone: string;
+  /** A lit Station's beacon and the ring at its foot, drawn unshaded. */
+  lit: string;
+  /** The trees' crowns. */
+  foliage: string;
+}
+
+/** A Lesson as the Scene's Station for it: its Level and whether it is complete, the snapshot's `LessonSummary.complete`. */
+export interface SceneStation {
+  lesson: LessonId;
+  level: LevelId;
+  complete: boolean;
 }
 
 /**
@@ -103,6 +131,8 @@ export interface SceneProps {
   lesson: LessonId | null;
   phase: ActiveLesson["phase"] | null;
   step: StepId | null;
+  /** Every Lesson of the course in order, as its Station; empty before the first snapshot. */
+  stations: readonly SceneStation[];
   tier: Exclude<SceneTier, "still">;
   /**
    * False while a Lesson's step shows (a Step-down too) or the page is
