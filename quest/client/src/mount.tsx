@@ -68,7 +68,11 @@ export function mountQuest(root: HTMLElement, mount: ClientMount): () => void {
     <StrictMode>
       <MountContext value={value}>
         <QuestMotion>
-          <RouterProvider router={router} />
+          {/* A route change renders in one task, not in a transition's slices:
+              sliced, every frame between them drew Pip's rig and the Scene
+              while the new screen waited, and its enter started about 50 ms
+              later (09 9.1's headroom, simulator ticket 52). No route suspends. */}
+          <RouterProvider router={router} useTransitions={false} />
         </QuestMotion>
       </MountContext>
     </StrictMode>,
