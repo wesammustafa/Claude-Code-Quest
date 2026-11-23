@@ -186,6 +186,22 @@ describe("the Journey path, with the Scene drawing", () => {
     expect(tab).toBe(true);
   });
 
+  test("an arrow key with Alt, Cmd, Ctrl or Shift is left to the browser: Back is not prevented, and Pip stays", async () => {
+    const { path } = await onPath();
+    act(() => {
+      link("b-3")?.focus();
+    });
+    for (const held of ["altKey", "metaKey", "ctrlKey", "shiftKey"]) {
+      const back = fireEvent.keyDown(document.activeElement as Element, {
+        key: "ArrowLeft",
+        [held]: true,
+      });
+      expect(back).toBe(true);
+      expect(document.activeElement).toBe(link("b-3"));
+      expect(path.at()).toBe("b-3");
+    }
+  });
+
   test("a swipe or a drag sideways moves Pip one Station along, and focus with it", async () => {
     const { path } = await onPath();
     const band = stage() as HTMLElement;
@@ -212,6 +228,26 @@ describe("the Journey path, with the Scene drawing", () => {
       expect(window.location.pathname).toBe("/lesson/b-1/");
     });
     expect(await screen.findByText("Offer keep-going for b-1")).toBeVisible();
+  });
+
+  test("a right or middle click on a Station opens nothing", async () => {
+    await onPath();
+    const band = stage() as HTMLElement;
+    for (const button of [2, 1]) {
+      fireEvent.pointerDown(band, {
+        pointerId: 1,
+        button,
+        clientX: 105,
+        clientY: 195,
+      });
+      fireEvent.pointerUp(band, {
+        pointerId: 1,
+        button,
+        clientX: 105,
+        clientY: 195,
+      });
+    }
+    expect(window.location.pathname).toBe("/journey/");
   });
 
   test("a tap away from every Station opens nothing", async () => {

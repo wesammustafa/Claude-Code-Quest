@@ -390,6 +390,15 @@ function Node({
                 path.setAt(lesson.id);
               },
               onKeyDown: (event: KeyboardEvent<HTMLAnchorElement>) => {
+                // An arrow with a modifier held is the browser's: Alt+Left
+                // and Cmd+Left are Back.
+                if (
+                  event.altKey ||
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey
+                )
+                  return;
                 const to = stationForKey(
                   station.stations,
                   lesson.id,

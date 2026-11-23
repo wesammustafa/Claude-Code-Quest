@@ -299,7 +299,10 @@ function useGestures(
   };
   return {
     onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
-      if ((event.target as Element).closest("button")) return;
+      // Only the primary button taps, swipes or pinches: a right or middle
+      // click keeps the browser's own menu or new tab, and opens nothing here.
+      if (event.button !== 0 || (event.target as Element).closest("button"))
+        return;
       down.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (down.current.size === 1) moved.current = false;
       if (down.current.size === 2) pinch.current = spread();
