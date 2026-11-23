@@ -1,19 +1,29 @@
 // @vitest-environment node
 // The 3D Pip's driver (seam S13) on the committed model, fed by the guide's
 // own director and Reaction map, unchanged: every mode plays, every
-// Reaction plays once at the map's intensity, the gaze eases over the rig's
-// 150 ms, reduced motion holds the still pose, and the phone tier holds
-// each mode's first frame and draws only while something moves.
+// Reaction plays once with each part at its share of the map's intensity
+// (a soft one never half-raises the arms or half-shows a mouth), the gaze
+// eases over the rig's 150 ms, reduced motion holds the still pose, and the
+// phone tier holds each mode's first frame and draws only while something
+// moves.
 import type { QuestEvent } from "@quest/contract";
-import type { Object3D } from "three";
+import { Quaternion, type Object3D } from "three";
 import { beforeEach, describe, expect, test } from "vitest";
 import type { PipMode, PipModel } from "../../../../pip/contract";
 import { PIP_MODES } from "../../../../pip/contract";
 import inline from "../../../../pip/model/pip.glb?inline";
 import { envelope } from "../../../../test/events";
 import { IDLE_SLEEP_MS, createPipDirector } from "../../../pip/director";
-import { reactionFor } from "../../../pip/reactions";
-import { BLEND_S, GAZE_EASE_S, MAX_STEP, PipDrive, frameStep } from "./drive";
+import { GLANCE, NOD, reactionFor } from "../../../pip/reactions";
+import {
+  BLEND_S,
+  GAZE_EASE_S,
+  MAX_STEP,
+  NOD_BOB,
+  PipDrive,
+  frameStep,
+  reactionShares,
+} from "./drive";
 import { parsePipModel, type PipModel3D } from "./load";
 
 const bytes = (): ArrayBuffer => {
@@ -94,13 +104,13 @@ describe("the modes, from the director", () => {
     const { d, send } = director();
     drive.set(d.model(), true);
     drive.update(1);
-    const idle = node("head").quaternion.clone();
+    const idle = node("HeadPose").quaternion.clone();
     drive.set(send({ type: "check.started" }), true);
     drive.update(BLEND_S / 2);
-    const half = node("head").quaternion.clone();
+    const half = node("HeadPose").quaternion.clone();
     expect(drive.moving()).toBe(true);
     drive.update(BLEND_S / 2);
-    const thinking = node("head").quaternion.clone();
+    const thinking = node("HeadPose").quaternion.clone();
     expect(half.angleTo(idle)).toBeGreaterThan(0.01);
     expect(half.angleTo(thinking)).toBeGreaterThan(0.01);
     expect(half.angleTo(idle) + half.angleTo(thinking)).toBeCloseTo(
@@ -126,56 +136,138 @@ describe("the Reactions, from the director at the Reaction map's intensity", () 
     ["celebration", firstLesson],
   ];
 
-  test.each(cases)("%s plays once, as far as its intensity", (_name, event) => {
-    const { d, send } = director(
-      event === null ? { screen: "welcome" } : { screen: "map" },
-    );
-    const pipModel = event === null ? d.model() : send(event);
-    const reaction = pipModel.reaction;
-    if (reaction === null) throw new Error("no Reaction");
-    if (event !== null) {
-      const mapped = reactionFor([envelope(event)], { glanceReady: true });
-      expect(reaction.kind).toBe(mapped?.kind);
-      expect(reaction.intensity).toBe(mapped?.intensity);
-    }
+  test.each(cases)(
+    "%s plays once, each part as far as its share of its intensity",
+    (_name, event) => {
+      const { d, send } = director(
+        event === null ? { screen: "welcome" } : { screen: "map" },
+      );
+      const pipModel = event === null ? d.model() : send(event);
+      const reaction = pipModel.reaction;
+      if (reaction === null) throw new Error("no Reaction");
+      if (event !== null) {
+        const mapped = reactionFor([envelope(event)], { glanceReady: true });
+        expect(reaction.kind).toBe(mapped?.kind);
+        expect(reaction.intensity).toBe(mapped?.intensity);
+      }
 
-    // The Reaction at its own intensity, and at full, on the phone tier's
-    // held mode, so only the Reaction moves Pip.
-    const travel = (intensity: number) => {
-      const drive = new PipDrive(model.scene, model.clips);
-      drive.set(pipModel, true);
-      drive.update(1);
-      const rest = pose(model.scene);
-      const restBody = node("body").position.clone();
-      const restArm = node("arm_r").quaternion.clone();
-      const restHead = node("head").quaternion.clone();
-      drive.react({ ...reaction, intensity });
-      const clip = model.clips.find((c) => c.name === reaction.kind);
-      if (clip === undefined) throw new Error(reaction.kind);
-      drive.update(clip.duration * 0.45);
-      expect(drive.state().reaction).toMatchObject({
-        id: reaction.id,
-        kind: reaction.kind,
-        intensity,
-      });
-      const moved = {
-        body: node("body").position.distanceTo(restBody),
-        arm: node("arm_r").quaternion.angleTo(restArm),
-        head: node("head").quaternion.angleTo(restHead),
+      // The Reaction at its own intensity, and at full, on the phone tier's
+      // held mode, so only the Reaction moves Pip.
+      const travel = (intensity: number) => {
+        const drive = new PipDrive(model.scene, model.clips);
+        drive.set(pipModel, true);
+        drive.update(1);
+        const rest = pose(model.scene);
+        const restBody = node("Hop").position.clone();
+        const restArm = node("ArmRight").quaternion.clone();
+        const restHead = node("HeadPose").quaternion.clone();
+        drive.react({ ...reaction, intensity });
+        const clip = model.clips.find((c) => c.name === reaction.kind);
+        if (clip === undefined) throw new Error(reaction.kind);
+        drive.update(clip.duration * 0.45);
+        expect(drive.state().reaction).toMatchObject({
+          id: reaction.id,
+          kind: reaction.kind,
+          intensity,
+        });
+        const moved = {
+          body: node("Hop").position.distanceTo(restBody),
+          arm: node("ArmRight").quaternion.angleTo(restArm),
+          head: node("HeadPose").quaternion.angleTo(restHead),
+        };
+        expect(pose(model.scene)).not.toBe(rest);
+        drive.update(clip.duration);
+        expect(drive.state().reaction).toBeNull();
+        expect(pose(model.scene)).toBe(rest);
+        drive.dispose();
+        return moved;
       };
-      expect(pose(model.scene)).not.toBe(rest);
-      drive.update(clip.duration);
-      expect(drive.state().reaction).toBeNull();
-      expect(pose(model.scene)).toBe(rest);
-      drive.dispose();
-      return moved;
-    };
-    const at = travel(reaction.intensity);
-    const full = travel(1);
-    for (const part of ["body", "arm", "head"] as const)
-      if (full[part] > 1e-3)
-        expect(at[part] / full[part], part).toBeCloseTo(reaction.intensity, 1);
+      const at = travel(reaction.intensity);
+      const full = travel(1);
+      const shares = reactionShares(reaction.intensity);
+      // Hop and HeadPose bob with the nod's share; the arms take the limbs'.
+      const shareOf = { body: shares.nod, arm: shares.limbs, head: shares.nod };
+      for (const part of ["body", "arm", "head"] as const)
+        if (full[part] > 1e-3)
+          expect(at[part] / full[part], part).toBeCloseTo(shareOf[part], 1);
+    },
+  );
+});
+
+describe("a soft Reaction is a smaller version of itself", () => {
+  test("each part's share: the nod bobs at NOD_BOB, the arms join from 0.3, a show is whole or nothing", () => {
+    expect(reactionShares(NOD)).toEqual({
+      pose: NOD,
+      nod: NOD_BOB,
+      limbs: 0,
+      shows: 0,
+    });
+    expect(reactionShares(0.3).limbs).toBe(0);
+    expect(reactionShares(GLANCE).limbs).toBeCloseTo(0.156, 3);
+    expect(reactionShares(GLANCE).shows).toBe(0);
+    expect(reactionShares(0.5).limbs).toBeCloseTo(0.5, 9);
+    expect(reactionShares(0.5).shows).toBe(1);
+    expect(reactionShares(0.7)).toMatchObject({ nod: 0.7, limbs: 1, shows: 1 });
+    expect(reactionShares(1)).toEqual({ pose: 1, nod: 1, limbs: 1, shows: 1 });
   });
+
+  const MOUTHS = ["MouthSmile", "MouthOpen", "MouthO", "MouthHmm"];
+  const shown = (name: string) => {
+    const s = node(name).scale;
+    return Math.min(s.x, s.y, s.z);
+  };
+  const effects = () => {
+    const out: Object3D[] = [];
+    node("Effects").traverse((o) => {
+      if (o.name !== "Effects") out.push(o);
+    });
+    return out;
+  };
+  /** Idle held on its first frame, then the Reaction at `intensity`, `t` seconds in. */
+  const reactAt = (
+    kind: Parameters<PipDrive["react"]>[0]["kind"],
+    intensity: number,
+    t: number,
+  ) => {
+    const drive = new PipDrive(model.scene, model.clips);
+    drive.set(director().d.model(), true);
+    drive.update(1);
+    const arm = node("ArmLeft").getWorldQuaternion(new Quaternion());
+    drive.react({ id: "r", kind, intensity });
+    drive.update(t);
+    return { drive, arm };
+  };
+
+  test("the nod (success at NOD) moves no arm, shows no effect and keeps one mouth", () => {
+    const { drive, arm } = reactAt("success", NOD, 0.5);
+    const now = node("ArmLeft").getWorldQuaternion(new Quaternion());
+    expect((now.angleTo(arm) * 180) / Math.PI).toBeLessThan(5);
+    for (const e of effects()) expect(e.scale.length(), e.name).toBe(0);
+    expect(MOUTHS.filter((m) => shown(m) > 0.5)).toHaveLength(1);
+    drive.dispose();
+  });
+
+  test.each([
+    ["curious", GLANCE, 0.45],
+    ["retry", 0.3, 0.75],
+    ["retry", 0.4, 0.75],
+    ["retry", 0.5, 0.75],
+    ["success", 1, 0.5],
+    ["celebration", 0.7, 0.6],
+  ] as const)(
+    "%s at %s shows one whole mouth, never two half ones",
+    (kind, intensity, t) => {
+      const { drive } = reactAt(kind, intensity, t);
+      expect(MOUTHS.filter((m) => shown(m) > 0.5)).toHaveLength(1);
+      for (const m of MOUTHS) {
+        const s = shown(m);
+        expect(s < 0.05 || s > 0.95, `${m} at ${String(s)}`).toBe(true);
+      }
+      if (intensity < 0.5)
+        for (const e of effects()) expect(e.scale.length(), e.name).toBe(0);
+      drive.dispose();
+    },
+  );
 });
 
 describe("the gaze", () => {
