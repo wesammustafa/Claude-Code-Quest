@@ -22,9 +22,10 @@ const SILENT: SoundPlay = { stop: () => undefined };
 const NO_SUBSCRIPTION = () => () => undefined;
 
 /**
- * The Scene's named cues, for a moment the screen shows: the Badge reveal
- * and the Level run call it as they play. The returned `stop` cuts the cue
- * short, as a skipped moment does. Outside the Scene it plays nothing.
+ * The Scene's named cues, for a moment the screen shows: the Badge reveal's
+ * (through `RevealSound`) and the Level run's call it as they play. The
+ * returned `stop` cuts the cue short, as a skipped moment does. Outside the
+ * Scene it plays nothing.
  */
 export function useSceneSound(): (
   cue: SoundCue,

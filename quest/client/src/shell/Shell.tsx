@@ -31,7 +31,7 @@ import { useCourseSnapshot } from "../screens/lesson";
 import { useLessonRoute } from "../screens/useLessonRoute";
 import { createSceneHub, SceneContext } from "../scene/context";
 import { SceneLayer, sceneStops } from "../scene/SceneLayer";
-import { SceneSound } from "../scene/sound/SceneSound";
+import { RevealSound, SceneSound } from "../scene/sound/SceneSound";
 import { SoundCorner } from "../scene/sound/SoundToggle";
 import { MountNotices } from "./MountNotices";
 import { enterClass, ScreenChanges } from "./ScreenChanges";
@@ -204,6 +204,8 @@ function Frame(): ReactNode {
         {scene !== null && (
           <SceneLayer scene={scene} screen={shown} onShown={onSceneShown} />
         )}
+        {/* The Badge reveal's cue, which hears the reveal through the Scene's hub. */}
+        {scene !== null && <RevealSound />}
         {/* The top bar and the connection notice under it stay at the top of the window together, outside the animated screen. */}
         <div ref={top} data-top="" className="sticky top-0 z-20">
           {!welcome && <TopBar />}
