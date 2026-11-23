@@ -13,7 +13,9 @@ const at = new Vector3();
 
 /**
  * Places `group` so a model `height` units tall, centred on the group's
- * origin, fills the box seen through `camera` on a `view` of CSS px.
+ * origin, fills the box seen through `camera` on a `view` of CSS px. It
+ * goes through the camera's own projection, so a shifted lens (the
+ * Journey's `setViewOffset`, ticket 52) still stands him in the box.
  */
 export function placeAtSpot(
   group: Object3D,
@@ -22,12 +24,15 @@ export function placeAtSpot(
   view: { width: number; height: number },
   height: number,
 ): void {
-  const halfHeight = PIP_DEPTH * Math.tan((camera.fov * Math.PI) / 360);
-  const halfWidth = halfHeight * (view.width / view.height);
   const ndcX = ((box.x + box.width / 2) / view.width) * 2 - 1;
   const ndcY = 1 - ((box.y + box.height / 2) / view.height) * 2;
   camera.updateMatrixWorld();
-  at.set(ndcX * halfWidth, ndcY * halfHeight, -PIP_DEPTH);
+  // A point on the ray through the box's centre, in the camera's space,
+  // moved along it to PIP_DEPTH in front of the camera.
+  at.set(ndcX, ndcY, 0.5).applyMatrix4(camera.projectionMatrixInverse);
+  at.multiplyScalar(-PIP_DEPTH / at.z);
+  // Half the view's height at that depth: the projection's vertical scale.
+  const halfHeight = PIP_DEPTH / camera.projectionMatrix.elements[5];
   camera.localToWorld(at);
   group.position.copy(at);
   group.quaternion.copy(camera.quaternion);
