@@ -24,7 +24,6 @@ import {
   PIP_MODEL_GAZE,
   PIP_MODEL_STILL,
 } from "../../../../pip/model/contract";
-import { rigValues } from "../../../pip/rig";
 
 /** The rig's gaze ease (view-model.rml: EyesX and EyesY eased 150 ms), in seconds. */
 export const GAZE_EASE_S = 0.15;
@@ -53,6 +52,7 @@ export interface Driven {
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 /** The rig's ease-in-out (pip.rml's interpolator 0:780, a cubic 0.42, 0, 0.58, 1), close enough: a smoothstep. */
 const ease = (t: number) => t * t * (3 - 2 * t);
 
@@ -119,7 +119,10 @@ export class PipDrive {
       this.hold = hold;
       if (hold) for (const action of this.modes.values()) action.time = 0;
     }
-    const { gazeX: x, gazeY: y } = rigValues(model);
+    // As the Rive adapter reads it (rig.ts rigValues): clamped, and a null
+    // gaze faces the Learner.
+    const x = model.gaze === null ? 0 : clamp(model.gaze.x);
+    const y = model.gaze === null ? 0 : clamp(model.gaze.y);
     if (this.reduced) {
       // Still: the resting gaze at once, with no ease.
       this.gaze = { x, y };
