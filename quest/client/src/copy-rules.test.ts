@@ -268,11 +268,14 @@ describe("the app's own words (spec Copy rules)", () => {
 });
 
 // The Scene's own words (Questerm's copy rules, its 5.11, and its 09 for the
-// Scene): the Scene, its sound, the Badge reveal and the Badge shelf are
-// never called a world, and nothing in them names a mission, a beat, XP, a
-// score, a rank, a level up, an achievement, a trophy or a medal, says
-// "Quest" alone or says "Game over". Read wider than the prose above: a
-// single capitalised word is a control's name ("Sound"), so it is read too.
+// Scene, 9.2): the Scene, its sound, the Badge reveal, the Badge shelf and
+// the Journey, whose path and pull-back control sit over the Scene (ticket
+// 52), never call the Scene a world, and nothing in them names a mission, a
+// beat, XP, a score, a rank, a level up, an achievement, a trophy or a
+// medal, says "Quest" alone or says "Game over"; the guide's own name,
+// "Claude Code Quest", is a name. Read wider than the prose above: a single
+// capitalised word is a control's name ("Sound"), so it is read too.
+const SCENE_FILES = /^\.\/(scene\/|screens\/Journey\.tsx$)/;
 const SCENE_BANNED: readonly RegExp[] = [
   /\bworlds?\b/i,
   /\bmissions?\b/i,
@@ -280,7 +283,7 @@ const SCENE_BANNED: readonly RegExp[] = [
   /\bXP\b/i,
   /\bscor(?:e|es|ed|ing)\b/i,
   /\branks?\b/i,
-  /\blevel(?:l?ed)? up\b/i,
+  /\blevel(?:l?ed|s)? up\b/i,
   /\bachievements?\b/i,
   /\btroph(?:y|ies)\b/i,
   /\bmedals?\b/i,
@@ -327,7 +330,7 @@ function sceneWordsOf(file: string, text: string): string[] {
 }
 
 const SCENE_WORDS = Object.entries(sources)
-  .filter(([file]) => file.startsWith("./scene/"))
+  .filter(([file]) => SCENE_FILES.test(file))
   .flatMap(([file, text]) =>
     sceneWordsOf(file, text).map((words) => ({ file, words })),
   );
@@ -378,12 +381,23 @@ describe("the Scene's words (Questerm's 5.11 and 09)", () => {
       "Gold medal",
       "Quest complete",
       "A new badge \u2014 Explorer",
+      "Earn XP",
+      "Rank up",
+      "It levels up",
+      "Trophy room",
+      "Medals earned",
+      "Quest map",
     ]) {
       const quoted = quote(bad);
       const found = sceneWordsOf("x.tsx", `const x = ${quoted};`).flatMap(
         (words) => matching(SCENE_BANNED, words),
       );
       expect(found, bad).not.toHaveLength(0);
+      const jsx = sceneWordsOf("x.tsx", `const X = () => <p>${bad}</p>;`);
+      expect(
+        jsx.flatMap((words) => matching(SCENE_BANNED, words)),
+        bad,
+      ).not.toHaveLength(0);
     }
     for (const fine of ["Sound", "On", "Off", "Claude Code Quest"])
       expect(
@@ -392,5 +406,15 @@ describe("the Scene's words (Questerm's 5.11 and 09)", () => {
         ),
         fine,
       ).toEqual([]);
+  });
+
+  test("the Journey's pull-back control's words are read, and pass", () => {
+    expect(
+      SCENE_WORDS.filter(
+        ({ file, words }) =>
+          file === "./scene/JourneyStage.tsx" &&
+          words === "Show the whole Level",
+      ),
+    ).toHaveLength(1);
   });
 });
