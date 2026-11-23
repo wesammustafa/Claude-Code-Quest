@@ -7,7 +7,8 @@
 // Scene cannot run, the screen's own Pip shows, with its posters as the
 // Rive renderer shows them.
 // On a Lesson's step the Scene stops and lets Pip go, so the Workspace
-// keeps the 2D Pip.
+// keeps the 2D Pip. He stands on the posters' soft ground shadow, which
+// shrinks and fades as he hops.
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   useEffect,
@@ -25,7 +26,7 @@ import {
   type Object3D,
   type PerspectiveCamera,
 } from "three";
-import type { SceneTier, ScreenOnShow } from "../../../mount/types";
+import type { SceneTheme, SceneTier, ScreenOnShow } from "../../../mount/types";
 import { reactionLedger } from "../../../pip/playback";
 import { followPointer } from "../../../pip/pointer";
 import { usePipInput, usePipModel } from "../../../pip/PipStage";
@@ -36,17 +37,20 @@ import modelUrl from "../../../../pip/model/pip.glb?url";
 import { PipDrive, frameStep } from "./drive";
 import { loadPipModel, type PipModel3D } from "./load";
 import { placeAtSpot } from "./place";
+import { poseShadow, shadowMesh } from "./shadow";
 
 export interface ScenePipProps {
   screen: ScreenOnShow;
   tier: Exclude<SceneTier, "still">;
+  /** The Scene's sky, which sets how dark his ground shadow lies. */
+  theme: SceneTheme;
 }
 
 type Loaded =
   { state: "loading" | "failed" } | { state: "ready"; model: PipModel3D };
 
 /** The 3D Pip: his model loading, then driven, or nothing where it fails. */
-export function ScenePip({ screen, tier }: ScenePipProps): ReactNode {
+export function ScenePip({ screen, tier, theme }: ScenePipProps): ReactNode {
   const canvas = useThree((s) => s.gl.domElement);
   const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
   useEffect(() => {
@@ -82,7 +86,9 @@ export function ScenePip({ screen, tier }: ScenePipProps): ReactNode {
     [canvas],
   );
   if (loaded.state !== "ready") return null;
-  return <Driven model={loaded.model} screen={screen} tier={tier} />;
+  return (
+    <Driven model={loaded.model} screen={screen} tier={tier} theme={theme} />
+  );
 }
 
 /** The loaded model, placed at Pip's box each frame and played from the director's model. */
@@ -90,6 +96,7 @@ function Driven({
   model,
   screen,
   tier,
+  theme,
 }: ScenePipProps & { model: PipModel3D }): ReactNode {
   const pip = usePipModel();
   const send = usePipInput();
@@ -103,6 +110,21 @@ function Driven({
     },
     [driver],
   );
+  // His ground shadow, outside the model so it never counts in his height.
+  const [shadow] = useState(() => shadowMesh(theme));
+  useEffect(
+    () => () => {
+      disposeTree(shadow);
+    },
+    [shadow],
+  );
+  const hop = useMemo(() => {
+    const node = model.scene.getObjectByName("Hop") ?? null;
+    return node === null ? null : { node, rest: node.position.y };
+  }, [model]);
+  useEffect(() => {
+    invalidate();
+  }, [theme, invalidate]);
   // The model's size and centre in its still pose, before any clip moves it.
   const { height, centre } = useMemo(() => {
     const bounds = new Box3().setFromObject(model.scene);
@@ -223,6 +245,11 @@ function Driven({
     place.visible = drawn3d;
     driver.update(frameStep(delta, wasMoving.current));
     wasMoving.current = driver.moving();
+    poseShadow(shadow, {
+      lift: hop === null ? 0 : hop.node.position.y - hop.rest,
+      sleep: driver.modeShare("sleep"),
+      theme,
+    });
 
     if (seen.current !== null && seen.current !== shows) {
       seen.current = shows;
@@ -275,6 +302,7 @@ function Driven({
     <group ref={group} visible={false}>
       <group position={[-centre.x, -centre.y, -centre.z]}>
         <primitive object={model.scene} />
+        <primitive object={shadow} />
       </group>
       {holding && <Hold still={pip.reducedMotion} />}
     </group>

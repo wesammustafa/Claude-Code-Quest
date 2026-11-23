@@ -141,7 +141,7 @@ export function SceneView({
         />
         <SceneBadges theme={theme} />
         <FirstFrame onReady={onReady} />
-        {pip && <FollowedPip screen={shown} tier={tier} />}
+        {pip && <FollowedPip screen={shown} tier={tier} theme={theme} />}
       </Canvas>
     ),
     [frameloop, lit, tier, look, theme, pip, shown, stations, onReady],
@@ -152,12 +152,14 @@ export function SceneView({
 function FollowedPip({
   screen,
   tier,
+  theme,
 }: {
   screen: Followed<ScreenOnShow>;
   tier: SceneProps["tier"];
+  theme: SceneProps["theme"];
 }): ReactNode {
   const current = useSyncExternalStore(screen.subscribe, screen.get);
-  return <ScenePip screen={current} tier={tier} />;
+  return <ScenePip screen={current} tier={tier} theme={theme} />;
 }
 
 /** Tells the layer once the first frame is being drawn. */
