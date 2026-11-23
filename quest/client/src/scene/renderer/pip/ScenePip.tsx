@@ -176,6 +176,19 @@ function Driven({
   }, [holding]);
   const marks = useRef("");
   const lastSpot = useRef("");
+  // Stopping (a Lesson's step), the Scene's loop stops on its last frame,
+  // which shows again when the Scene comes back: that frame is drawn now
+  // without Pip, so it never shows him beside the screen's own Pip.
+  const get = useThree((s) => s.get);
+  useLayoutEffect(() => {
+    const place = group.current;
+    if (!stopped || place === null) return;
+    place.visible = false;
+    canvas.setAttribute("data-scene-pip-visible", "false");
+    marks.current = "";
+    const { gl, scene, camera } = get();
+    gl.render(scene, camera);
+  }, [stopped, canvas, get]);
   // Whether Pip still moved at the end of the last frame drawn.
   const wasMoving = useRef(false);
 
