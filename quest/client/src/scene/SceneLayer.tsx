@@ -20,6 +20,8 @@ import type {
 } from "../mount/types";
 import type { PipScreen } from "../pip/screen-name";
 import { useCourseSnapshot } from "../screens/lesson";
+import { useBadgeReveal } from "./badges";
+import { lessonOfScreen } from "./path";
 import { useSceneTier } from "./tier";
 
 /** The screens the Scene stops on: a Lesson's step, a Step-down included (09 9.2). */
@@ -60,7 +62,7 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
   const hidden = usePageHidden();
   const snapshot = useCourseSnapshot();
   const lesson = snapshot?.lesson ?? null;
-  const stations = useStations(snapshot);
+  const stations = useRevealedStations(useStations(snapshot), screen);
   const stopped = sceneStops(screen.screen);
   const [loaded, setLoaded] = useState<Loaded>({ state: "waiting" });
   const [lost, setLost] = useState(false);
@@ -167,6 +169,48 @@ function useStations(snapshot: Snapshot | null): readonly SceneStation[] {
             };
           }),
     [key],
+  );
+}
+
+/**
+ * The Stations as the renderer draws them (09 9.3): a Lesson completed in
+ * this tab, on its own screens, stays unlit while its Badge reveal plays
+ * and lights at the reveal's end or skip, so a first completion plays the
+ * reveal first and then its Station lights, and the way back to the
+ * Journey shows it lit. Leaving that Lesson's screens lights it in any
+ * case. A Lesson already complete when the page first hears of it, as
+ * after a reload, is lit at once.
+ */
+function useRevealedStations(
+  stations: readonly SceneStation[],
+  screen: ScreenOnShow,
+): readonly SceneStation[] {
+  const [before, setBefore] = useState(stations);
+  const [held, setHeld] = useState<string | null>(null);
+  const on = lessonOfScreen(screen);
+  if (before !== stations) {
+    setBefore(stations);
+    const done = stations.find(
+      (s) =>
+        s.complete &&
+        s.lesson === on &&
+        before.some((b) => b.lesson === s.lesson && !b.complete),
+    );
+    if (done !== undefined) setHeld(done.lesson);
+  }
+  if (held !== null && on !== held) setHeld(null);
+  useBadgeReveal((event) => {
+    if (event.type === "start") return;
+    setHeld((h) => (h === event.lesson ? null : h));
+  });
+  return useMemo(
+    () =>
+      held === null
+        ? stations
+        : stations.map((s) =>
+            s.lesson === held ? { ...s, complete: false } : s,
+          ),
+    [stations, held],
   );
 }
 

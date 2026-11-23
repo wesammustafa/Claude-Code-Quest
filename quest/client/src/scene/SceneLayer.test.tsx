@@ -16,7 +16,15 @@ import {
   test,
   vi,
 } from "vitest";
-import { overview, playing, snapshotOf, stepDown } from "../../e2e/snapshots";
+import {
+  complete,
+  completed,
+  course,
+  overview,
+  playing,
+  snapshotOf,
+  stepDown,
+} from "../../e2e/snapshots";
 import { renderMounted } from "../../test/mounted";
 import type {
   SceneMount,
@@ -25,6 +33,7 @@ import type {
   ScreenTransitions,
 } from "../mount/types";
 import { usePipModel } from "../pip/PipStage";
+import { useBadgeStage } from "./badges";
 import { useSceneMove, useScenePip } from "./context";
 import { resetTierProbes } from "./tier";
 
@@ -665,5 +674,111 @@ describe("failures", () => {
       expect(document.querySelector("[data-scene-still]")).not.toBeNull();
     });
     await screen.findByRole("heading", { level: 1 });
+  });
+});
+
+describe("a first completion's Station (09 9.3)", () => {
+  const root = document.documentElement;
+  afterEach(() => {
+    root.removeAttribute("style");
+  });
+
+  /** A renderer that draws the stage's Badges, so Lesson complete's reveal plays in 3D. */
+  function sceneDrawingBadges(heard: Heard): SceneMount {
+    function Draws(props: SceneProps): ReactNode {
+      heard.props.push(props);
+      const stage = useBadgeStage();
+      useEffect(() => stage.attach(), [stage]);
+      useEffect(() => {
+        heard.mounts = 1;
+      }, []);
+      return <div data-test-scene="" />;
+    }
+    return {
+      load: vi.fn(() => Promise.resolve({ default: Draws })),
+      look: LOOK,
+    };
+  }
+
+  const doneCourse = {
+    ...course,
+    levels: course.levels.map((level) => ({
+      ...level,
+      lessons: level.lessons.map((l) =>
+        l.id === "b-1" ? { ...l, complete: true } : l,
+      ),
+    })),
+  };
+  const litOf = (props: SceneProps | undefined) =>
+    props?.stations.find((s) => s.lesson === "b-1")?.complete;
+
+  /** b-1 played from the Journey to its first completion, its Lesson complete on show. */
+  async function firstCompletion(heard: Heard): Promise<number> {
+    const page = renderMounted("/journey/", snapshotOf(overview), {
+      scene: sceneDrawingBadges(heard),
+    });
+    await drawn(heard);
+    expect(litOf(last(heard))).toBe(false);
+    page.send(snapshotOf(playing, { revision: 2 }));
+    go("/lesson/b-1/step/");
+    const from = heard.props.length;
+    page.send(
+      snapshotOf(complete, {
+        revision: 3,
+        course: doneCourse,
+        milestones: completed,
+      }),
+    );
+    go("/lesson/b-1/complete/");
+    await screen.findByRole("heading", { level: 1, name: /Install, sign in/ });
+    await waitFor(() => {
+      expect(document.querySelector("[data-badge-reveal]")).toHaveAttribute(
+        "data-badge-reveal",
+        "playing",
+      );
+    });
+    return from;
+  }
+
+  test("stays unlit while the Badge reveal plays and lights at its end, and the Journey shows it lit", async () => {
+    root.style.setProperty("--duration-reveal", "300ms");
+    const heard: Heard = { props: [], mounts: 0 };
+    const from = await firstCompletion(heard);
+    // Never drawn lit from the completion until the reveal ends.
+    expect(heard.props.slice(from).map(litOf)).not.toContain(true);
+    await waitFor(() => {
+      expect(litOf(last(heard))).toBe(true);
+    });
+    expect(document.querySelector("[data-badge-reveal]")).toHaveAttribute(
+      "data-badge-reveal",
+      "formed",
+    );
+    go("/journey/");
+    await waitFor(() => {
+      expect(last(heard)?.screen.path).toBe("/journey");
+    });
+    expect(litOf(last(heard))).toBe(true);
+  });
+
+  test("a key that skips the reveal lights it at once", async () => {
+    root.style.setProperty("--duration-reveal", "60s");
+    const heard: Heard = { props: [], mounts: 0 };
+    await firstCompletion(heard);
+    expect(litOf(last(heard))).toBe(false);
+    fireEvent.keyDown(document.body, { key: "Tab" });
+    await waitFor(() => {
+      expect(litOf(last(heard))).toBe(true);
+    });
+  });
+
+  test("a Lesson already complete when the page opens is lit at once", async () => {
+    const heard: Heard = { props: [], mounts: 0 };
+    renderMounted(
+      "/lesson/b-1/complete/",
+      snapshotOf(complete, { course: doneCourse }),
+      { scene: sceneDrawingBadges(heard) },
+    );
+    await drawn(heard);
+    expect(heard.props.map(litOf)).not.toContain(false);
   });
 });
