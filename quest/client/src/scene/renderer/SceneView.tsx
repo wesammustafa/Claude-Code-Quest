@@ -39,6 +39,17 @@ export function SceneView({
   useEffect(() => {
     lost.current = onLost;
   }, [onLost]);
+  // R3F loses the context itself once this canvas unmounts (a change of
+  // tier, the still tier): that loss is the renderer's teardown, not the
+  // GPU's, so the listener goes before it.
+  const detach = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      detach.current?.();
+      detach.current = null;
+    },
+    [],
+  );
   return (
     <Canvas
       data-scene-canvas=""
@@ -56,9 +67,13 @@ export function SceneView({
       onCreated={({ gl, camera }) => {
         const canvas = gl.domElement;
         canvas.setAttribute("aria-hidden", "true");
-        canvas.addEventListener("webglcontextlost", () => {
+        const onContextLost = () => {
           lost.current();
-        });
+        };
+        canvas.addEventListener("webglcontextlost", onContextLost);
+        detach.current = () => {
+          canvas.removeEventListener("webglcontextlost", onContextLost);
+        };
         camera.lookAt(...LOOK_AT);
       }}
     >

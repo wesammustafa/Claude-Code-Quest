@@ -105,6 +105,9 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
       <div className="absolute inset-0 bg-bg bg-(image:--glow) bg-no-repeat" />
       {tier !== "still" && !lost && View !== null ? (
         <Drawn
+          // A tier's context attributes (antialiasing, power) are set only
+          // when its renderer is made: a new tier makes a new one.
+          key={tier}
           View={View}
           onShown={onShown}
           screen={screen}

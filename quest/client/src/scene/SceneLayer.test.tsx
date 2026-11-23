@@ -509,6 +509,45 @@ describe("the tiers", () => {
       expect(heard.mounts).toBe(0);
     });
 
+  test("a change between the desktop and phone tiers makes a new renderer, so the new tier's context attributes apply", async () => {
+    const heard: Heard = { props: [], mounts: 0 };
+    const changed = new Set<() => void>();
+    let phone = false;
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        get matches() {
+          return query.startsWith("(pointer: coarse)") && phone;
+        },
+        media: query,
+        addEventListener: (_: string, fn: () => void) => changed.add(fn),
+        removeEventListener: (_: string, fn: () => void) => changed.delete(fn),
+      })),
+    );
+    const style = document.createElement("style");
+    style.textContent = ":root { --breakpoint-md: 48rem; }";
+    document.head.append(style);
+    onTestFinished(() => {
+      style.remove();
+    });
+    renderMounted("/journey/", snapshotOf(overview), {
+      scene: sceneWith(heard),
+    });
+    await drawn(heard);
+    expect(last(heard)?.tier).toBe("desktop");
+    expect(heard.mounts).toBe(1);
+    act(() => {
+      phone = true;
+      for (const fn of changed) fn();
+    });
+    await waitFor(() => {
+      expect(last(heard)?.tier).toBe("phone");
+    });
+    await waitFor(() => {
+      expect(heard.mounts).toBe(2);
+    });
+  });
+
   test("the tier follows its inputs: the app's motion switch swaps the drawn Scene for the still and back", async () => {
     const heard: Heard = { props: [], mounts: 0 };
     renderMounted("/journey/", snapshotOf(overview), {
