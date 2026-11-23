@@ -288,7 +288,7 @@ function InScene({
       className={cx(
         "inline-flex rounded-md",
         // See-through, not hidden: its name stays for screen readers.
-        stands && "[&_svg]:opacity-0",
+        stands && "[&_svg[data-scene-shown]]:opacity-0",
         turnable && "cursor-grab touch-pan-y",
         moment === "cross-fade" && "animate-cross-fade",
       )}

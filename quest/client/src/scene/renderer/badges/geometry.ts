@@ -110,7 +110,7 @@ function placed(
 }
 
 /** One stroke of a part: its runs of points and its width, both in Badge widths. */
-interface Stroke {
+export interface Stroke {
   runs: Vector2[][];
   width: number;
 }
@@ -129,7 +129,8 @@ export function strokesOf(model: BadgeModel, earned: boolean): Stroke[] {
   if (model.ring !== null)
     strokes.push({
       runs: dash(outline).map((run) => placed(run, { scale: model.ring ?? 1 })),
-      width: model.outlineStroke / BADGE_GRID,
+      // The SVG's ring scales its inherited stroke with its transform.
+      width: (model.outlineStroke * model.ring) / BADGE_GRID,
     });
   strokes.push({
     runs: model.symbol
@@ -140,26 +141,34 @@ export function strokesOf(model: BadgeModel, earned: boolean): Stroke[] {
   return strokes;
 }
 
-/** Every stroke as flat triangles on z = 0, in one geometry. */
-function strokeGeometry(strokes: readonly Stroke[]): BufferGeometry {
+/** Every stroke as flat triangles on z = 0, in one geometry, run after run. */
+export function strokeGeometry(strokes: readonly Stroke[]): BufferGeometry {
   const vertices: number[] = [];
   const normals: number[] = [];
   const uvs: number[] = [];
   for (const { runs, width } of strokes) {
     const style = SVGLoader.getStrokeStyle(width, "", "round", "round");
-    // Each run's triangles follow the last: Three.js 0.187's count it
-    // returns is always 0, so the offset is read from the buffer itself.
-    for (const run of runs.filter(drawable))
+    // Each run is stroked into buffers of its own, then appended: Three.js
+    // 0.187's stroker writes a closed run's last join over the buffers'
+    // first vertices whatever offset it is given, which would stretch the
+    // first run's first triangle to every later closed run.
+    for (const run of runs.filter(drawable)) {
+      const v: number[] = [];
+      const n: number[] = [];
+      const u: number[] = [];
       SVGLoader.pointsToStrokeWithBuffers(
         run,
         style,
         JOIN_POINTS,
         MERGE,
-        vertices,
-        normals,
-        uvs,
-        vertices.length / 3,
+        v,
+        n,
+        u,
       );
+      for (const x of v) vertices.push(x);
+      for (const x of n) normals.push(x);
+      for (const x of u) uvs.push(x);
+    }
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(vertices, 3));

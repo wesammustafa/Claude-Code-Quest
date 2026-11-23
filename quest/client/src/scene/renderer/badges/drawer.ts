@@ -5,7 +5,8 @@
 // its screen, turns as the Learner turns it on the Badge shelf, and fades
 // out with its screen. It marks each HTML Badge it draws
 // (`data-scene-drawn`, with the lights and the turn it drew) for the e2e
-// checks to read.
+// checks to read, and `data-scene-shown` once the 3D Badge shows in full,
+// which is when the SVG it stands in for steps aside.
 import type { RootState } from "@react-three/fiber";
 import {
   Color,
@@ -183,6 +184,7 @@ function dispose(d: Drawn): void {
   d.place.removeFromParent();
   const el = d.slot.element;
   el.removeAttribute("data-scene-drawn");
+  el.removeAttribute("data-scene-shown");
   el.removeAttribute("data-scene-lights");
   el.removeAttribute("data-scene-turn");
 }
@@ -201,6 +203,21 @@ const isPerspective = (camera: Camera): camera is PerspectiveCamera =>
   (camera as PerspectiveCamera).isPerspectiveCamera;
 
 const clamp = (v: number) => Math.min(1, Math.max(0, v));
+
+/**
+ * Whether the Scene's canvas shows in full: no box between it and the
+ * Scene's layer is part way through a fade (the layer fades the renderer
+ * in after its first frame).
+ */
+export function layerShown(canvas: Element): boolean {
+  for (
+    let el = canvas.parentElement;
+    el !== null && !el.hasAttribute("data-scene");
+    el = el.parentElement
+  )
+    if (Number(getComputedStyle(el).opacity) < 1) return false;
+  return true;
+}
 
 /** Draws the stage's Badges, frame by frame, into its own group of the Scene. */
 export class BadgeDrawer {
@@ -297,6 +314,10 @@ export class BadgeDrawer {
         reveal !== null ? 1 : clamp(enter > 0 ? (now - d.came) / enter : 1);
       const shown = out * into;
       if (playing || into < 1 || d.went !== null) moving = true;
+      // A reveal's own start hides the SVG at once; a formed Badge only once
+      // it has faded in, so the SVG never goes before it is replaced.
+      if (shown >= 1 && !slot.element.hasAttribute("data-scene-shown"))
+        slot.element.setAttribute("data-scene-shown", "");
 
       d.place.position.set(
         (d.box.x / view.width) * 2 * halfW - halfW,

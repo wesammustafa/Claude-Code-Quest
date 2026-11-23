@@ -201,7 +201,7 @@ describe("the Badge reveal, the Scene drawing", () => {
     // The 3D Badge stands in: the SVG stays in the page, named, see-through.
     const art = screen.getByRole("img", { name: "Explorer" });
     expect(slots[0]?.element).toBe(art);
-    expect(badge()?.className).toContain("[&_svg]:opacity-0");
+    expect(badge()?.className).toContain("[&_svg[data-scene-shown]]:opacity-0");
     expect(seen.events).toEqual([
       { type: "start", lesson: "b-1", lights: 2, ms: 200, drawn: true },
     ]);

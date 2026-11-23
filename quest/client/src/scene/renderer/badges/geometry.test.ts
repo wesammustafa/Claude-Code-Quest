@@ -10,7 +10,13 @@ import { renderWithMotion } from "../../../../test/motion";
 import type { BadgeShape, BadgeSize } from "../../../components/Badge";
 import { LessonBadge } from "../../../components/badges";
 import { badgeModel, type ArtElement } from "../../badge-art";
-import { BODY_DEPTH, badgeGeometry, dashed, strokesOf } from "./geometry";
+import {
+  BODY_DEPTH,
+  badgeGeometry,
+  dashed,
+  strokeGeometry,
+  strokesOf,
+} from "./geometry";
 
 const manifestText = import.meta.glob<string>(
   "../../../../../../course/manifest.json",
@@ -59,6 +65,7 @@ function svgParts(lesson: string, earned: boolean, size: BadgeSize) {
             /scale\(([\d.]+)\)/.exec(ring.getAttribute("transform") ?? "")?.[1],
           ),
     ringArt: elementsIn(ring),
+    ringStroke: ring?.getAttribute("stroke-width") ?? null,
     ringDash: ring?.getAttribute("stroke-dasharray") ?? null,
     symbol: elementsIn(symbol),
     symbolAt: /translate\(([\d.]+) ([\d.]+)\)/
@@ -92,6 +99,9 @@ const OUTLINE: Record<BadgeShape, [number, number, number, number]> = {
   shield: [11, 53, 6, 58],
 };
 const inBadge = (v: number) => (v - 32) / 64;
+const fail = (id: string): never => {
+  throw new Error(`no model for ${id}`);
+};
 const CLOSE = 0.004;
 
 describe("every Lesson in the course has a 3D Badge made from its SVG", () => {
@@ -114,6 +124,16 @@ describe("every Lesson in the course has a 3D Badge made from its SVG", () => {
         expect(model?.outlineStroke).toBe(svg.outlineStroke);
         expect(model?.ring).toBe(svg.ring);
         if (capstone) expect(svg.ringArt).toEqual(svg.outline);
+        // The ring inherits the outline's stroke, which its scale scales too.
+        expect(svg.ringStroke).toBeNull();
+        const [outline, ...rest] = strokesOf(model ?? fail(id), true);
+        expect(outline?.width).toBeCloseTo(svg.outlineStroke / 64, 6);
+        if (capstone)
+          expect(rest[0]?.width).toBeCloseTo(
+            (svg.outlineStroke * (svg.ring ?? 0)) / 64,
+            6,
+          );
+        expect(rest.at(-1)?.width).toBeCloseTo(svg.symbolStroke / 64, 6);
         expect(model?.symbol).toEqual(svg.symbol);
         expect(model?.symbol.length).toBeGreaterThan(0);
         expect([model?.symbolAt, model?.symbolAt]).toEqual(svg.symbolAt);
@@ -167,8 +187,38 @@ describe("every Lesson in the course has a 3D Badge made from its SVG", () => {
         const widest = (s: typeof symbol) =>
           Math.max(...points(s).map((p) => Math.hypot(p.x, p.y)));
         expect(widest(ring)).toBeCloseTo(widest(outline) * scale, 3);
+        expect(ring.width).toBeCloseTo((outline?.width ?? 0) * scale, 6);
       }
     });
+
+    test.each([true, false])(
+      "each run is stroked on its own, never over another (earned %s)",
+      (earned) => {
+        const model = badgeModel(id) ?? fail(id);
+        const strokes = strokesOf(model, earned);
+        const all = Array.from(
+          strokeGeometry(strokes).getAttribute("position").array,
+        );
+        // Each prefix of the strokes draws exactly the triangles it draws alone.
+        for (let n = 1; n < strokes.length; n++) {
+          const alone = Array.from(
+            strokeGeometry(strokes.slice(0, n)).getAttribute("position").array,
+          );
+          expect(alone.length).toBeGreaterThan(0);
+          expect(all.slice(0, alone.length)).toEqual(alone);
+        }
+        // And the outline's first run, alone, is unchanged by the runs after it.
+        const [outline] = strokes;
+        const first = outline?.runs[0];
+        if (outline === undefined || first === undefined) throw new Error(id);
+        const one = Array.from(
+          strokeGeometry([
+            { runs: [first], width: outline.width },
+          ]).getAttribute("position").array,
+        );
+        expect(all.slice(0, one.length)).toEqual(one);
+      },
+    );
 
     test("unearned, outlines alone: no solid, the outline dashed, the symbol whole", () => {
       const model = badgeModel(id);
