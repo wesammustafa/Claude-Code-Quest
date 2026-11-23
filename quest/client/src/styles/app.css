@@ -20,6 +20,13 @@
     );
   }
 
+  /* The Scene (seam S12) sits fixed behind the frame at a negative z-index,
+     which paints under the body's own background: while it shows, only the
+     root's background stays under it. */
+  body:has([data-scene-behind]) {
+    background-color: transparent;
+  }
+
   /* An open Panel holds the page still: see lockScroll in components/Panel.tsx. */
   html[data-scroll-locked] {
     overflow: hidden;
