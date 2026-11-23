@@ -181,3 +181,60 @@ test("holds the page still: scroll locked, the scrollbar's width kept as padding
     Reflect.deleteProperty(html, "clientWidth");
   }
 });
+
+test("a body taller than the sheet becomes a tab stop once its observer has seen it, never by a layout read in the render that opens it", async () => {
+  // jsdom lays nothing out: the body reports a height the test sets, and an
+  // observer that the test fires as the browser would after layout.
+  const observed: (() => void)[] = [];
+  const reads: string[] = [];
+  const height = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "scrollHeight",
+  );
+  Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+    configurable: true,
+    get(this: HTMLElement) {
+      if (this.hasAttribute("data-panel-body")) reads.push("scrollHeight");
+      return this.hasAttribute("data-panel-body") ? 900 : 0;
+    },
+  });
+  const Real = globalThis.ResizeObserver;
+  globalThis.ResizeObserver = class {
+    private readonly fn: () => void;
+    constructor(fn: () => void) {
+      this.fn = fn;
+      observed.push(() => {
+        this.fn();
+      });
+    }
+    observe(): void {
+      // The test fires the callback.
+    }
+    disconnect(): void {
+      // Nothing to let go of.
+    }
+    unobserve(): void {
+      // Nothing to let go of.
+    }
+  } as unknown as typeof ResizeObserver;
+  try {
+    render(
+      <Panel title="Steps" open onClose={() => undefined}>
+        <p>Outline</p>
+      </Panel>,
+    );
+    const body = document.querySelector("[data-panel-body]");
+    expect(reads).toEqual([]);
+    expect(body).not.toHaveAttribute("tabindex");
+    for (const fire of observed) fire();
+    await waitFor(() => {
+      expect(body).toHaveAttribute("tabindex", "0");
+    });
+    expect(body).toHaveAttribute("role", "region");
+  } finally {
+    globalThis.ResizeObserver = Real;
+    if (height)
+      Object.defineProperty(HTMLElement.prototype, "scrollHeight", height);
+    else Reflect.deleteProperty(HTMLElement.prototype, "scrollHeight");
+  }
+});

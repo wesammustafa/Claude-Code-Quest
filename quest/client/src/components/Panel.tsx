@@ -1,9 +1,8 @@
 import {
-  useCallback,
   useEffect,
   useId,
   useRef,
-  useSyncExternalStore,
+  useState,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -71,47 +70,44 @@ function lockScroll(): () => void {
 }
 
 // Whether the element's content is taller than the element, following the
-// element as it resizes and its content changes.
+// element as it resizes and its content changes. It is read in the
+// observers' callbacks, after the page's own layout, never during a render:
+// a read there would lay the page out again before the Panel's first frame,
+// on a route that opens it with its screen (09 9.1).
 function useOverflows(
   ref: RefObject<HTMLElement | null>,
   open: boolean,
 ): boolean {
-  const subscribe = useCallback(
-    (changed: () => void) => {
-      // The element exists only while the Panel is open, so opening it subscribes again.
-      const el = open ? ref.current : null;
-      if (!el || typeof ResizeObserver !== "function") return () => undefined;
-      const resize = new ResizeObserver(changed);
-      const watch = () => {
-        resize.disconnect();
-        resize.observe(el);
-        for (const child of el.children) resize.observe(child);
-      };
+  const [overflows, setOverflows] = useState(false);
+  useEffect(() => {
+    // The element exists only while the Panel is open, so opening it observes again.
+    const el = open ? ref.current : null;
+    if (!el || typeof ResizeObserver !== "function") return;
+    const measure = () => {
+      setOverflows(el.scrollHeight > el.clientHeight);
+    };
+    const resize = new ResizeObserver(measure);
+    const watch = () => {
+      resize.disconnect();
+      resize.observe(el);
+      for (const child of el.children) resize.observe(child);
+    };
+    watch();
+    const content = new MutationObserver(() => {
       watch();
-      const content = new MutationObserver(() => {
-        watch();
-        changed();
-      });
-      content.observe(el, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-      });
-      return () => {
-        resize.disconnect();
-        content.disconnect();
-      };
-    },
-    [ref, open],
-  );
-  return useSyncExternalStore(
-    subscribe,
-    () => {
-      const el = ref.current;
-      return el ? el.scrollHeight > el.clientHeight : false;
-    },
-    () => false,
-  );
+      measure();
+    });
+    content.observe(el, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => {
+      resize.disconnect();
+      content.disconnect();
+    };
+  }, [ref, open]);
+  return open && overflows;
 }
 
 /**

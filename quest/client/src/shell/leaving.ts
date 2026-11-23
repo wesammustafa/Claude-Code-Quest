@@ -106,6 +106,34 @@ export function copyLeaving(screen: HTMLElement): LeavingCopy {
 }
 
 /**
+ * Paints a canvas's last frame into its copy. Where the page offers it, the
+ * frame is taken as an image bitmap and handed to the copy whole, which
+ * reads no pixels back from a WebGL canvas (Pip's rig) and so never waits
+ * on the GPU while the new screen renders (09 9.1); the copy shows it a
+ * task later. Elsewhere it is drawn at once. A canvas that cannot be read
+ * leaves its copy blank.
+ */
+function paintCopy(from: HTMLCanvasElement, to: HTMLCanvasElement): void {
+  if (typeof createImageBitmap === "function") {
+    const shown = to.getContext("bitmaprenderer");
+    if (shown !== null) {
+      createImageBitmap(from).then(
+        (frame) => {
+          shown.transferFromImageBitmap(frame);
+        },
+        () => undefined,
+      );
+      return;
+    }
+  }
+  try {
+    to.getContext("2d")?.drawImage(from, 0, 0);
+  } catch {
+    // A canvas that cannot be read leaves its copy blank.
+  }
+}
+
+/**
  * Lays `copy` into `layer` (fixed over the viewport) where its screen
  * stood, and removes it when its exit ends, or `capMs` after the first
  * frame that shows it at the latest (a hidden page runs no animation), then
@@ -130,13 +158,7 @@ export function showLeaving(
     el.scrollTop = top;
     el.scrollLeft = left;
   }
-  for (const { from, to } of copy.canvases) {
-    try {
-      to.getContext("2d")?.drawImage(from, 0, 0);
-    } catch {
-      // A canvas that cannot be read leaves its copy blank.
-    }
-  }
+  for (const { from, to } of copy.canvases) paintCopy(from, to);
   let timer: ReturnType<typeof setTimeout> | undefined;
   let frame: number | null = null;
   const remove = () => {
