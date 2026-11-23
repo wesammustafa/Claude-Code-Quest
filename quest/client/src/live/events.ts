@@ -1,6 +1,6 @@
-// How engine events reach the page's consumers (Pip's director, and later the
-// moments), each event ID at most once across the page's tabs. The stream
-// (store.ts) is the feed.
+// How engine events reach the page's consumers (Pip's director, the Scene's
+// sound, and later the moments), each event ID at most once across the
+// page's tabs. The stream (store.ts) is the feed.
 import type { EventEnvelope } from "@quest/contract";
 
 /** One revision's events, in order. */
@@ -241,6 +241,43 @@ export function onceAcrossTabs(
         open = false;
         stop();
         stopVisible?.();
+      };
+    },
+  };
+}
+
+/**
+ * One subscription to `feed` shared by every listener on the page, while
+ * any listens: each batch reaches them all. A feed made by onceAcrossTabs
+ * claims each ID for the first of its subscriptions to ask, so two
+ * consumers in one tab (Pip's director and the Scene's sound) share one.
+ */
+export function shareFeed(feed: EventFeed): EventFeed {
+  const listeners = new Set<EventBatchListener>();
+  let stop: (() => void) | null = null;
+  return {
+    subscribe(listener) {
+      // Each subscription is its own, even for a listener given twice.
+      const own: EventBatchListener = (events) => {
+        listener(events);
+      };
+      listeners.add(own);
+      stop ??= feed.subscribe((events) => {
+        for (const each of [...listeners]) {
+          // A listener that throws is reported, and the others still hear the batch.
+          try {
+            each(events);
+          } catch (error) {
+            reportError(error);
+          }
+        }
+      });
+      return () => {
+        if (!listeners.delete(own)) return;
+        if (listeners.size === 0) {
+          stop?.();
+          stop = null;
+        }
       };
     },
   };

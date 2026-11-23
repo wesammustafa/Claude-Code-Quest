@@ -12,6 +12,7 @@ import type {
 } from "@quest/contract";
 import {
   onceAcrossTabs,
+  shareFeed,
   type EventBatchListener,
   type EventFeed,
   type ShownEvents,
@@ -227,14 +228,16 @@ export function createLiveStore(deps: LiveDeps): LiveStore {
       };
     },
   };
-  const feed = onceAcrossTabs(raw, shown, () => !deps.hidden(), {
-    onVisible: (visible) =>
-      deps.onVisibility(() => {
-        if (!deps.hidden()) visible();
-      }),
-    serverNow,
-    instance: () => state.snapshot?.instance ?? null,
-  });
+  const feed = shareFeed(
+    onceAcrossTabs(raw, shown, () => !deps.hidden(), {
+      onVisible: (visible) =>
+        deps.onVisibility(() => {
+          if (!deps.hidden()) visible();
+        }),
+      serverNow,
+      instance: () => state.snapshot?.instance ?? null,
+    }),
+  );
 
   // ---- the connection ----
   // Whether the stream is up with a snapshot; actions are on while it is,

@@ -13,6 +13,7 @@ import { Link, NavLink } from "../mount/links";
 import { useActionProps } from "../live/useAction";
 import { usePagePanel } from "../pages/PagePanel";
 import { summaryOf, useCourseSnapshot } from "../screens/lesson";
+import { SoundToggle } from "../scene/sound/SoundToggle";
 import { BrandMark } from "./BrandMark";
 import { SettingsBody } from "./Settings";
 
@@ -442,6 +443,7 @@ export function TopBar() {
             Your card
           </Button>
         )}
+        <SoundToggle />
         <IconButton
           icon="gear"
           label="Settings"

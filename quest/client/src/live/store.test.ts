@@ -208,6 +208,26 @@ describe("events", () => {
     expect(heard).toEqual([[a.id, b.id], [c.id]]);
   });
 
+  test("reach every consumer in the tab: a second subscriber hears the same batch, and one that leaves hears no more", async () => {
+    const { store, source, heard } = tab();
+    const second: string[][] = [];
+    const stop = store.feed.subscribe((batch) =>
+      second.push(batch.map((event) => event.id)),
+    );
+    source().emit("snapshot", snap("a", 5));
+    const a = envelope({ type: "check.passed", firstTime: true }, 5);
+    emitEvent(source(), a);
+    await pass(BATCH_MS);
+    expect(heard).toEqual([[a.id]]);
+    expect(second).toEqual([[a.id]]);
+    stop();
+    const b = envelope({ type: "answer.right" }, 6);
+    emitEvent(source(), b);
+    await pass(BATCH_MS);
+    expect(heard).toEqual([[a.id], [b.id]]);
+    expect(second).toEqual([[a.id]]);
+  });
+
   test("a reopen asks for the events after the last event frame's ID", async () => {
     const { source } = tab();
     source().emit("snapshot", snap("a", 1));

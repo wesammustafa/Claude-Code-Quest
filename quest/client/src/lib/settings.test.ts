@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   applyMotion,
+  applySound,
   applyTheme,
   readMotion,
+  readSound,
   readTheme,
   restoreSettings,
 } from "./settings";
@@ -83,5 +85,35 @@ describe("restoring", () => {
     expect(root).not.toHaveAttribute("data-theme");
     expect(root).not.toHaveAttribute("data-motion");
     expect(localStorage).toHaveLength(0);
+  });
+});
+
+describe("the sound choice", () => {
+  test("is on with nothing stored, for a value it does not know, and when storage throws", () => {
+    expect(readSound()).toBe("on");
+    localStorage.setItem("quest.sound", "loud");
+    expect(readSound()).toBe("on");
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(readSound()).toBe("on");
+  });
+
+  test("off sets the key beside quest.motion's, and on removes it", () => {
+    applySound("off");
+    expect(localStorage.getItem("quest.sound")).toBe("off");
+    expect(readSound()).toBe("off");
+    applySound("on");
+    expect(localStorage.getItem("quest.sound")).toBeNull();
+    expect(readSound()).toBe("on");
+  });
+
+  test("a storage that refuses the write throws nothing", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("full");
+    });
+    expect(() => {
+      applySound("off");
+    }).not.toThrow();
   });
 });

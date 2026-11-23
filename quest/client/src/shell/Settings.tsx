@@ -11,6 +11,7 @@ import {
 } from "../lib/settings";
 import { useSlots } from "../mount/context";
 import { pageIndex } from "../pages/fetch";
+import { useSoundSwitch } from "../scene/sound/context";
 import { WorkFolders } from "./WorkFolders";
 
 const THEMES = [
@@ -23,6 +24,11 @@ const MOTIONS = [
   { value: "system", label: "System" },
   { value: "reduce", label: "Reduced" },
   { value: "full", label: "Full" },
+] as const;
+
+const SOUNDS = [
+  { value: "on", label: "On" },
+  { value: "off", label: "Off" },
 ] as const;
 
 const COMMIT = /^[0-9a-f]{40}$/;
@@ -40,8 +46,9 @@ function releaseText(release: Release): string {
 }
 
 /**
- * The Settings panel's body: the theme and motion choices, which apply at
- * once and stay in this browser; the Work folders slot; Help, which opens the
+ * The Settings panel's body: the theme and motion choices, and the sound
+ * choice where the page has sound, which apply at once and stay in this
+ * browser; the Work folders slot; Help, which opens the
  * reference pages in the page panel; and the release the pages came from,
  * read from the page index when the panel opens. A mount adds its own
  * sections after Work folders and may hide Work folders, the release and the
@@ -55,6 +62,8 @@ export function SettingsBody({
   const [theme, setTheme] = useState<ThemeChoice>(readTheme);
   const [motion, setMotion] = useState<MotionChoice>(readMotion);
   const [release, setRelease] = useState<Release>({ state: "loading" });
+  // Only a page with the Scene has sound to turn off.
+  const sound = useSoundSwitch();
   const foldersId = useId();
   const helpId = useId();
   const { settingsSections = [], settingsHide = [] } = useSlots();
@@ -96,6 +105,16 @@ export function SettingsBody({
           applyMotion(choice);
         }}
       />
+      {sound !== null && (
+        <Segmented
+          legend="Sound"
+          options={SOUNDS}
+          value={sound.muted ? "off" : "on"}
+          onChange={(choice) => {
+            sound.setMuted(choice === "off");
+          }}
+        />
+      )}
       {shows("work-folders") && (
         <section
           aria-labelledby={foldersId}

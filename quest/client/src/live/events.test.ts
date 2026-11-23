@@ -8,6 +8,7 @@ import {
   SHOWN_LIMIT,
   createShownEvents,
   onceAcrossTabs,
+  shareFeed,
   type EventFeed,
   type EventLocks,
 } from "./events";
@@ -378,5 +379,55 @@ describe("each event ID at most once", () => {
       shown: ["late"],
     });
     expect(shown.has("late")).toBe(false);
+  });
+});
+
+describe("one feed shared by the page's consumers", () => {
+  test("two consumers of the claimed feed both hear each batch", async () => {
+    const { feed, push } = manualFeed();
+    const shared = shareFeed(
+      onceAcrossTabs(feed, createShownEvents(null), () => true),
+    );
+    const first: string[] = [];
+    const second: string[] = [];
+    shared.subscribe((batch) => first.push(...batch.map((event) => event.id)));
+    shared.subscribe((batch) => second.push(...batch.map((event) => event.id)));
+    const a = envelope({ type: "check.passed", firstTime: true });
+    push(a);
+    await settled();
+    expect(first).toEqual([a.id]);
+    expect(second).toEqual([a.id]);
+  });
+
+  test("a consumer that throws is reported, and the others still hear the batch", () => {
+    const { feed, push } = manualFeed();
+    const shared = shareFeed(feed);
+    const heard = vi.fn();
+    shared.subscribe(() => {
+      throw new Error("consumer failed");
+    });
+    shared.subscribe(heard);
+    const reported = vi.fn();
+    vi.stubGlobal("reportError", reported);
+    push(envelope({ type: "answer.right" }));
+    vi.unstubAllGlobals();
+    expect(heard).toHaveBeenCalledOnce();
+    expect(reported).toHaveBeenCalledWith(new Error("consumer failed"));
+  });
+
+  test("subscribes to the feed once while any consumer listens, and lets go when the last leaves", () => {
+    const stops = vi.fn();
+    const subscribe = vi.fn(() => stops);
+    const shared = shareFeed({ subscribe });
+    const one = shared.subscribe(() => undefined);
+    const two = shared.subscribe(() => undefined);
+    expect(subscribe).toHaveBeenCalledOnce();
+    one();
+    one();
+    expect(stops).not.toHaveBeenCalled();
+    two();
+    expect(stops).toHaveBeenCalledOnce();
+    shared.subscribe(() => undefined);
+    expect(subscribe).toHaveBeenCalledTimes(2);
   });
 });

@@ -31,6 +31,8 @@ import { useCourseSnapshot } from "../screens/lesson";
 import { useLessonRoute } from "../screens/useLessonRoute";
 import { createSceneHub, SceneContext } from "../scene/context";
 import { SceneLayer, sceneStops } from "../scene/SceneLayer";
+import { SceneSound } from "../scene/sound/SceneSound";
+import { SoundCorner } from "../scene/sound/SoundToggle";
 import { MountNotices } from "./MountNotices";
 import { enterClass, ScreenChanges } from "./ScreenChanges";
 import { SaveNotices } from "./SaveNotices";
@@ -114,7 +116,7 @@ function useScreenFocus(
   }, [screen, pathname, place]);
 }
 
-/** The page's connection, around everything the shell shows. */
+/** The page's connection, around everything the shell shows, with the Scene's sound where the Scene is on. */
 export function Shell() {
   const handle = useMatchedHandle();
   return (
@@ -122,7 +124,9 @@ export function Shell() {
       <LiveProvider>
         <PipStageProvider>
           <PagePanelProvider>
-            <Frame />
+            <SceneSound>
+              <Frame />
+            </SceneSound>
           </PagePanelProvider>
         </PipStageProvider>
       </LiveProvider>
@@ -206,6 +210,7 @@ function Frame(): ReactNode {
           <Notice kind={NOTICES[connection]} />
           <SaveNotices />
           <MountNotices />
+          {welcome && <SoundCorner />}
         </div>
         <ScreenChanges
           screen={shown}

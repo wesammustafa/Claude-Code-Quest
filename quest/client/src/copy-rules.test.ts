@@ -266,3 +266,116 @@ describe("the app's own words (spec Copy rules)", () => {
     }
   });
 });
+
+// The Scene's own words (Questerm's copy rules, its 5.11, and its 09 for the
+// Scene): the Scene and its sound are never called a world, and nothing in
+// them names a mission, a beat, XP, a score, a rank, a level up, an
+// achievement, a trophy or a medal, says "Quest" alone or says "Game over".
+// Read wider than the prose above: a single capitalised word is a control's
+// name ("Sound"), so it is read too.
+const SCENE_BANNED: readonly RegExp[] = [
+  /\bworlds?\b/i,
+  /\bmissions?\b/i,
+  /\bbeats?\b/i,
+  /\bXP\b/i,
+  /\bscores?\b/i,
+  /\branks?\b/i,
+  /\blevel(?:led)? up\b/i,
+  /\bachievements?\b/i,
+  /\btroph(?:y|ies)\b/i,
+  /\bmedals?\b/i,
+  /(?<!Claude Code )\bQuest\b/,
+  /\bgame over\b/i,
+  /\u2014/,
+  /\p{Extended_Pictographic}/u,
+];
+
+const NAME = /^[A-Z][A-Za-z']*(?: [A-Za-z']+)*$/;
+
+/** Every shown word a source text holds: its prose, and each capitalised name. */
+function sceneWordsOf(file: string, text: string): string[] {
+  const source = ts.createSourceFile(
+    file,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const out: string[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isJsxText(node)) {
+      const words = node.text.trim();
+      if (words !== "") out.push(words);
+    } else if (
+      ts.isStringLiteral(node) ||
+      ts.isNoSubstitutionTemplateLiteral(node) ||
+      ts.isTemplateHead(node) ||
+      ts.isTemplateMiddle(node) ||
+      ts.isTemplateTail(node)
+    ) {
+      if (
+        PROSE.test(node.text) ||
+        ONE_WORD.test(node.text) ||
+        NAME.test(node.text)
+      )
+        out.push(node.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return out;
+}
+
+const SCENE_WORDS = Object.entries(sources)
+  .filter(([file]) => file.startsWith("./scene/"))
+  .flatMap(([file, text]) =>
+    sceneWordsOf(file, text).map((words) => ({ file, words })),
+  );
+
+describe("the Scene's words (Questerm's 5.11 and 09)", () => {
+  test("the Scene and its sound name no banned word, and the mute control's words are read", () => {
+    expect(SCENE_WORDS.map(({ words }) => words)).toContain("Sound");
+    expect(
+      SCENE_WORDS.flatMap(({ file, words }) =>
+        matching(SCENE_BANNED, words).map(
+          (re) => `${file}: "${words}" matches ${re}`,
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  test("the check catches each banned word, a control's name included", () => {
+    for (const bad of [
+      "Explore the world",
+      "World",
+      "Your next mission",
+      "One beat at a time",
+      "XP",
+      "Your score",
+      "High score",
+      "Rank",
+      "Level up!",
+      "Achievement",
+      "A trophy for you",
+      "Medal",
+      "Quest",
+      "Game over",
+      "Game Over",
+      "A pause \u2014 then on",
+      "Nice work \u{1F389}",
+    ]) {
+      const quoted = quote(bad);
+      const found = sceneWordsOf("x.tsx", `const x = ${quoted};`).flatMap(
+        (words) => matching(SCENE_BANNED, words),
+      );
+      expect(found, bad).not.toHaveLength(0);
+    }
+    for (const fine of ["Sound", "On", "Off", "Claude Code Quest"])
+      expect(
+        sceneWordsOf("x.tsx", `const x = ${quote(fine)};`).flatMap((words) =>
+          matching(SCENE_BANNED, words),
+        ),
+        fine,
+      ).toEqual([]);
+  });
+});
