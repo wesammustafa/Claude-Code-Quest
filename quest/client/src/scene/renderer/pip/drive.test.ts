@@ -13,7 +13,7 @@ import inline from "../../../../pip/model/pip-stand-in.glb?inline";
 import { envelope } from "../../../../test/events";
 import { IDLE_SLEEP_MS, createPipDirector } from "../../../pip/director";
 import { reactionFor } from "../../../pip/reactions";
-import { BLEND_S, GAZE_EASE_S, PipDrive } from "./drive";
+import { BLEND_S, GAZE_EASE_S, MAX_STEP, PipDrive, frameStep } from "./drive";
 import { parsePipModel, type PipModel3D } from "./load";
 
 const bytes = (): ArrayBuffer => {
@@ -258,6 +258,25 @@ describe("the phone tier's hold", () => {
     const held = pose(model.scene);
     drive.update(1.2);
     expect(pose(model.scene)).toBe(held);
+  });
+
+  test("the first frame after a rest moves Pip by one frame, not by the rest's length", () => {
+    const drive = new PipDrive(model.scene, model.clips);
+    const { d } = director();
+    drive.set(d.model(), true);
+    drive.update(1);
+    // The last frame drawn left Pip at rest.
+    const wasMoving = drive.moving();
+    expect(wasMoving).toBe(false);
+    // Seconds at rest on the demand loop: R3F's next delta is all of them.
+    drive.set({ ...d.model(), gaze: { x: 1, y: 0 } }, true);
+    drive.update(frameStep(3, wasMoving));
+    // One frame of the 150 ms ease: a smoothstep of a ninth, about 3%.
+    expect(drive.state().gaze.x).toBeGreaterThan(0);
+    expect(drive.state().gaze.x).toBeLessThan(0.05);
+    // While Pip moves, a frame advances by its own length, capped.
+    expect(frameStep(0.016, true)).toBe(0.016);
+    expect(frameStep(2, true)).toBe(MAX_STEP);
   });
 
   test("the desktop's mode loops, so it always moves", () => {

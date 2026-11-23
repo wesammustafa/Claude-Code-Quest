@@ -32,6 +32,22 @@ export const GAZE_TURN = { yaw: 0.52, pitch: 0.3 } as const;
 /** A mode blends into the next, and a Reaction in and out, over the rig's 160 ms mix. */
 export const BLEND_S = 0.16;
 
+/** The longest step a frame advances Pip by, in seconds, after a stall. */
+export const MAX_STEP = 1 / 20;
+/** One frame, in seconds: the step of the first frame after Pip rested. */
+export const REST_STEP = 1 / 60;
+
+/**
+ * How far a frame advances Pip, from the frame loop's `delta` and whether
+ * he still moved at the end of the frame before. On a demand loop (the
+ * phone tier) the first frame after a rest gets the whole rest as its
+ * delta, so it advances by one frame instead, and a gaze or Reaction then
+ * starts at the start of its ease rather than partway in.
+ */
+export function frameStep(delta: number, wasMoving: boolean): number {
+  return wasMoving ? Math.min(delta, MAX_STEP) : REST_STEP;
+}
+
 /** A Reaction as the driver plays it. */
 export interface Playing {
   id: string;

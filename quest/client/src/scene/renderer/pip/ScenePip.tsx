@@ -1,9 +1,11 @@
 // Seam S13: the 3D Pip, a second renderer of the guide's own Pip, drawn in
 // the Scene from the one director's PipModel. It loads its model after the
 // Scene has drawn, and holds Pip (S12's useScenePip) only once the model
-// has passed its contract and drawn a frame where the screen puts Pip:
-// until then, if the model fails, and wherever the Scene cannot run, the
-// screen's own Pip shows, with its posters as the Rive renderer shows them.
+// has passed its contract and been placed, and compiled, where the screen
+// puts Pip; he shows only once the screen's own Pip has stood down, so the
+// two never draw together. Until then, if the model fails, and wherever the
+// Scene cannot run, the screen's own Pip shows, with its posters as the
+// Rive renderer shows them.
 // On a Lesson's step the Scene stops and lets Pip go, so the Workspace
 // keeps the 2D Pip.
 import { useFrame, useThree } from "@react-three/fiber";
@@ -31,12 +33,9 @@ import { useScenePip } from "../../context";
 import { findPipSpot, spotShows } from "../../pip-spot";
 import { sceneStops } from "../../SceneLayer";
 import modelUrl from "../../../../pip/model/pip-stand-in.glb?url";
-import { PipDrive } from "./drive";
+import { PipDrive, frameStep } from "./drive";
 import { loadPipModel, type PipModel3D } from "./load";
 import { placeAtSpot } from "./place";
-
-/** The longest step a frame advances Pip by, in seconds: a phone's first frame after a rest jumps no further. */
-const MAX_STEP = 1 / 20;
 
 export interface ScenePipProps {
   screen: ScreenOnShow;
@@ -146,7 +145,8 @@ function Driven({
 
   useEffect(() => {
     canvas.setAttribute("data-scene-pip", holding ? "shown" : "ready");
-  }, [canvas, holding]);
+    invalidate();
+  }, [canvas, holding, invalidate]);
 
   // The phone draws only when something moves: Pip's box moving moves him.
   useEffect(() => {
@@ -176,6 +176,8 @@ function Driven({
   }, [holding]);
   const marks = useRef("");
   const lastSpot = useRef("");
+  // Whether Pip still moved at the end of the last frame drawn.
+  const wasMoving = useRef(false);
 
   useFrame((state, delta) => {
     const place = group.current;
@@ -193,10 +195,21 @@ function Driven({
             height: rect.height,
           };
     const shows = box !== null && spotShows(box, size.width, size.height);
-    place.visible = shows && !stopped;
+    // Only the box the screen's Pip leaves standing down: while his own
+    // Pip still draws there, the 3D one waits.
+    const handedOver = el?.hasAttribute("data-pip-stood-down") === true;
+    const drawn3d = shows && !stopped && holding && handedOver;
     if (box !== null)
       placeAtSpot(place, state.camera as PerspectiveCamera, box, size, height);
-    driver.update(Math.min(delta, MAX_STEP));
+    if (!drawn) {
+      // The measuring frame: his materials compile here, hidden, so the
+      // frame that first shows him has nothing left to build.
+      place.visible = true;
+      state.gl.compile(place, state.camera, state.scene);
+    }
+    place.visible = drawn3d;
+    driver.update(frameStep(delta, wasMoving.current));
+    wasMoving.current = driver.moving();
 
     if (seen.current !== null && seen.current !== shows) {
       seen.current = shows;
@@ -208,7 +221,7 @@ function Driven({
       now.still ? "still" : "",
       `${now.gaze.x.toFixed(2)} ${now.gaze.y.toFixed(2)}`,
       `${now.gazeTo.x.toFixed(2)} ${now.gazeTo.y.toFixed(2)}`,
-      String(shows),
+      String(drawn3d),
       now.reaction === null ? "" : "playing",
     ];
     const key = next.join("|");
@@ -233,8 +246,14 @@ function Driven({
     const spot =
       box === null
         ? ""
-        : `${String(box.x)} ${String(box.y)} ${String(box.width)} ${String(box.height)}`;
-    if (tier === "phone" && (driver.moving() || spot !== lastSpot.current))
+        : `${String(box.x)} ${String(box.y)} ${String(box.width)} ${String(box.height)} ${String(handedOver)}`;
+    // The phone draws again while Pip moves, his box moves, or the screen's
+    // Pip has yet to stand down for him.
+    const waiting = holding && !handedOver && box !== null;
+    if (
+      tier === "phone" &&
+      (wasMoving.current || waiting || spot !== lastSpot.current)
+    )
       invalidate();
     lastSpot.current = spot;
   });
