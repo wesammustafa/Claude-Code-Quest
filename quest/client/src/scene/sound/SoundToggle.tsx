@@ -26,12 +26,16 @@ export function SoundToggle(): ReactNode {
   );
 }
 
-/** The mute control where there is no top bar: under the notices, at the top bar's end. */
+/**
+ * The mute control where there is no top bar: under the notices, at the
+ * top bar's end, on the top bar's own backdrop, since the page scrolls
+ * under it.
+ */
 export function SoundCorner(): ReactNode {
   const sound = useSoundSwitch();
   if (sound === null) return null;
   return (
-    <div className="absolute top-full right-4 mt-2.5 max-sm:right-2">
+    <div className="absolute top-full right-4 mt-2.5 rounded-md bg-bg/82 backdrop-blur-md backdrop-saturate-140 max-sm:right-2">
       <SoundToggle />
     </div>
   );

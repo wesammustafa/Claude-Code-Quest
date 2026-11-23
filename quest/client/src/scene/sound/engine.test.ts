@@ -67,6 +67,17 @@ describe("before the first interaction", () => {
     expect(startedNotes()).toHaveLength(1);
   });
 
+  test("a context still starting from the first gesture, as Firefox and Safari start one, plays the cue asked for meanwhile", () => {
+    vi.spyOn(FakeAudioContext.prototype, "resume").mockReturnValue(
+      new Promise(() => undefined),
+    );
+    make();
+    gesture();
+    expect(FakeAudioContext.made[0]?.state).toBe("suspended");
+    engine.play("screen");
+    expect(startedNotes()).toHaveLength(1);
+  });
+
   test("the first gesture starts the audio", () => {
     make();
     gesture("keydown");
@@ -165,6 +176,28 @@ describe("a hidden tab", () => {
     expect(ctx?.state).toBe("running");
     engine.play("check");
     expect(startedNotes()).toHaveLength(before + CUES.check.length);
+  });
+
+  test("a tab back whose audio the browser keeps suspended drops its cues, and after the next gesture only the next cue plays", () => {
+    make();
+    gesture();
+    const [ctx] = FakeAudioContext.made;
+    if (ctx === undefined) throw new Error("no audio");
+    // Safari may refuse to resume without a gesture: the promise waits.
+    const refused = vi
+      .spyOn(ctx, "resume")
+      .mockReturnValue(new Promise(() => undefined));
+    setHidden(true);
+    setHidden(false);
+    expect(ctx.state).toBe("suspended");
+    engine.play("check");
+    engine.play("screen");
+    expect(startedNotes()).toHaveLength(0);
+    refused.mockRestore();
+    gesture();
+    expect(ctx.state).toBe("running");
+    engine.play("check");
+    expect(startedNotes()).toHaveLength(CUES.check.length);
   });
 });
 

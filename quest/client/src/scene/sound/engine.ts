@@ -96,6 +96,12 @@ export function createSoundEngine(page: SoundPage = soundPage()): SoundEngine {
   let activated = false;
   let audio: AudioContext | null = null;
   let out: GainNode | null = null;
+  // A gesture asked the audio to resume and the browser has not finished:
+  // Firefox and Safari start a context so, and a cue asked for meanwhile
+  // sounds as it starts. A context suspended with no such resume (a tab
+  // back without a gesture, as Safari keeps one) would hold its notes and
+  // sound them all at the next gesture, so its cues are dropped.
+  let starting = false;
   const voices = new Set<Voice>();
   const listeners = new Set<() => void>();
   const changed = () => {
@@ -115,12 +121,22 @@ export function createSoundEngine(page: SoundPage = soundPage()): SoundEngine {
     return audio;
   };
 
+  /** Asks a suspended context to run; `byGesture` when the Learner's own input asks. */
+  const resume = (ctx: AudioContext, byGesture: boolean) => {
+    if (byGesture) starting = true;
+    ctx
+      .resume()
+      .catch(() => undefined)
+      .finally(() => {
+        if (ctx.state === "running" || byGesture) starting = false;
+      });
+  };
+
   /** Starts the audio once a gesture was seen, while the sound is on and the page shows. */
-  const wake = () => {
+  const wake = (byGesture: boolean) => {
     if (!activated || muted || hidden()) return;
     const ctx = context();
-    if (ctx !== null && ctx.state !== "running")
-      ctx.resume().catch(() => undefined);
+    if (ctx !== null && ctx.state !== "running") resume(ctx, byGesture);
   };
 
   const silenceAll = () => {
@@ -135,14 +151,15 @@ export function createSoundEngine(page: SoundPage = soundPage()): SoundEngine {
     if (activation !== undefined && !activation.isActive) return;
     if (event instanceof KeyboardEvent && event.key === "Escape") return;
     activated = true;
-    wake();
+    wake(true);
   };
 
   const onVisibility = () => {
     if (hidden()) {
       silenceAll();
+      starting = false;
       audio?.suspend().catch(() => undefined);
-    } else wake();
+    } else wake(false);
   };
 
   // Another tab turned the sound off or on.
@@ -186,7 +203,11 @@ export function createSoundEngine(page: SoundPage = soundPage()): SoundEngine {
       if (terminalHolds(doc)) return SILENT;
       const ctx = context();
       if (ctx === null || out === null) return SILENT;
-      if (ctx.state !== "running") ctx.resume().catch(() => undefined);
+      // Held suspended, not starting: dropped, so it never sounds later.
+      if (ctx.state !== "running" && !starting) {
+        resume(ctx, false);
+        return SILENT;
+      }
       const bus = ctx.createGain();
       bus.connect(out);
       const t0 = ctx.currentTime + LEAD;
@@ -242,7 +263,7 @@ export function createSoundEngine(page: SoundPage = soundPage()): SoundEngine {
       applySound(muted ? "off" : "on");
       // Turned on by a press or a key, whose gesture was heard first.
       if (muted) silenceAll();
-      else wake();
+      else wake(true);
       changed();
     },
     subscribe: (fn) => {
@@ -266,6 +287,7 @@ export function createSoundEngine(page: SoundPage = soundPage()): SoundEngine {
         audio?.close().catch(() => undefined);
         audio = null;
         out = null;
+        starting = false;
       };
     },
   };
