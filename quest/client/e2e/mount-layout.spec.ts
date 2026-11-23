@@ -12,6 +12,12 @@ async function open(page: Page) {
     timeout: 30_000,
   });
   await expect(page.locator("[data-step-card]")).toBeVisible();
+  // The screen rises into place as it opens; boxes are measured where it lands.
+  await page
+    .locator("[data-screen]")
+    .evaluate((el) =>
+      Promise.all(el.getAnimations().map((a) => a.finished.catch(() => null))),
+    );
 }
 
 async function box(locator: Locator) {
