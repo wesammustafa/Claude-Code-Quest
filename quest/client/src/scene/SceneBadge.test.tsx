@@ -174,6 +174,11 @@ describe("with the Scene off (the default)", () => {
     expect(badge()).toBeNull();
     expect(screen.queryByRole("slider")).toBeNull();
     expect(screen.queryByText(SHELF_HINT)).toBeNull();
+    expect(
+      screen
+        .getByRole("heading", { level: 2, name: "Badges" })
+        .closest("section")?.className,
+    ).toContain("bg-surface");
   });
 });
 
@@ -409,6 +414,8 @@ describe("the Badge shelf, the Scene drawing", () => {
       shelf.getByRole("img", { name: "Navigator, not yet" }),
     ).toBeInTheDocument();
     expect(shelf.getByText(SHELF_HINT)).toBeVisible();
+    // The card has no surface of its own, so the 3D Badges behind it show.
+    expect(section.className).not.toContain("bg-surface");
   });
 
   test("an earned Badge turns by the arrow keys while it has focus, and Home faces it front again", async () => {

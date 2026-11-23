@@ -6,6 +6,7 @@ import { Tier } from "../components/Tier";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { Pip } from "../pip/Pip";
 import { usePipLook } from "../pip/PipStage";
+import { useBadgesDrawn } from "../scene/badges";
 import { BadgeShelfHint, SceneBadge } from "../scene/SceneBadge";
 import { PageTitle } from "../shell/PageTitle";
 import { BOX, COLUMN, EYEBROW } from "./layout";
@@ -53,6 +54,7 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
     { count: counts.levels, label: "levels done" },
   ];
   const skills = Object.entries(snapshot.learner.mastery);
+  const shelf = useBadgesDrawn();
   return (
     <>
       <ul className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -92,7 +94,10 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
         </section>
       </div>
       <NextGoal snapshot={snapshot} />
-      <section className={BOX} aria-labelledby="progress-badges">
+      <section
+        className={shelf ? SHELF : BOX}
+        aria-labelledby="progress-badges"
+      >
         <h2 id="progress-badges" className="text-lg">
           Badges
         </h2>
@@ -122,6 +127,12 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
     </>
   );
 }
+
+/**
+ * The Badges section as the Badge shelf, while the Scene draws its Badges:
+ * the card with no surface of its own, so the 3D Badges behind it show.
+ */
+const SHELF = "grid gap-3 rounded-lg border border-line p-5";
 
 const GOAL =
   "flex items-center justify-between gap-4 rounded-lg border border-accent-edge bg-surface px-5 py-4 shadow-sm max-sm:flex-col max-sm:items-stretch";
