@@ -208,8 +208,10 @@ export class BadgeDrawer {
   readonly rig = new Group();
   private readonly drawn = new Map<BadgeSlot, Drawn>();
   private palette: Colours;
+  private readonly stage: BadgeStage;
 
-  constructor(private readonly stage: BadgeStage) {
+  constructor(stage: BadgeStage) {
+    this.stage = stage;
     this.rig.matrixAutoUpdate = false;
     this.palette = colours();
   }

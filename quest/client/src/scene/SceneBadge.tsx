@@ -65,18 +65,35 @@ type Moment = "none" | "drawn" | "cross-fade";
  */
 class RevealRun {
   readonly reveal: BadgeReveal;
+  /** Drawn in 3D, rather than its end state cross-faded in. */
+  readonly drawn: boolean;
+  private readonly stage: BadgeStage;
+  private readonly lesson: string;
+  private readonly slot: () => SlotHandle | null;
+  private readonly ended: () => void;
   private over = false;
   private gone: number | null = null;
 
-  constructor(
-    private readonly stage: BadgeStage,
-    private readonly lesson: string,
-    /** Drawn in 3D, rather than its end state cross-faded in. */
-    readonly drawn: boolean,
-    lights: number,
-    private readonly slot: () => SlotHandle | null,
-    private readonly ended: () => void,
-  ) {
+  constructor({
+    stage,
+    lesson,
+    drawn,
+    lights,
+    slot,
+    ended,
+  }: {
+    stage: BadgeStage;
+    lesson: string;
+    drawn: boolean;
+    lights: number;
+    slot: () => SlotHandle | null;
+    ended: () => void;
+  }) {
+    this.stage = stage;
+    this.lesson = lesson;
+    this.drawn = drawn;
+    this.slot = slot;
+    this.ended = ended;
     const ms = tokenMs(drawn ? "--duration-reveal" : "--duration-cross-fade");
     this.reveal = { startedAt: performance.now(), ms, lights, done: false };
     if (drawn) slot()?.update({ reveal: this.reveal });
@@ -192,16 +209,16 @@ function InScene({
   // The reveal itself, once: its start, then its end or a skip.
   useEffect(() => {
     if (moment === "none") return;
-    run.current ??= new RevealRun(
+    run.current ??= new RevealRun({
       stage,
       lesson,
-      moment === "drawn",
+      drawn: moment === "drawn",
       lights,
-      () => slot.current,
-      () => {
+      slot: () => slot.current,
+      ended: () => {
         setOver(true);
       },
-    );
+    });
     return run.current.play();
   }, [moment, stage, lesson, lights]);
 
