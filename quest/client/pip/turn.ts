@@ -24,7 +24,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** The head: a box with chamfered vertical edges and bevelled top and bottom edges (the board's front view is 107 by 78 px, its side view 72.5 px deep, at 5.4 units a px). */
-const HEAD = {
+export const HEAD = {
   halfWidth: 290,
   halfDepth: 196,
   chamfer: 40,
@@ -34,29 +34,29 @@ const HEAD = {
 /** The walls run between the bevels. */
 const WALL_HALF_HEIGHT = HEAD.halfHeight - HEAD.bevel;
 /** The head's centre in the art. */
-const CENTRE = { x: 400, y: 365 };
+export const CENTRE = { x: 400, y: 365 };
 /** Each face reaches this far past its edges, under its neighbours, so no seam shows between two faces. */
 const SEAM = 1;
 /** Ears: blocks on the head's sides, set into it a little. */
-const EAR = { out: 80, in: 8, halfDepth: 74, centre: 83, top: -25 };
+export const EAR = { out: 80, in: 8, halfDepth: 74, centre: 83, top: -25 };
 /** Antennas: on the top face, set back from its middle. */
-const ANTENNA_Z = -46;
-const ANTENNA_BASE_V = -195;
-const ANTENNAS = {
+export const ANTENNA_Z = -46;
+export const ANTENNA_BASE_V = -195;
+export const ANTENNAS = {
   big: { u: 106, width: 92, depth: 76, id: 670, stalk: 1107 },
   small: { u: -144, width: 60, depth: 50, id: 675, stalk: 1109 },
 } as const;
 /** Each stalk's top, above its base. */
 const STALK_TOP = -48;
 /** The torso turns and nods this share of the head's angles. */
-const TORSO = { halfWidth: 122, halfDepth: 96, chamfer: 20 };
+export const TORSO = { halfWidth: 122, halfDepth: 96, chamfer: 20 };
 const TORSO_SHARE = 0.2;
 const TORSO_SHOWN = ["front", "front right", "right", "front left", "left"];
 /** The face's features slide a little further toward the look, as on a slightly rounded face. */
 const FACE_SLIDE = 0.12;
 /** The face's eyes and mouth and its glow, down from the head's centre. */
-const FACE_V = 3;
-const GLOW_V = -17;
+export const FACE_V = 3;
+export const GLOW_V = -17;
 /** The largest turn, at gazeX -1 or 1. */
 export const TURN_LIMIT_DEGREES = 55;
 const PHI_MAX = (TURN_LIMIT_DEGREES * Math.PI) / 180;
