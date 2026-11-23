@@ -1,6 +1,6 @@
-// Binary glTF (.glb) packing, with no Node or 3D code: the stand-in script
-// writes its model with it, and the model test unpacks a model, edits its
-// JSON (a clip removed) and packs it again.
+// Binary glTF (.glb) packing, with no Node or 3D code: the model script
+// (pip-model.ts) writes Pip with it, and the model test unpacks a model,
+// edits its JSON (a clip removed) and packs it again.
 
 const MAGIC = 0x46546c67; // "glTF"
 const JSON_CHUNK = 0x4e4f534a; // "JSON"

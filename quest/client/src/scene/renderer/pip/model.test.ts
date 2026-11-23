@@ -2,9 +2,8 @@
 // The 3D Pip's model test (seam S13): the committed model, loaded with the
 // same GLTFLoader the renderer uses, holds every clip, the gaze control and
 // the still pose the model contract names; a model with any one clip
-// removed is refused, naming the mode or Reaction that clip plays. When the
-// delivered model replaces the stand-in, this runs on it unchanged.
-import { AnimationMixer, Quaternion, type Object3D } from "three";
+// removed is refused, naming the mode or Reaction that clip plays.
+import { AnimationMixer, Box3, Quaternion, type Object3D } from "three";
 import { describe, expect, test } from "vitest";
 import {
   PIP_MODEL_CLIPS,
@@ -12,7 +11,7 @@ import {
   PIP_MODEL_STILL,
 } from "../../../../pip/model/contract";
 import { packGlb, unpackGlb } from "../../../../pip/model/glb";
-import inline from "../../../../pip/model/pip-stand-in.glb?inline";
+import inline from "../../../../pip/model/pip.glb?inline";
 import { parsePipModel } from "./load";
 
 /** The committed model's bytes. */
@@ -62,6 +61,25 @@ describe("the committed model", () => {
       [...PIP_MODEL_CLIPS].sort(),
     );
     expect(model.scene.getObjectByName(PIP_MODEL_GAZE)).toBeDefined();
+  });
+
+  test("stands 1 m tall on his soles at rest, facing +z, as the renderer measures him", async () => {
+    const { scene } = await parsePipModel(buffer(committed()));
+    scene.updateMatrixWorld(true);
+    const bounds = new Box3().setFromObject(scene);
+    // The ears' outer faces at +-370 rig units, the head's back at -196 and
+    // the eyes' fronts at 199, in metres at 725 units to Pip's 1 m height.
+    const unit = 1 / 725;
+    expect(bounds.min.toArray().map((v) => v / unit)).toEqual([
+      expect.closeTo(-370, 1),
+      expect.closeTo(0, 1),
+      expect.closeTo(-196, 1),
+    ]);
+    expect(bounds.max.toArray().map((v) => v / unit)).toEqual([
+      expect.closeTo(370, 1),
+      expect.closeTo(725, 1),
+      expect.closeTo(199, 1),
+    ]);
   });
 
   test("each mode and Reaction clip moves Pip, and none turns the gaze node", async () => {

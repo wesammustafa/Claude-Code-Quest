@@ -32,7 +32,7 @@ import { usePipInput, usePipModel } from "../../../pip/PipStage";
 import { useScenePip } from "../../context";
 import { findPipSpot, spotShows } from "../../pip-spot";
 import { sceneStops } from "../../SceneLayer";
-import modelUrl from "../../../../pip/model/pip-stand-in.glb?url";
+import modelUrl from "../../../../pip/model/pip.glb?url";
 import { PipDrive, frameStep } from "./drive";
 import { loadPipModel, type PipModel3D } from "./load";
 import { placeAtSpot } from "./place";

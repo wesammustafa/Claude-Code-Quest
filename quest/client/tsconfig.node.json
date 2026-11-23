@@ -15,6 +15,7 @@
     "e2e",
     "build",
     "pip",
+    "src/scene/renderer/pip/load.ts",
     "../release/src/licenses.ts"
   ],
   "exclude": ["pip/contract-page"]

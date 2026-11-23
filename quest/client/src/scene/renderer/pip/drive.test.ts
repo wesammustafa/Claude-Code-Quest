@@ -9,7 +9,7 @@ import type { Object3D } from "three";
 import { beforeEach, describe, expect, test } from "vitest";
 import type { PipMode, PipModel } from "../../../../pip/contract";
 import { PIP_MODES } from "../../../../pip/contract";
-import inline from "../../../../pip/model/pip-stand-in.glb?inline";
+import inline from "../../../../pip/model/pip.glb?inline";
 import { envelope } from "../../../../test/events";
 import { IDLE_SLEEP_MS, createPipDirector } from "../../../pip/director";
 import { reactionFor } from "../../../pip/reactions";
