@@ -3,7 +3,8 @@
 // with a stage band; focus on a Lesson link, the arrow keys, a swipe or a
 // drag, a pinch, a scroll and the pull-back control move Pip and the
 // camera, and a tap on a Station opens exactly what its link opens. The
-// screen's Pip stands down for the 2D Pip floating over the Scene. The
+// screen's Pip stands down for the 2D Pip floating over the Scene, or,
+// with the mount's 3D Pip, stays for the Scene's renderer to hold. The
 // Stations are lit from the snapshot alone. With the Scene off, and on
 // the other Levels, the Journey is as it was. The renderer is a stand-in
 // that draws each Station where the test says: jsdom has no WebGL.
@@ -104,7 +105,7 @@ const link = (lesson: string) =>
   document.querySelector<HTMLAnchorElement>(`a[href="/lesson/${lesson}/"]`);
 
 /** The Journey of the full course, b-1 to b-3 complete, with the Scene drawing. */
-async function onPath(): Promise<{
+async function onPath({ pip = false } = {}): Promise<{
   heard: Heard;
   page: ReturnType<typeof renderMounted>;
   path: JourneyPath;
@@ -113,7 +114,7 @@ async function onPath(): Promise<{
   const page = renderMounted(
     "/journey/",
     snapshotOf(overview, { course: fullCourse }),
-    { scene: sceneWith(heard) },
+    { scene: { ...sceneWith(heard), ...(pip ? { pip } : {}) } },
   );
   await waitFor(() => {
     expect(stage()).not.toBeNull();
@@ -263,6 +264,13 @@ describe("the Journey path, with the Scene drawing", () => {
     expect(path.whole()).toBe(true);
     fireEvent.click(control);
     expect(path.whole()).toBe(false);
+  });
+
+  test("with the mount's 3D Pip the stage floats no Pip and leaves the screen's Pip for the Scene's renderer to hold", async () => {
+    await onPath({ pip: true });
+    expect(document.querySelector("[data-scene-pip]")).toBeNull();
+    expect(document.querySelector("[data-pip-stood-down]")).toBeNull();
+    expect(document.querySelector('[data-pip="beside"]')).not.toBeNull();
   });
 
   test("the other Levels keep today's screen: no band, and the screen's own Pip", async () => {

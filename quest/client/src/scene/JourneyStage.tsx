@@ -11,6 +11,7 @@ import {
 import type { LessonId } from "@quest/contract";
 import { Button } from "../components/Button";
 import { cx } from "../lib/cx";
+import { useMount } from "../mount/context";
 import { BOX, PipRenderer } from "../pip/PipRenderer";
 import { usePipFollowsPointer, usePipModel } from "../pip/PipStage";
 import { useScenePip } from "./context";
@@ -48,14 +49,17 @@ interface Props {
  * along, and focus moves to that Station's link; a pinch or a scroll pulls
  * back to the whole Level or goes back in, as the control in its corner
  * does. Pip floats over it at the point the Scene draws his feet (9.4),
- * while every screen's own Pip stands down. The Stations' marks are for
+ * while every screen's own Pip stands down; with the mount's 3D Pip (seam
+ * S13) the Scene's renderer holds Pip instead, in the box the screen gives
+ * him, so the stage floats none and the two never show together. The
+ * Stations' marks are for
  * the pointer alone: the list's links are the keyboard and screen reader
  * path, so the band is hidden from assistive technology but for its
  * control.
  */
 export function JourneyStage({ lessons, home, link }: Props): ReactNode {
   const path = useJourneyPath();
-  useScenePip();
+  const floats = useMount().scene?.pip !== true;
   const band = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(() => opened.has(path));
 
@@ -157,7 +161,7 @@ export function JourneyStage({ lessons, home, link }: Props): ReactNode {
         >
           <div aria-hidden="true" className="absolute inset-0">
             <Stations path={path} lessons={lessons} />
-            <FloatingPip path={path} />
+            {floats && <FloatingPip path={path} />}
           </div>
           <div className="absolute top-2 right-2">
             <Button
@@ -244,8 +248,9 @@ function Stations({
   ));
 }
 
-/** Pip, the guide's own 2D Pip, standing where the Scene draws his feet (09 9.4). */
+/** Pip, the guide's own 2D Pip, standing where the Scene draws his feet (09 9.4), held from the screen while it shows. */
 function FloatingPip({ path }: { path: JourneyPath }): ReactNode {
+  useScenePip();
   const model = usePipModel();
   usePipFollowsPointer();
   const box = useRef<HTMLDivElement>(null);
