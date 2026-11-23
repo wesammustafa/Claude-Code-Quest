@@ -1,5 +1,8 @@
-// What the Scene's sound shares with the screens: the cues to play and the
-// mute choice. No audio here until a page with the Scene plays a cue.
+// What the Scene's sound shares with the screens and the Scene's renderer:
+// the cues to play and the mute choice. No audio here until a page with the
+// Scene plays a cue. The renderer imports it from here rather than through
+// @quest/client/scene, so the Scene's stills, drawn from the renderer's
+// sources, do not depend on it.
 import {
   createContext,
   useCallback,

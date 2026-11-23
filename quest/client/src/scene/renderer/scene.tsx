@@ -6,4 +6,3 @@ import { SceneView } from "./SceneView";
 
 export default SceneView;
 export { useSceneMove, useScenePip } from "../context";
-export { useSceneSound } from "../sound/context";
