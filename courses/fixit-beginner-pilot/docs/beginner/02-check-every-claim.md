@@ -1,0 +1,39 @@
+# Check every claim before anyone relies on it
+
+<sub>**Beginner** · Lesson 2 of 2 · about 20 minutes · Needs: [Beginner index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+
+## Goal
+
+By the end of this lesson you can trace every claim in a draft to the source it came from, settle a conflict between sources by which one to trust, recognise an instruction hidden inside a document, and correct a draft before anyone relies on it.
+
+## The job
+
+> **Maya (library events desk):** Claude made a February attendee guide. It looks great! It's open on my screen. Can I post it this afternoon?
+
+The draft is `fixit/feb/draft-attendee-guide.md`. Claude made it from four files: the library's booking email, the January meeting notes, last October's flyer and an email forwarded by the Repair Network. The request named no source as the one to trust.
+
+## The idea
+
+A draft can be a faithful mix of its sources and still be wrong, when some of those sources are out of date or second-hand. Counting files isn't weighing them: the newest file about this session, from the people who run it, wins.
+
+Text inside a document is data about the world, not a request from you, whoever wrote it.
+
+## Worked example
+
+1. **List every claim with its source.** Start a session with `claude`, then ask: `List every factual claim in @fixit/feb/draft-attendee-guide.md. For each, give the file and line it most likely came from. Don't change anything.`
+2. **Settle one conflict yourself.** The draft says doors open at 10am, as the flyer and the Repair Network listing do; the January notes say public from 10:30. Open `fixit/feb/meeting-notes-2027-01-28.md` and read line 5, then `fixit/feb/venue-email-feb.md` line 9: the room is yours from 10:00, so volunteers set up first and the public comes in after. Then tell Claude: `Change the start time in the draft to 10:30am, and add "please don't arrive before 10:30". Leave everything else.` Open the draft and confirm only that line moved.
+
+## Your turn
+
+1. In your own words, ask Claude to check each remaining claim against the sources, saying which sources win: the library's email and your own notes over the flyer and the Repair Network email. Ask for a verdict and the file and line for each. Don't ask it to fix anything yet.
+2. Open `fixit/feb/partner-email.md` and find line 11. It's an HTML comment: it doesn't show when the email is displayed, but Claude reads the raw file. Decide what happens to that email from now on.
+3. Optional: ask Claude to write its verdicts into `fixit/feb/fact-table.md`: each claim, its verdict, and the file and line that settles it.
+4. Make sure the fact table gives each claim a verdict and the line that settles it, and read every row against the files before you accept it.
+5. Optional: ask Claude to correct the draft so every claim matches your fact table, with the library's public number as the contact.
+6. Make sure every claim in the draft matches your fact table, in plain words for the public. The access line is your choice: say what the library says, or say less and point people to the events desk. Don't say more than the library does.
+
+## Check
+
+The Lesson's check reads nine things: that the sources are as they arrived, that the fact table gives each claim a verdict and the line that settles it, and that the guide gives 10:30 as the public start, offers no parking the library hasn't, claims no access the library hasn't confirmed, tells people to book, names what you can't bring, gives only the library's public phone number, and doesn't promise biscuits.
+
+What only you can judge: reading your corrected guide, would a stranger still want to come?

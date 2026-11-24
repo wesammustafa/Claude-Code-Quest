@@ -1,10 +1,5 @@
 {
-  "levels": [
-    {
-      "id": "beginner",
-      "index": "docs/beginner/README.md"
-    }
-  ],
+  "levels": [{ "id": "beginner", "index": "docs/beginner/README.md" }],
   "lessons": [
     {
       "id": "b-1",
@@ -14,9 +9,27 @@
       "steps": "course/steps/b-1.md",
       "check": "b-1",
       "folder": "copy",
-      "slow": [
-        0
-      ]
+      "slow": [0]
+    },
+    {
+      "id": "b-6",
+      "level": "beginner",
+      "order": 2,
+      "page": "docs/beginner/02-check-every-claim.md",
+      "steps": "course/steps/b-6.md",
+      "check": "b-6",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "b-capstone",
+      "level": "beginner",
+      "order": 3,
+      "page": "docs/beginner/capstone.md",
+      "steps": "course/steps/b-capstone.md",
+      "check": "b-capstone",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }
