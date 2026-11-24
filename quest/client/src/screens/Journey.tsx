@@ -381,11 +381,17 @@ function useOnPath(level: LevelId | undefined): boolean {
 }
 
 /**
- * Whether a key goes to no control: focus is on the page itself, or in the
- * Journey's stage but not on its one control.
+ * Whether a key goes to no control: focus is on the page itself, as on a
+ * fresh load; on the screen's heading, where the shell puts it after a
+ * route change; or in the Journey's stage but not on its one control.
  */
 function noControlFocused(el: Element | null): boolean {
-  if (el === null || el === document.body || el === document.documentElement)
+  if (
+    el === null ||
+    el === document.body ||
+    el === document.documentElement ||
+    el.matches("[data-page-title]")
+  )
     return true;
   return (
     el.closest("[data-journey-stage]") !== null &&

@@ -210,7 +210,7 @@ describe("the Journey path, with the Scene drawing", () => {
     }
   });
 
-  test("with no control focused, Left and Right move focus and Pip along; Up, a modifier, a focused input, the stage's control and a tab are left alone", async () => {
+  test("with no control focused (the page, or its heading), Left and Right move focus and Pip along; Up, a modifier, a focused input, the stage's control and a tab are left alone", async () => {
     const { page, path } = await onPath();
     const blur = () => {
       act(() => {
@@ -226,6 +226,18 @@ describe("the Journey path, with the Scene drawing", () => {
     expect(fireEvent.keyDown(document.body, { key: "ArrowLeft" })).toBe(false);
     expect(document.activeElement).toBe(link("b-1"));
     expect(path.at()).toBe("b-1");
+    // The heading, where the shell puts focus after a route change, is no
+    // control either.
+    const heading = screen.getByRole("heading", { level: 1 });
+    act(() => {
+      heading.focus();
+    });
+    expect(fireEvent.keyDown(heading, { key: "ArrowRight" })).toBe(false);
+    expect(document.activeElement).toBe(link("b-2"));
+    expect(path.at()).toBe("b-2");
+    act(() => {
+      link("b-1")?.focus();
+    });
     blur();
     // Up and Down scroll the page.
     expect(fireEvent.keyDown(document.body, { key: "ArrowUp" })).toBe(true);
