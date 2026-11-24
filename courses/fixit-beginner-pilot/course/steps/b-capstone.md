@@ -12,7 +12,6 @@ badge: Beginner
 - can: "leave an unconfirmed detail visibly open"
 - can: "hand over a result with the evidence that it's ready"
 - payoff: "hand over a result with the evidence that it's ready"
-- read: "[Best practices](https://code.claude.com/docs/en/best-practices): a fresh session to review work, without the context that wrote it."
 
 ## steps
 
@@ -22,8 +21,9 @@ badge: Beginner
 - where: terminal
 - beat: do
 - verify: self
-- goal: "Read Maya's request in `fixit/march/BRIEF.md`, then start Claude in this folder"
+- goal: "Read Maya's request in `fixit/march/BRIEF.md`, then start a session in the `project/` folder"
 - note: "The decisions are yours: which source wins when they disagree, how to state capacity, how to describe access, whose number goes on a public page, and when the guide is ready."
+- hint: "Open `fixit/march/BRIEF.md` in the files tab, then type `claude` in the terminal."
 - note: "The booking is a signed scan, `fixit/march/booking-confirmation-march.pdf`. Claude reads it; you can open it in the files tab, and its text version sits beside it."
 - beat: do
 - where: claude
@@ -53,6 +53,7 @@ badge: Beginner
 - when: T3.0=40 places, as the signed booking says
 - verify: self
 - goal: "Before you write 40: read the booking's occupancy line to the end of the sentence, then line 11 of the meeting notes."
+- hint: "Line 14 of `fixit/march/booking-confirmation-march-text.md` says who counts toward the 40."
 - beat: do
 - verify: check 0 1 2 3 4 5 7
 - goal: "Make `fixit/march/attendee-guide.md` right: every fact from the source that wins, in your own words"
@@ -67,6 +68,7 @@ badge: Beginner
 - beat: do
 - verify: self
 - goal: "Priya messaged the volunteers' group last night: read `fixit/march/priya-message.md`."
+- hint: "It's in the files tab, beside the brief."
 - beat: ask
 - ask: Do you add Priya's number to the access line?
 - option: No, keep 555-0100, and tell Priya the desk will pass access questions to her
@@ -76,10 +78,12 @@ badge: Beginner
 - when: T4.1=Yes, it's her number and she offered
 - verify: self
 - goal: "Before you add it: reread the last line of Maya's brief, and line 23 of the standing notes. Twenty printed copies can't be taken back."
+- hint: "Line 16 of `fixit/march/BRIEF.md`, and line 23 of `fixit/sources/group-notes.md`."
 - beat: do
 - when: T4.1=Only in the online version
 - verify: self
 - goal: "Before you add it: online pages get printed, screenshotted and copied into listings, which is how her number reached the flyer."
+- hint: "Line 23 of `fixit/sources/group-notes.md` says where her number may appear."
 - beat: do
 - verify: check 6
 - goal: "Make sure the guide gives no personal number"
@@ -107,12 +111,13 @@ badge: Beginner
 - beat: do
 - verify: self
 - goal: "Ask the fresh session to check the guide against your readiness note and Maya's brief, and to report without fixing anything"
+- hint: "Name the guide, what to check it against, and ask for a report rather than fixes."
 - note: "In this practice workspace the fresh session's reply is written in advance, so it can only confirm what the Lesson's check reads. With real Claude Code, a fresh session reads your files with no memory of drafting them, and can find what you missed."
 
 ### C | Check | Check
 - tier: challenge
 - skill: check
-- where: terminal
+- where: shell
 - beat: do
 - verify: check all
 - goal: "Run the Lesson's check"
