@@ -222,6 +222,37 @@ describe("every slot where 5.10 places it", () => {
     ).toBeNull();
   });
 
+  test("a finished Lesson's overview says so, offers Practise again, and shows lessonOverviewDone", async () => {
+    function Done({ lesson }: { lesson: string }) {
+      return <p data-test-done="">{`Finished work for ${lesson}`}</p>;
+    }
+    const mounted = renderMounted(
+      "/lesson/b-1/",
+      snapshotOf(overview, { course: courseDone }),
+      { slots: { lessonOverviewDone: Done } },
+    );
+    expect(one("[data-test-done]")).toHaveTextContent("Finished work for b-1");
+    expect(screen.getByText(/^You finished this lesson\./)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Practise again" }),
+    );
+    expect(mounted.posts.map((p) => p.action)).toEqual([
+      { type: "lesson.start", help: "planned" },
+    ]);
+  });
+
+  test("an unfinished Lesson's overview shows no lessonOverviewDone", () => {
+    function Done() {
+      return <p data-test-done="">done</p>;
+    }
+    renderMounted("/lesson/b-1/", snapshotOf(overview), {
+      slots: { lessonOverviewDone: Done },
+    });
+    expect(document.querySelector("[data-test-done]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Start" })).toBeVisible();
+  });
+
   test("courseCompleteExtra renders on Course complete", () => {
     renderMounted(
       "/course/complete/",

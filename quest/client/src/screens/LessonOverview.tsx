@@ -79,7 +79,8 @@ function noteText(note: OverviewNote): string | null {
 export function LessonOverview() {
   const active = useActiveLesson("overview");
   const access = useLessonAccess(useParams().lessonId ?? "");
-  const Offer = useSlots().lessonAccess?.Offer;
+  const { lessonAccess, lessonOverviewDone: Done } = useSlots();
+  const Offer = lessonAccess?.Offer;
   const inert = access === "needs-connection";
   const start = useInert(
     useActionProps("lesson.start", {
@@ -130,6 +131,8 @@ export function LessonOverview() {
   }, [first]);
   if (!active) return <LessonGate />;
   const { lesson, summary } = active;
+  // A finished Lesson not mid-replay: Start plays it again, Badge kept.
+  const done = summary?.complete === true && !lesson.resumable;
   const practiceCopy = learner?.practiceCopy ?? "";
   const savedFolder = savedFolderOf(summary?.folder, learner?.workFolders);
   const intro = lesson.intro;
@@ -301,6 +304,13 @@ export function LessonOverview() {
         <Offer lesson={lesson.id} offer={access} />
       )}
 
+      {done && (
+        <section aria-label="You finished this lesson" className="grid gap-2">
+          <p className="text-muted">{DONE_LINE}</p>
+          {Done && <Done lesson={lesson.id} />}
+        </section>
+      )}
+
       <div ref={actions} className="flex flex-wrap items-center gap-2.5">
         {Offer && access === "keep-going" && (
           <Offer lesson={lesson.id} offer={access} />
@@ -314,7 +324,7 @@ export function LessonOverview() {
             data-start=""
             {...start}
           >
-            {lesson.resumable ? "Resume" : "Start"}
+            {lesson.resumable ? "Resume" : done ? "Practise again" : "Start"}
           </Button>
         )}
         {access !== "keep-going" && lesson.start?.less && (
@@ -331,6 +341,9 @@ export function LessonOverview() {
     </main>
   );
 }
+
+const DONE_LINE =
+  "You finished this lesson. Practise it again any time: your Badge stays.";
 
 /** A start button's props, aria-disabled and doing nothing while `inert`. */
 function useInert(props: ActionProps, inert: boolean): ActionProps {

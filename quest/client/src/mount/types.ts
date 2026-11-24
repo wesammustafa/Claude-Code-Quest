@@ -217,6 +217,11 @@ export interface ClientSlots {
    * GitHub: a mount that serves the solutions itself shows them here.
    */
   lessonCompleteReference?: ComponentType<{ lesson: LessonId }>;
+  /**
+   * On a finished Lesson's overview, under the line that says it is
+   * finished: a mount that keeps the Learner's finished work shows it here.
+   */
+  lessonOverviewDone?: ComponentType<{ lesson: LessonId }>;
   /** On Course complete, after the Level lists and before the buttons. */
   courseCompleteExtra?: ComponentType;
   /**

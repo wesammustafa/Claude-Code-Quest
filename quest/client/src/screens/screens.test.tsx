@@ -65,6 +65,8 @@ const APP_WORDS: readonly RegExp[] = [
   /^Your terminal$/,
   /^is the other window: each step says what to do there$/,
   /^Start the first lesson$/,
+  /^Practise again$/,
+  /^You finished this lesson\. Practise it again any time: your Badge stays\.$/,
   /^See all three levels( first)?$/,
   /^See all levels( first)?$/,
   /^See the (Beginner|Intermediate|Advanced) level( first)?$/,
