@@ -24,8 +24,12 @@ import {
   placeFor,
   planMove,
   poseOf,
+  glideOf,
+  pipStation,
   sameView,
   viewOf,
+  walkEase,
+  type Place,
 } from "./camera";
 import { beginnerLayout } from "./beginner";
 
@@ -91,6 +95,13 @@ export function CameraRig({ screen, stations, sway }: Props): null {
     [path, stations],
   );
 
+  // The Station Pip stands at for a place, and the last frame's shot of him.
+  const pipOf = useCallback(
+    (place: Place) => pipStation(place, ids.indexOf(path.at() ?? "")),
+    [ids, path],
+  );
+  const lastShot = useRef({ pip: 0, pace: 0 });
+
   const start = useCallback(
     (ms: number, ease: Easing, between: boolean) => {
       moves.start(performance.now(), ms, easingOf(ease), between);
@@ -126,24 +137,34 @@ export function CameraRig({ screen, stations, sway }: Props): null {
   );
   useSceneMove(onMove);
 
-  // A new Station or the pull-back on the Journey glides there. Anything
-  // else that changes the place outside a screen change (the band
-  // appearing as a page opens on the Journey, a new screen with screen
-  // transitions off) shows the new place at once: no move.
+  // A new Station on the Journey, in a Station's view or the whole Level's,
+  // walks Pip there over --duration-walk, the camera gliding with him; a
+  // new Station chosen on the way carries him on at the speed he walks. The
+  // pull-back and the way back in glide over --duration-slow. Anything else
+  // that changes the place outside a screen change (the band appearing as a
+  // page opens on the Journey, a new screen with screen transitions off)
+  // shows the new place at once: no move.
   useEffect(() => {
-    let last = placeNow();
-    const onPath = (p: typeof last) =>
-      p.kind === "station" || p.kind === "whole";
+    const standing = () => {
+      const place = placeNow();
+      return { place, pip: pipOf(place) };
+    };
+    let last = standing();
     const glide = () => {
-      const next = placeNow();
-      const same =
-        next.kind === last.kind &&
-        ("at" in next ? next.at : -1) === ("at" in last ? last.at : -1);
-      const along = onPath(next) && onPath(last);
+      const next = standing();
+      const move = glideOf(last, next);
       last = next;
-      if (!same && along && !canvas.hasAttribute(MOVING)) {
+      if (move !== null && !canvas.hasAttribute(MOVING)) {
         const tokens = motionTokens();
-        start(tokens.slow * MS_PER_SECOND, tokens.inOut, false);
+        if (move === "walk") {
+          const { pip, pace } = lastShot.current;
+          const goal = beginnerLayout().shares[next.pip] ?? pip;
+          const ease =
+            tokens.inOut === "linear"
+              ? tokens.inOut
+              : walkEase(tokens.inOut, pace, pip, goal, tokens.walk);
+          start(tokens.walk * MS_PER_SECOND, ease, false);
+        } else start(tokens.slow * MS_PER_SECOND, tokens.inOut, false);
       }
       invalidate();
     };
@@ -156,7 +177,7 @@ export function CameraRig({ screen, stations, sway }: Props): null {
       offPath();
       offScreen();
     };
-  }, [path, screen, placeNow, canvas, start, invalidate]);
+  }, [path, screen, placeNow, pipOf, canvas, start, invalidate]);
 
   useEffect(() => {
     path.setReady(true);
@@ -168,21 +189,18 @@ export function CameraRig({ screen, stations, sway }: Props): null {
 
   useFrame(({ clock }) => {
     const place = placeNow();
-    const at =
-      place.kind === "station" || place.kind === "dive"
-        ? place.at
-        : Math.max(0, ids.indexOf(path.at() ?? ""));
     const shot = moves.frame(
       performance.now(),
       poseOf(place, size),
-      beginnerLayout().shares[at] ?? 0,
+      beginnerLayout().shares[pipOf(place)] ?? 0,
     );
+    lastShot.current = { pip: shot.pip, pace: shot.pace };
     if (!shot.between) canvas.removeAttribute(MOVING);
     if (shot.moving) invalidate();
     if (sway && place.kind === "meadow")
       shot.pose.position.x += Math.sin(clock.elapsedTime * SWAY_RATE) * SWAY;
     aim(camera, shot.pose, size);
-    const view = viewOf(camera, size, marks, shot.pip, shot.walk);
+    const view = viewOf(camera, size, marks, shot.pip, shot.walk, shot.pace);
     if (!sameView(sent.current, view)) {
       sent.current = view;
       path.setView(view);

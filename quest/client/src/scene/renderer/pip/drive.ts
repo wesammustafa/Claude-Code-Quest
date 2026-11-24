@@ -30,6 +30,7 @@ import {
   PIP_MODEL_STILL,
   PIP_MODEL_WALK,
 } from "../../../../pip/model/contract";
+import { WALK_FOOT_SPEED } from "../../../../pip/model/walk";
 import { NOD } from "../../../pip/reactions";
 
 /** The rig's gaze ease (view-model.rml: EyesX and EyesY eased 150 ms), in seconds. */
@@ -53,6 +54,21 @@ export const WALK_TURN = Math.PI / 3;
 export const WALK_TURN_S = 0.24;
 /** Where the gaze looks while Pip walks: straight ahead along his turned body. */
 export const WALK_GAZE = { x: 0, y: 0 } as const;
+
+/**
+ * The walk's cadence against the clip's own, within these bounds: it steps
+ * as fast as his planted foot needs to keep up with the ground, but never
+ * so fast the steps blur, nor so slow he looks to wade.
+ */
+export const WALK_CADENCE = { min: 0.75, max: 2 } as const;
+/** How fast his planted foot slides back across the page at the clip's own cadence, in his heights per second: along his facing, turned WALK_TURN from the camera. */
+export const WALK_FOOT_PACE = WALK_FOOT_SPEED * Math.sin(WALK_TURN);
+
+/** The cadence for a pace over the ground across the page, in Pip's heights per second. */
+export function walkCadence(pace: number): number {
+  const { min, max } = WALK_CADENCE;
+  return Math.min(max, Math.max(min, pace / WALK_FOOT_PACE));
+}
 
 /** Which way Pip walks across the page: -1 left, 1 right, 0 standing. */
 export type WalkDirection = -1 | 0 | 1;
@@ -220,6 +236,8 @@ export interface Driven {
   walkShare: number;
   /** How far Pip is turned toward where he walks, in radians (+ toward the page's right). */
   turn: number;
+  /** The walk's cadence against the clip's own. */
+  cadence: number;
 }
 
 export class PipDrive {
@@ -258,6 +276,7 @@ export class PipDrive {
   private walking: WalkDirection = 0;
   private walkWeight = 0;
   private walkAt = 0;
+  private cadence = 1;
   /** The turn toward where he walks, eased like the gaze: from, to, and seconds in. */
   private turn = 0;
   private turnFrom = 0;
@@ -362,10 +381,13 @@ export class PipDrive {
 
   /**
    * Takes which way Pip travels the path now: he walks while it is not 0,
-   * turned toward it, and stands once it is. Under reduced motion he never
-   * walks or turns.
+   * turned toward it, and stands once it is; and how fast he goes over the
+   * ground across the page, in his heights per second, which sets how
+   * quickly he steps (0, or none told: the clip's own cadence at the least).
+   * Under reduced motion he never walks or turns.
    */
-  walk(direction: WalkDirection): void {
+  walk(direction: WalkDirection, pace = 0): void {
+    if (direction !== 0) this.cadence = walkCadence(pace);
     if (this.reduced || direction === this.walkTo) return;
     this.walkTo = direction;
     if (direction !== 0) {
@@ -434,7 +456,7 @@ export class PipDrive {
         ? Math.min(1, this.walkWeight + step / WALK_BLEND_S)
         : Math.max(0, this.walkWeight - step / WALK_BLEND_S);
     if (this.walkWeight === 0 && this.walkTo === 0) this.walking = 0;
-    else this.walkAt = (this.walkAt + step) % this.walkLength;
+    else this.walkAt = (this.walkAt + step * this.cadence) % this.walkLength;
     this.turnAt = Math.min(WALK_TURN_S, this.turnAt + step);
     this.turn =
       this.turnFrom +
@@ -539,6 +561,7 @@ export class PipDrive {
       walk: this.walking,
       walkShare: this.reduced ? 0 : ease(this.walkWeight),
       turn: this.turn,
+      cadence: this.cadence,
     };
   }
 

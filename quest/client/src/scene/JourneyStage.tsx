@@ -291,9 +291,18 @@ function FloatingPip({ path }: { path: JourneyPath }): ReactNode {
 }
 
 /**
+ * The 3D Pip's box on the path: a third larger than the 2D Pip's beside box
+ * (76 px), so his steps read as he walks. The largest that keeps the
+ * Station's beacon tip in sight above him on a desktop and his head clear
+ * of the stage's control at 390 px.
+ */
+export const STAGE_PIP_BOX = "size-25";
+
+/**
  * The 3D Pip's place on the path (seam S13): while the Scene's renderer
- * holds Pip, the empty box the 2D Pip would fill, at the same point and the
- * same size, which the renderer stands him in over every other screen box.
+ * holds Pip, an empty box at the point the 2D Pip would stand (his feet at
+ * its bottom centre), at STAGE_PIP_BOX's size, which the renderer stands
+ * him in over every other screen box.
  */
 function PipSpot({ path }: { path: JourneyPath }): ReactNode {
   return usePipStandsDown() ? <StoodDownSpot path={path} /> : null;
@@ -306,7 +315,7 @@ function StoodDownSpot({ path }: { path: JourneyPath }): ReactNode {
       <span
         data-pip-stood-down="beside"
         data-pip-stage=""
-        className={cx("relative inline-block shrink-0", BOX.beside)}
+        className={cx("relative inline-block shrink-0", STAGE_PIP_BOX)}
       />
     </div>
   );

@@ -97,6 +97,37 @@ export function planMove(
   return { at, travel };
 }
 
+/**
+ * The Station Pip stands at for a place: its own for a Station's view or a
+ * dive, else `at`, the Journey's (the first before it names one).
+ */
+export function pipStation(place: Place, at: number): number {
+  return place.kind === "station" || place.kind === "dive"
+    ? place.at
+    : Math.max(0, at);
+}
+
+/** A place on the Journey and the Station Pip stands at there. */
+export interface Standing {
+  place: Place;
+  pip: number;
+}
+
+/**
+ * What a change of place on the Journey's stage, outside a screen change,
+ * asks of the camera (09 9.3): Pip walks to a new Station, in a Station's
+ * view or the whole Level's, over --duration-walk; the pull-back and the
+ * way back in glide over --duration-slow; anything else (the band
+ * appearing, a place off the path) shows at once.
+ */
+export function glideOf(from: Standing, to: Standing): "walk" | "pull" | null {
+  const onPath = (p: Place) => p.kind === "station" || p.kind === "whole";
+  if (!onPath(from.place) || !onPath(to.place)) return null;
+  if (to.pip !== from.pip) return "walk";
+  if (to.place.kind !== from.place.kind) return "pull";
+  return null;
+}
+
 /** The page's size in CSS pixels. */
 export interface Viewport {
   width: number;
@@ -248,6 +279,8 @@ export interface Shot {
    * so the page's right is the scene's +x.
    */
   walk: -1 | 0 | 1;
+  /** How fast Pip goes along the path now, in shares of it per second (+ toward its end). */
+  pace: number;
   /** A move between screens is still under way. */
   between: boolean;
   /** A move is under way, so another frame is needed. */
@@ -274,6 +307,10 @@ export interface CameraMoves {
   frame: (now: number, target: Pose, pipGoal: number) => Shot;
 }
 
+const MS_PER_SECOND = 1000;
+/** The half step of the central difference a move's speed is read with, in milliseconds. */
+const RATE_STEP_MS = 1;
+
 export function createCameraMoves(): CameraMoves {
   let live: Pose | null = null;
   let pip = 0;
@@ -282,6 +319,13 @@ export function createCameraMoves(): CameraMoves {
     if (m.ms <= 0) return 1;
     return m.ease(Math.min(1, Math.max(0, (now - m.start) / m.ms)));
   };
+  // How fast the eased share runs at `now`, per second: a central difference.
+  const rate = (m: Move, now: number) =>
+    m.ms <= 0
+      ? 0
+      : ((at(m, now + RATE_STEP_MS) - at(m, now - RATE_STEP_MS)) /
+          (2 * RATE_STEP_MS)) *
+        MS_PER_SECOND;
   return {
     start: (now, ms, ease, between) => {
       if (live === null) return;
@@ -303,12 +347,36 @@ export function createCameraMoves(): CameraMoves {
         pose,
         pip,
         walk: m === null ? 0 : walkWay(m.pipFrom, pipGoal),
+        pace: m === null ? 0 : (pipGoal - m.pipFrom) * rate(m, now),
         between: move?.between === true,
         moving: move !== null,
       };
     },
   };
 }
+
+/**
+ * The easing of Pip's walk from `from` to `goal` over `seconds`: the
+ * token's own `base` from a stand; while he already walks toward `goal` at
+ * `pace` (shares per second), one that sets off at that speed, so a new
+ * Station chosen on the way carries him on rather than stopping him first.
+ */
+export function walkEase(
+  base: readonly [number, number, number, number],
+  pace: number,
+  from: number,
+  goal: number,
+  seconds: number,
+): readonly [number, number, number, number] {
+  const ahead = goal - from;
+  if (ahead === 0 || pace * ahead <= 0) return base;
+  // The curve's slope as it sets off is y1 / x1, in units of the whole move.
+  const slope = (pace * seconds) / ahead;
+  return [CARRY_X1, Math.min(1, CARRY_X1 * slope), base[2], base[3]];
+}
+
+/** How far along the time a carried walk's first control point sits: room for a slope up to 4. */
+const CARRY_X1 = 0.25;
 
 /** Which way across the page Pip walks from one place on the path to another: 0 when they are the same. */
 export function walkWay(from: number, to: number): -1 | 0 | 1 {
@@ -344,13 +412,22 @@ const MIN_REACH_PX = 22;
 /** How far round a beacon a tap reaches, in scene units. */
 const REACH = 1.1;
 
-/** Where every Station and Pip's feet fall on the page, as the aimed camera draws them, and which way he walks. */
+/** How far ahead along the path Pip's pace is read, in seconds of his walk. */
+const PACE_STEP_S = 1 / 60;
+
+/**
+ * Where every Station and Pip's feet fall on the page, as the aimed camera
+ * draws them, which way he walks, and how fast he goes over the ground on
+ * the page: his feet's travel with the camera held, whether the camera
+ * follows him (a Station's view) or stands (the whole Level's).
+ */
 export function viewOf(
   camera: PerspectiveCamera,
   viewport: Viewport,
   stations: readonly { lesson: LessonId; lit: boolean }[],
   pipShare: number,
   walk: -1 | 0 | 1 = 0,
+  pace = 0,
 ): PathView {
   const v = new Vector3();
   const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
@@ -379,7 +456,10 @@ export function viewOf(
   const foot = toPage(pipFootAt(pipShare));
   if (!foot.front) return { points, pip: null };
   const at = { x: foot.x, y: foot.y };
-  return { points, pip: walk === 0 ? at : { ...at, walk } };
+  if (walk === 0) return { points, pip: at };
+  const ahead = toPage(pipFootAt(pipShare + pace * PACE_STEP_S));
+  const px = Math.hypot(ahead.x - foot.x, ahead.y - foot.y) / PACE_STEP_S;
+  return { points, pip: { ...at, walk, pace: px } };
 }
 
 /** A drawn point moves less than this, in CSS pixels, and the page is not told again. */
@@ -392,7 +472,12 @@ export function sameView(a: PathView | null, b: PathView): boolean {
     Math.abs(p.x - q.x) < STILL_PX && Math.abs(p.y - q.y) < STILL_PX;
   if (a.pip === null || b.pip === null) {
     if (a.pip !== b.pip) return false;
-  } else if (!near(a.pip, b.pip) || a.pip.walk !== b.pip.walk) return false;
+  } else if (
+    !near(a.pip, b.pip) ||
+    a.pip.walk !== b.pip.walk ||
+    Math.abs((a.pip.pace ?? 0) - (b.pip.pace ?? 0)) >= STILL_PX
+  )
+    return false;
   return a.points.every((p, i) => {
     const q = b.points[i];
     return (

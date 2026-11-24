@@ -34,6 +34,17 @@ export const WALK = {
   antenna: 8,
 } as const;
 
+/** Pip's height in rig units, from his soles to the big antenna's tip. */
+const RIG_HEIGHT = 725;
+
+/**
+ * How fast a planted foot slides back under him at the clip's own speed,
+ * in his heights per second: the renderer steps faster or slower than the
+ * clip so that it keeps up with the ground he travels over.
+ */
+export const WALK_FOOT_SPEED =
+  (2 * WALK.stride) / ((1 - WALK.swing) * WALK_S) / RIG_HEIGHT;
+
 /** The foot's half depth (rig units): how far its toe and heel sit from its node. */
 const FOOT_HALF_DEPTH = 60;
 

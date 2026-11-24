@@ -26,6 +26,7 @@ describe("motionTokens", () => {
       base: 0.22,
       slow: 0.36,
       moment: 0.56,
+      walk: 0.8,
       stagger: 0.04,
       saysDelay: 0.08,
       rise: 8,
@@ -39,7 +40,7 @@ describe("motionTokens", () => {
     injectTokens();
     await setMotionSwitch("reduce");
     const t = motionTokens();
-    for (const d of [t.fast, t.base, t.slow, t.moment, t.stagger])
+    for (const d of [t.fast, t.base, t.slow, t.moment, t.walk, t.stagger])
       expect(d).toBeLessThanOrEqual(REDUCED_MAX);
     expect(t.rise).toBe(0);
     expect(t.popFrom).toBe(1);

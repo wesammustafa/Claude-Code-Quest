@@ -23,11 +23,14 @@ import {
   NOD_BOB,
   PipDrive,
   WALK_BLEND_S,
+  WALK_CADENCE,
+  WALK_FOOT_PACE,
   WALK_GAZE,
   WALK_TURN,
   WALK_TURN_S,
   frameStep,
   reactionShares,
+  walkCadence,
 } from "./drive";
 import { parsePipModel, type PipModel3D } from "./load";
 
@@ -521,6 +524,30 @@ describe("the walk", () => {
     drive.walk(0);
     run(drive, 0.5);
     expect(drive.moving()).toBe(false);
+  });
+
+  test("he steps as fast as the ground goes by him, so his planted foot keeps up, within bounds", async () => {
+    // At the clip's own cadence his planted foot slides back across the
+    // page at WALK_FOOT_PACE heights a second.
+    expect(walkCadence(WALK_FOOT_PACE)).toBeCloseTo(1, 9);
+    expect(walkCadence(WALK_FOOT_PACE * 1.5)).toBeCloseTo(1.5, 9);
+    // Never so fast the steps blur, nor so slow he wades.
+    expect(walkCadence(WALK_FOOT_PACE * 40)).toBe(WALK_CADENCE.max);
+    expect(walkCadence(0)).toBe(WALK_CADENCE.min);
+    expect(WALK_CADENCE.max).toBeLessThanOrEqual(2);
+    // The clip runs at that cadence: twice as fast, twice as far through it
+    // (both past the walk's blend in), each on a model of its own.
+    const fast = standing().drive;
+    fast.walk(1, WALK_FOOT_PACE * 2);
+    run(fast, 0.3);
+    expect(fast.state().cadence).toBeCloseTo(2, 9);
+    const walked = stride();
+    model = await parsePipModel(bytes());
+    const slow = standing().drive;
+    slow.walk(1, WALK_FOOT_PACE);
+    run(slow, 0.6);
+    expect(slow.state().cadence).toBeCloseTo(1, 9);
+    expect(stride()).toBe(walked);
   });
 
   test("under reduced motion he never walks or turns", () => {

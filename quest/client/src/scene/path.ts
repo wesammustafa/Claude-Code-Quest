@@ -29,11 +29,12 @@ export interface StationPoint {
 /**
  * What the renderer drew last: the Stations, and the point under Pip's feet,
  * or null when none is drawn, with which way across the page he walks while
- * he travels the path (-1 left, 1 right; absent while he stands).
+ * he travels the path (-1 left, 1 right; absent while he stands) and how
+ * fast he goes over the ground there, in CSS pixels per second.
  */
 export interface PathView {
   points: readonly StationPoint[];
-  pip: { x: number; y: number; walk?: -1 | 1 } | null;
+  pip: { x: number; y: number; walk?: -1 | 1; pace?: number } | null;
 }
 
 export interface JourneyPath {

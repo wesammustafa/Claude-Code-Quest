@@ -20,6 +20,8 @@ describe("motion tokens", () => {
     expect(ms(full.get("--stagger"))).toBe(40);
     expect(full.get("--rise")).toBe("8px");
     expect(ms(full.get("--duration-turn"))).toBe(220);
+    // Pip's walk between Stations: slow enough for his steps to read.
+    expect(ms(full.get("--duration-walk"))).toBe(800);
   });
 
   test("reduced motion keeps state changes as fades of at most 120 ms", () => {

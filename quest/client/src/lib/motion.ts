@@ -17,6 +17,8 @@ export interface MotionTokens {
   base: number;
   slow: number;
   moment: number;
+  /** Pip's walk between two Stations on the Journey's path. */
+  walk: number;
   stagger: number;
   saysDelay: number;
   /** The screen rise's travel, in CSS pixels. */
@@ -74,6 +76,7 @@ export function motionTokens(): MotionTokens {
     base: seconds(read("--duration-base")),
     slow: seconds(read("--duration-slow")),
     moment: seconds(read("--duration-moment")),
+    walk: seconds(read("--duration-walk")),
     stagger: seconds(read("--stagger")),
     saysDelay: seconds(read("--says-delay")),
     rise: pixels(read("--rise")),

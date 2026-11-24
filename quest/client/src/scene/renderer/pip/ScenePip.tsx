@@ -39,7 +39,7 @@ import { sceneStops } from "../../SceneLayer";
 import modelUrl from "../../../../pip/model/pip.glb?url";
 import { PipDrive, frameStep } from "./drive";
 import { loadPipModel, type PipModel3D } from "./load";
-import { placeAtSpot } from "./place";
+import { PIP_FILL, placeAtSpot } from "./place";
 import { poseShadow, shadowMesh } from "./shadow";
 
 export interface ScenePipProps {
@@ -247,9 +247,16 @@ function Driven({
       state.gl.compile(place, state.camera, state.scene);
     }
     place.visible = drawn3d;
-    // He walks only on the Journey's stage, the way the camera says he goes.
+    // He walks only on the Journey's stage, the way the camera says he goes,
+    // stepping as fast as the ground goes by him there: its pace in pixels
+    // over his own height on the page.
     const onStage = el?.hasAttribute("data-pip-stage") === true;
-    driver.walk(onStage ? (path.view().pip?.walk ?? 0) : 0);
+    const told = onStage ? path.view().pip : null;
+    const tall = box === null ? 0 : box.height * PIP_FILL;
+    driver.walk(
+      told?.walk ?? 0,
+      tall > 0 && told?.pace !== undefined ? told.pace / tall : 0,
+    );
     driver.update(frameStep(delta, wasMoving.current));
     wasMoving.current = driver.moving();
     poseShadow(shadow, {

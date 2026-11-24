@@ -17,7 +17,7 @@ import { renderMounted } from "../../test/mounted";
 import type { SceneMount, SceneProps } from "../mount/types";
 import { BOX } from "../pip/PipRenderer";
 import { SceneContext } from "./context";
-import { WHOLE_LEVEL } from "./JourneyStage";
+import { STAGE_PIP_BOX, WHOLE_LEVEL } from "./JourneyStage";
 import { findPipSpot } from "./pip-spot";
 import { journeyPathOf, type JourneyPath, type StationPoint } from "./path";
 import { resetTierProbes } from "./tier";
@@ -392,13 +392,14 @@ describe("the Journey path, with the Scene drawing", () => {
     expect(document.querySelector('[data-pip="beside"]')).not.toBeNull();
   });
 
-  test("while the 3D Pip's renderer holds Pip, the stage leaves the 2D Pip's box empty where the Scene puts his feet, and the renderer stands him there", async () => {
+  test("while the 3D Pip's renderer holds Pip, the stage leaves an empty box where the Scene puts his feet, a third larger than the 2D Pip's, and the renderer stands him there", async () => {
     const { path } = await onPath({ pip: true, holds: true });
     expect(document.querySelector("[data-scene-pip]")).toBeNull();
     expect(screenPip()).toBeNull();
     const spot = document.querySelector<HTMLElement>("[data-pip-stage]");
     expect(spot).toHaveAttribute("data-pip-stood-down", "beside");
-    expect(spot).toHaveClass(BOX.beside);
+    expect(spot).toHaveClass(STAGE_PIP_BOX);
+    expect(spot).not.toHaveClass(BOX.beside);
     expect(spot?.closest("[aria-hidden]")).not.toBeNull();
     // The Next card's empty box is there too: the stage's comes first.
     expect(document.querySelectorAll("[data-pip-stood-down]")).toHaveLength(2);

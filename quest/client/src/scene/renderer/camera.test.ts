@@ -10,12 +10,16 @@ import {
   createCameraMoves,
   cubicBezier,
   FOV,
+  glideOf,
+  pipStation,
   placeFor,
   planMove,
   poseOf,
   sameView,
   viewOf,
+  walkEase,
   walkWay,
+  type Place,
   type Pose,
 } from "./camera";
 import { beginnerLayout } from "./beginner";
@@ -300,6 +304,72 @@ describe("the camera moves between screens", () => {
     expect(sameView(walking, viewOf(camera, VIEWPORT, marks, 0.09, 1))).toBe(
       true,
     );
+  });
+
+  test("a glide tells how fast Pip goes along the path", () => {
+    const [b1 = 0, b2 = 0] = beginnerLayout().shares;
+    const moves = createCameraMoves();
+    moves.frame(0, station, b1);
+    moves.start(0, 800, linear, false);
+    expect(moves.frame(400, station, b2).pace).toBeCloseTo((b2 - b1) / 0.8, 6);
+    expect(moves.frame(800, station, b2).pace).toBe(0);
+  });
+
+  test("the view tells Pip's pace over the ground on the page, in a Station's view and the whole Level's", () => {
+    const [b1 = 0, b2 = 0] = beginnerLayout().shares;
+    const pace = (b2 - b1) / 0.8;
+    for (const place of [
+      { kind: "station", at: 0, band: BAND },
+      { kind: "whole", band: BAND },
+    ] as const) {
+      const camera = aimed(poseOf(place, VIEWPORT));
+      const view = viewOf(camera, VIEWPORT, marks, b1, 1, pace);
+      // Over the whole move, about the two Stations' distance on the page.
+      const [p1, p2] = view.points;
+      if (p1 === undefined || p2 === undefined) throw new Error("no marks");
+      const apart = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+      expect(view.pip?.pace, place.kind).toBeGreaterThan(apart / 0.8 / 2);
+      expect(view.pip?.pace, place.kind).toBeLessThan((apart / 0.8) * 2);
+    }
+    // Standing, no pace is told.
+    const camera = aimed(station);
+    expect(viewOf(camera, VIEWPORT, marks, b1, 0, pace).pip).not.toHaveProperty(
+      "pace",
+    );
+  });
+
+  test("a new Station walks Pip there in a Station's view and in the whole Level's; the pull-back glides; nothing else moves", () => {
+    const st = (at: number): Place => ({ kind: "station", at, band: BAND });
+    const whole: Place = { kind: "whole", band: BAND };
+    const meadow: Place = { kind: "meadow" };
+    expect(pipStation(st(2), 4)).toBe(2);
+    expect(pipStation(whole, 4)).toBe(4);
+    expect(pipStation(whole, -1)).toBe(0);
+    expect(pipStation({ kind: "dive", at: 3 }, 1)).toBe(3);
+    const on = (place: Place, pip: number) => ({ place, pip });
+    expect(glideOf(on(st(0), 0), on(st(1), 1))).toBe("walk");
+    // Pulled back, he walks too: the camera stands, he goes.
+    expect(glideOf(on(whole, 0), on(whole, 1))).toBe("walk");
+    expect(glideOf(on(st(1), 1), on(whole, 1))).toBe("pull");
+    expect(glideOf(on(whole, 1), on(st(1), 1))).toBe("pull");
+    expect(glideOf(on(whole, 1), on(whole, 1))).toBeNull();
+    expect(glideOf(on(meadow, 0), on(st(1), 1))).toBeNull();
+    expect(glideOf(on(st(1), 1), on({ kind: "dive", at: 1 }, 1))).toBeNull();
+  });
+
+  test("a walk sets off from a stand on the token's easing, and a new Station chosen on the way carries him on at his speed", () => {
+    const base = [0.65, 0, 0.35, 1] as const;
+    expect(walkEase(base, 0, 0.2, 0.4, 0.8)).toBe(base);
+    // Walking the other way, the new walk starts from a stand.
+    expect(walkEase(base, -0.3, 0.2, 0.4, 0.8)).toBe(base);
+    // On the way at 0.25 shares a second, 0.2 still to go over 0.8 s: the
+    // new walk leaves at that speed, its slope one in units of the move.
+    const [x1, y1, x2, y2] = walkEase(base, 0.25, 0.2, 0.4, 0.8);
+    expect(y1 / x1).toBeCloseTo((0.25 * 0.8) / 0.2, 9);
+    expect([x2, y2]).toEqual([0.35, 1]);
+    const ease = cubicBezier(x1, y1, x2, y2);
+    expect(ease(0.01) / 0.01).toBeCloseTo(1, 1);
+    expect(ease(1)).toBe(1);
   });
 
   test("the easing is the token's cubic Bézier", () => {
