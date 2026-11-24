@@ -12,7 +12,7 @@ const path = join(COURSE, 'practice-template/checks/lessons/index.mjs');
 const text = generateCheckIndex(manifest);
 if (process.argv.includes('--check')) {
   if (readFileSync(path, 'utf8') !== text) {
-    console.error(`${path} differs from generateCheckIndex(course/manifest.json): run node test/index.mjs`);
+    console.error(`${path} differs from generateCheckIndex(course/manifest.json): run node tools/index.mjs`);
     process.exit(1);
   }
 } else writeFileSync(path, text);

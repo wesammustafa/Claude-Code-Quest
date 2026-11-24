@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { COURSE, layChecks } from './lay.mjs';
+import { COURSE, layChecks } from '../tools/lay.mjs';
 
 const checks = layChecks();
 const { repo, commit, write } = await import(pathToFileURL(join(checks, 'test/helpers.mjs')).href);

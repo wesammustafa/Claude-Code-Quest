@@ -12,6 +12,6 @@ The folder mirrors the guide's own layout:
 | `practice-template/project/` | the files every pilot lesson starts with |
 | `practice-template/lessons/<id>/project/` | the files only that lesson starts with, so no lesson ships another's answer |
 | `solutions/<id>/` | the author's solution, never in a learner's starting files |
-| `test/` | the pilot's own tests: `node --test courses/fixit-beginner-pilot/test/` |
+| `test/`, `tools/` | the pilot's own tests (`node --test courses/fixit-beginner-pilot/test/`) and the script that writes its Check index (`node courses/fixit-beginner-pilot/tools/index.mjs`) |
 
 Questerm selects it with `QSIM_COURSE=fixit-beginner-pilot`, which assembles a guide tree with this course in place of the default one. The Local app (`npm run learn`) does not run it: it still reads `course/`.
