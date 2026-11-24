@@ -291,12 +291,13 @@ function FloatingPip({ path }: { path: JourneyPath }): ReactNode {
 }
 
 /**
- * The 3D Pip's box on the path: a third larger than the 2D Pip's beside box
- * (76 px), so his steps read as he walks. The largest that keeps the
- * Station's beacon tip in sight above him on a desktop and his head clear
- * of the stage's control at 390 px.
+ * The 3D Pip's box on the path, larger than the 2D Pip's beside box (76 px)
+ * so his steps read as he walks: 100 px where the stage is tall (lg), 92 px
+ * below. The largest that keeps the Station's beacon tip in sight above him
+ * on a desktop and, at 390 px, his antennas clear of the stage's control as
+ * the path's bends lift him mid-walk.
  */
-export const STAGE_PIP_BOX = "size-25";
+export const STAGE_PIP_BOX = "size-23 lg:size-25";
 
 /**
  * The 3D Pip's place on the path (seam S13): while the Scene's renderer
