@@ -96,7 +96,7 @@ badge: Beginner
 - beat: do
 - verify: check 8
 - goal: "Write `fixit/march/readiness-note.md` for Maya: how many people can book and the line that sets it, each other fact with its source, where the lift really stands, and how you checked"
-- note: "A table, a list or a few sentences all work. Maya needs the real numbers on the right facts, not the word \"source\" on every line."
+- note: "A table, a list or a few sentences all work. Maya needs the real numbers on the right facts, and for each fact the source that settles it."
 - hint: "Could Maya check every fact without asking you? Who counts toward the booking's 40, and has anyone confirmed the lift?"
 - watching: fixit/march/readiness-note.md
 - back: T4 Reread the meeting notes for what isn't settled yet.
