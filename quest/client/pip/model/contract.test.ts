@@ -31,8 +31,13 @@ describe("modelProblems", () => {
     expect(modelProblems(exact())).toEqual([]);
   });
 
-  test("names the clips: the four modes, the six Reactions and the still pose", () => {
-    expect(PIP_MODEL_CLIPS).toEqual([...PIP_MODES, ...PIP_REACTIONS, "still"]);
+  test("names the clips: the four modes, the six Reactions, the still pose and the walk", () => {
+    expect(PIP_MODEL_CLIPS).toEqual([
+      ...PIP_MODES,
+      ...PIP_REACTIONS,
+      "still",
+      "walk",
+    ]);
   });
 
   test("names each missing clip with the mode or Reaction it plays", () => {
@@ -43,7 +48,9 @@ describe("modelProblems", () => {
         ? `the mode ${name}`
         : (PIP_REACTIONS as readonly string[]).includes(name)
           ? `the Reaction ${name}`
-          : "the still pose";
+          : name === "walk"
+            ? "the walk"
+            : "the still pose";
       expect(modelProblems(shape)).toEqual([`no clip ${name} for ${role}`]);
     }
   });
@@ -86,12 +93,13 @@ describe("modelProblems", () => {
 
     const keyed = exact();
     keyed.clips = keyed.clips.map((c) =>
-      c.name === "curious"
+      c.name === "curious" || c.name === "walk"
         ? { ...c, tracks: [...c.tracks, "gaze.quaternion"] }
         : c,
     );
     expect(modelProblems(keyed)).toEqual([
       "clip curious keys gaze's rotation, which the gaze drives",
+      "clip walk keys gaze's rotation, which the gaze drives",
     ]);
   });
 

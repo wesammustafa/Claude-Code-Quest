@@ -26,10 +26,14 @@ export interface StationPoint {
   lit: boolean;
 }
 
-/** What the renderer drew last: the Stations, and the point under Pip's feet, or null when none is drawn. */
+/**
+ * What the renderer drew last: the Stations, and the point under Pip's feet,
+ * or null when none is drawn, with which way across the page he walks while
+ * he travels the path (-1 left, 1 right; absent while he stands).
+ */
 export interface PathView {
   points: readonly StationPoint[];
-  pip: { x: number; y: number } | null;
+  pip: { x: number; y: number; walk?: -1 | 1 } | null;
 }
 
 export interface JourneyPath {

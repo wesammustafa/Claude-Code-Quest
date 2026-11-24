@@ -15,8 +15,10 @@ import {
   poseOf,
   sameView,
   viewOf,
+  walkWay,
   type Pose,
 } from "./camera";
+import { beginnerLayout } from "./beginner";
 
 const BEGINNER = ["b-1", "b-2", "b-3", "b-4", "b-5", "b-capstone"];
 const STATIONS: SceneStation[] = [
@@ -257,6 +259,47 @@ describe("the camera moves between screens", () => {
     const after = moves.frame(361, dive, 0);
     expect(after.moving).toBe(false);
     expect(after.pose.position.distanceTo(dive.position)).toBe(0);
+  });
+
+  test("Pip walks while a glide moves him along the path, the way he goes across the page, and stands once it ends", () => {
+    const shares = beginnerLayout().shares;
+    const [b1 = 0, b2 = 0] = shares;
+    const moves = createCameraMoves();
+    expect(moves.frame(0, station, b1).walk).toBe(0);
+    // On to the next Station: rightward across the page.
+    moves.start(0, 360, linear, false);
+    const on = moves.frame(180, station, b2);
+    expect(on).toMatchObject({ moving: true, walk: 1 });
+    expect(moves.frame(360, station, b2)).toMatchObject({
+      moving: false,
+      walk: 0,
+    });
+    // Back again: leftward.
+    moves.start(400, 360, linear, false);
+    expect(moves.frame(500, station, b1).walk).toBe(-1);
+    // A move that keeps Pip where he is, as the pull-back does, is no walk.
+    moves.frame(800, station, b1);
+    moves.start(800, 360, linear, false);
+    expect(moves.frame(900, station, b1)).toMatchObject({
+      moving: true,
+      walk: 0,
+    });
+    for (let i = 1; i < shares.length; i++) {
+      expect(walkWay(shares[i - 1] ?? 0, shares[i] ?? 0)).toBe(1);
+      expect(walkWay(shares[i] ?? 0, shares[i - 1] ?? 0)).toBe(-1);
+    }
+  });
+
+  test("the view says which way Pip walks, and a new way is told again", () => {
+    const camera = aimed(station);
+    const standing = viewOf(camera, VIEWPORT, marks, 0.09);
+    expect(standing.pip).not.toHaveProperty("walk");
+    const walking = viewOf(camera, VIEWPORT, marks, 0.09, 1);
+    expect(walking.pip).toMatchObject({ walk: 1 });
+    expect(sameView(standing, walking)).toBe(false);
+    expect(sameView(walking, viewOf(camera, VIEWPORT, marks, 0.09, 1))).toBe(
+      true,
+    );
   });
 
   test("the easing is the token's cubic Bézier", () => {

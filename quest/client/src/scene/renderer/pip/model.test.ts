@@ -9,6 +9,7 @@ import {
   PIP_MODEL_CLIPS,
   PIP_MODEL_GAZE,
   PIP_MODEL_STILL,
+  PIP_MODEL_WALK,
 } from "../../../../pip/model/contract";
 import { packGlb, unpackGlb } from "../../../../pip/model/glb";
 import inline from "../../../../pip/model/pip.glb?inline";
@@ -114,14 +115,46 @@ describe("the committed model", () => {
     }
   });
 
+  test("the walk loops seamlessly, moves the legs, feet and arms, and never turns the gaze node", async () => {
+    const { clips } = await parsePipModel(buffer(committed()));
+    const walk = clips.find((c) => c.name === PIP_MODEL_WALK);
+    if (walk === undefined) throw new Error("no walk");
+    expect(walk.duration).toBeGreaterThan(0);
+    const keyed = new Set(walk.tracks.map((t) => t.name.split(".")[0]));
+    for (const part of [
+      "FootLeft",
+      "FootRight",
+      "LegLeft",
+      "LegRight",
+      "ArmLeft",
+      "ArmRight",
+      "Body",
+    ])
+      expect(keyed.has(part), part).toBe(true);
+    expect(keyed.has(PIP_MODEL_GAZE)).toBe(false);
+    for (const track of walk.tracks) {
+      const size = track.getValueSize();
+      const first = [...track.values.slice(0, size)];
+      const last = [...track.values.slice(-size)];
+      expect(track.times[0], track.name).toBe(0);
+      expect(track.times[track.times.length - 1], track.name).toBeCloseTo(
+        walk.duration,
+        6,
+      );
+      expect(last, `${track.name}: its last key is its first`).toEqual(first);
+    }
+  });
+
   test("a model with a clip removed is refused, naming the clip and what it plays", async () => {
     for (const name of PIP_MODEL_CLIPS) {
       const role =
         name === PIP_MODEL_STILL
           ? "the still pose"
-          : (["idle", "thinking", "rest", "sleep"] as string[]).includes(name)
-            ? `the mode ${name}`
-            : `the Reaction ${name}`;
+          : name === PIP_MODEL_WALK
+            ? "the walk"
+            : (["idle", "thinking", "rest", "sleep"] as string[]).includes(name)
+              ? `the mode ${name}`
+              : `the Reaction ${name}`;
       await expect(parsePipModel(without(name))).rejects.toThrow(
         `Pip's model departs from its contract: no clip ${name} for ${role}`,
       );

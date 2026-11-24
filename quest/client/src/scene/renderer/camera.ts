@@ -242,6 +242,12 @@ export interface Shot {
   pose: Pose;
   /** Pip's place along the path, as a share of it. */
   pip: number;
+  /**
+   * Which way across the page Pip walks the path in this move (-1 left, 1
+   * right), or 0 while he stands. The camera never turns about the vertical,
+   * so the page's right is the scene's +x.
+   */
+  walk: -1 | 0 | 1;
   /** A move between screens is still under way. */
   between: boolean;
   /** A move is under way, so another frame is needed. */
@@ -296,11 +302,18 @@ export function createCameraMoves(): CameraMoves {
       return {
         pose,
         pip,
+        walk: m === null ? 0 : walkWay(m.pipFrom, pipGoal),
         between: move?.between === true,
         moving: move !== null,
       };
     },
   };
+}
+
+/** Which way across the page Pip walks from one place on the path to another: 0 when they are the same. */
+export function walkWay(from: number, to: number): -1 | 0 | 1 {
+  if (from === to) return 0;
+  return pathPoint(to).x >= pathPoint(from).x ? 1 : -1;
 }
 
 /** Puts the camera at a pose: its look point at the pose's shift from the page's centre. */
@@ -331,12 +344,13 @@ const MIN_REACH_PX = 22;
 /** How far round a beacon a tap reaches, in scene units. */
 const REACH = 1.1;
 
-/** Where every Station and Pip's feet fall on the page, as the aimed camera draws them. */
+/** Where every Station and Pip's feet fall on the page, as the aimed camera draws them, and which way he walks. */
 export function viewOf(
   camera: PerspectiveCamera,
   viewport: Viewport,
   stations: readonly { lesson: LessonId; lit: boolean }[],
   pipShare: number,
+  walk: -1 | 0 | 1 = 0,
 ): PathView {
   const v = new Vector3();
   const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
@@ -363,7 +377,9 @@ export function viewOf(
     });
   });
   const foot = toPage(pipFootAt(pipShare));
-  return { points, pip: foot.front ? { x: foot.x, y: foot.y } : null };
+  if (!foot.front) return { points, pip: null };
+  const at = { x: foot.x, y: foot.y };
+  return { points, pip: walk === 0 ? at : { ...at, walk } };
 }
 
 /** A drawn point moves less than this, in CSS pixels, and the page is not told again. */
@@ -376,7 +392,7 @@ export function sameView(a: PathView | null, b: PathView): boolean {
     Math.abs(p.x - q.x) < STILL_PX && Math.abs(p.y - q.y) < STILL_PX;
   if (a.pip === null || b.pip === null) {
     if (a.pip !== b.pip) return false;
-  } else if (!near(a.pip, b.pip)) return false;
+  } else if (!near(a.pip, b.pip) || a.pip.walk !== b.pip.walk) return false;
   return a.points.every((p, i) => {
     const q = b.points[i];
     return (

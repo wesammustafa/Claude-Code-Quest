@@ -182,7 +182,7 @@ export function CameraRig({ screen, stations, sway }: Props): null {
     if (sway && place.kind === "meadow")
       shot.pose.position.x += Math.sin(clock.elapsedTime * SWAY_RATE) * SWAY;
     aim(camera, shot.pose, size);
-    const view = viewOf(camera, size, marks, shot.pip);
+    const view = viewOf(camera, size, marks, shot.pip, shot.walk);
     if (!sameView(sent.current, view)) {
       sent.current = view;
       path.setView(view);

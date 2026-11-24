@@ -7,6 +7,7 @@
 // unkeyed property its file (rest) value. No clip ever keys `gaze`.
 import { EAR } from "../turn.ts";
 import { CLIP_TABLES, type ClipTable } from "./clip-tables.ts";
+import { WALK, WALK_S, walkPose, type StepPose } from "./walk.ts";
 import type { PipNode, Quat } from "./parts.ts";
 import type { Vec3 } from "./palette.ts";
 
@@ -207,7 +208,7 @@ const TOLERANCE = {
   weights: 0.003,
 } as const;
 
-interface Rest {
+export interface Rest {
   translation: Vec3;
   rotation: Quat;
   scale: Vec3;
@@ -376,7 +377,7 @@ function targetsFor(node: string, ch: Channels, rest: Rest): Target[] {
 }
 
 /** Whether a sample is the node's rest value, within the tolerance. */
-function atRest(
+export function atRest(
   v: readonly number[],
   path: Track["path"],
   rest: Rest,
@@ -394,7 +395,7 @@ function atRest(
 }
 
 /** The fewest samples whose LINEAR keys stay within the tolerance of every sample. */
-function thin(
+export function thin(
   times: readonly number[],
   values: readonly number[][],
   path: Track["path"],
@@ -548,11 +549,136 @@ export function stillClip(rests: ReadonlyMap<string, Rest>): Clip {
   return { name: "still", tracks };
 }
 
+const qmul = (a: Quat, b: Quat): Quat => [
+  a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+  a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+  a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+  a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+];
+const qinv = (q: Quat): Quat => [-q[0], -q[1], -q[2], q[3]];
+/** `v` turned by `q`. */
+function qrot(q: Quat, v: Vec3): Vec3 {
+  const r = qmul(qmul(q, [v[0], v[1], v[2], 0]), qinv(q));
+  return [r[0], r[1], r[2]];
+}
+
+/**
+ * The walk (walk.ts), baked on every frame of its stride. The body bobs,
+ * sways and twists; the feet are placed on the ground in Pip's own frame
+ * and carried back into the body's, so the planted foot stays flat and its
+ * slide stays even whatever the body does above it; the legs hang from the
+ * body toward them. The last frame
+ * is the first, so the loop is seamless.
+ */
+export function walkClip(rests: ReadonlyMap<string, Rest>): Clip {
+  const unit = 1 / 725;
+  const restOf = (node: string): Rest => {
+    const rest = rests.get(node);
+    if (rest === undefined) throw new Error(`walk: no node ${node}`);
+    return rest;
+  };
+  const frames = Math.round(WALK_S * FPS);
+  const times = Array.from({ length: frames + 1 }, (_, f) => f / FPS);
+  const series = new Map<
+    string,
+    { node: string; path: Track["path"]; values: number[][] }
+  >();
+  const put = (node: string, path: Track["path"], value: readonly number[]) => {
+    const key = `${node}.${path}`;
+    const entry = series.get(key) ?? { node, path, values: [] };
+    entry.values.push([...value]);
+    series.set(key, entry);
+  };
+  for (let f = 0; f <= frames; f++) {
+    const pose = walkPose((f % frames) / frames);
+    const body = restOf("Body");
+    const bodyAt: Vec3 = [
+      body.translation[0],
+      body.translation[1] + pose.body.y * unit,
+      body.translation[2],
+    ];
+    const bodyTurn = qmul(
+      body.rotation,
+      eulerXYZ(0, pose.body.twist, pose.body.sway),
+    );
+    put("Body", "translation", bodyAt);
+    put("Body", "rotation", bodyTurn);
+    // A part placed in Pip's frame, carried into the body's.
+    const inBody = (node: string, at: Vec3, turn: Quat) => {
+      const local = qrot(qinv(bodyTurn), [
+        at[0] - bodyAt[0],
+        at[1] - bodyAt[1],
+        at[2] - bodyAt[2],
+      ]);
+      put(node, "translation", local);
+      put(node, "rotation", qmul(qinv(bodyTurn), turn));
+    };
+    const step = (side: "Left" | "Right", foot: StepPose) => {
+      const f0 = restOf(`Foot${side}`);
+      inBody(
+        `Foot${side}`,
+        [
+          f0.translation[0],
+          f0.translation[1] + foot.lift * unit,
+          f0.translation[2] + foot.z * unit,
+        ],
+        qmul(f0.rotation, eulerXYZ(foot.roll, 0, 0)),
+      );
+      // The leg hangs from the body, its top kept inside the torso as the
+      // body sways, and reaches toward its foot.
+      const l0 = restOf(`Leg${side}`);
+      const follow = WALK.legFollow;
+      put(`Leg${side}`, "translation", [
+        l0.translation[0],
+        l0.translation[1] +
+          (follow.y * foot.lift - (1 - follow.bob) * pose.body.y) * unit,
+        l0.translation[2] + follow.z * foot.z * unit,
+      ]);
+      put(
+        `Leg${side}`,
+        "rotation",
+        qmul(
+          l0.rotation,
+          eulerXYZ((-follow.tilt * foot.z) / WALK.stride, 0, 0),
+        ),
+      );
+    };
+    step("Left", pose.footLeft);
+    step("Right", pose.footRight);
+    const turned = (node: string, x: number, z: number) => {
+      put(node, "rotation", qmul(restOf(node).rotation, eulerXYZ(x, 0, z)));
+    };
+    turned("ArmLeft", pose.armLeft, 0);
+    turned("ArmRight", pose.armRight, 0);
+    turned("HeadPose", pose.nod, 0);
+    turned("AntennaLeft", 0, pose.antennaLeft);
+    turned("AntennaRight", 0, pose.antennaRight);
+  }
+  const tracks: Track[] = [];
+  for (const { node, path, values } of series.values()) {
+    if (path === "rotation")
+      for (let i = 1; i < values.length; i++) {
+        const a = values[i - 1] as unknown as Quat;
+        const b = values[i] ?? [];
+        if (qdot(a, b as unknown as Quat) < 0) values[i] = b.map((v) => -v);
+      }
+    const kept = thin(times, values, path);
+    tracks.push({
+      node,
+      path,
+      times: kept.map((i) => times[i] ?? 0),
+      values: kept.flatMap((i) => values[i] ?? []),
+    });
+  }
+  return { name: "walk", tracks };
+}
+
 /** Every clip, in the contract's order. */
 export function bakeClips(root: PipNode, order: readonly string[]): Clip[] {
   const rests = restPoses(root);
   return order.map((name) => {
     if (name === "still") return stillClip(rests);
+    if (name === "walk") return walkClip(rests);
     const table = CLIP_TABLES[name];
     if (table === undefined) throw new Error(`no table for ${name}`);
     return bakeClip(name, table, rests);

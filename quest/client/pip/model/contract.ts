@@ -1,13 +1,21 @@
 // The 3D Pip's model contract (seam S13): what a glTF model of Pip must hold
 // for the Scene's renderer to drive him from the same PipModel the Rive rig
 // takes. One clip per mode and per Reaction, named as the Rive contract names
-// them, a still pose for reduced motion, and one node the renderer turns for
-// the gaze. This is the asset brief's technical half; the contract tests load
+// them, a still pose for reduced motion, a walk for travelling the Journey's
+// path, and one node the renderer turns for the gaze. This is the asset brief's technical half; the contract tests load
 // the committed model and name every way it departs from it.
 import { PIP_MODES, PIP_REACTIONS } from "../contract";
 
 /** The clip that holds Pip still under reduced motion: one pose, no travel. */
 export const PIP_MODEL_STILL = "still";
+
+/**
+ * The clip Pip walks on while he travels between Stations: a seamless loop
+ * of the legs, feet, arms and body, model-only like the still pose (the Rive
+ * rig has no walk). Like every clip it never keys the gaze; the renderer
+ * turns the whole model toward the way he walks.
+ */
+export const PIP_MODEL_WALK = "walk";
 
 /**
  * The node the renderer turns for the gaze: yaw for gazeX (+x toward the
@@ -16,11 +24,12 @@ export const PIP_MODEL_STILL = "still";
  */
 export const PIP_MODEL_GAZE = "gaze";
 
-/** Every clip the model holds, and nothing else: the modes, the Reactions and the still pose. */
+/** Every clip the model holds, and nothing else: the modes, the Reactions, the still pose and the walk. */
 export const PIP_MODEL_CLIPS = [
   ...PIP_MODES,
   ...PIP_REACTIONS,
   PIP_MODEL_STILL,
+  PIP_MODEL_WALK,
 ] as const;
 export type PipModelClip = (typeof PIP_MODEL_CLIPS)[number];
 
@@ -61,6 +70,7 @@ const EXTENSIONS: readonly string[] = PIP_MODEL_EXTENSIONS;
 function clipRole(name: string): string {
   if (MODES.includes(name)) return `the mode ${name}`;
   if (REACTIONS.includes(name)) return `the Reaction ${name}`;
+  if (name === PIP_MODEL_WALK) return "the walk";
   return "the still pose";
 }
 

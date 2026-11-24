@@ -33,6 +33,7 @@ export const CLIP_ORDER = [
   "retry",
   "celebration",
   "still",
+  "walk",
 ] as const;
 
 /** Each effect's hidden resting place: where it first shows, kept inside Pip's own bounds so it never moves his measured size. */

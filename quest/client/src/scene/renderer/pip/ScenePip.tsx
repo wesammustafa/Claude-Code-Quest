@@ -8,9 +8,11 @@
 // Rive renderer shows them.
 // On a Lesson's step the Scene stops and lets Pip go, so the Workspace
 // keeps the 2D Pip. He stands on the posters' soft ground shadow, which
-// shrinks and fades as he hops.
+// shrinks and fades as he hops. On the Journey's stage he walks the path
+// between Stations, turned toward where he goes, as the camera says.
 import { useFrame, useThree } from "@react-three/fiber";
 import {
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -30,7 +32,8 @@ import type { SceneTheme, SceneTier, ScreenOnShow } from "../../../mount/types";
 import { reactionLedger } from "../../../pip/playback";
 import { followPointer } from "../../../pip/pointer";
 import { usePipInput, usePipModel } from "../../../pip/PipStage";
-import { useScenePip } from "../../context";
+import { SceneContext, useScenePip } from "../../context";
+import { journeyPathOf } from "../../path";
 import { findPipSpot, spotShows } from "../../pip-spot";
 import { sceneStops } from "../../SceneLayer";
 import modelUrl from "../../../../pip/model/pip.glb?url";
@@ -100,6 +103,7 @@ function Driven({
 }: ScenePipProps & { model: PipModel3D }): ReactNode {
   const pip = usePipModel();
   const send = usePipInput();
+  const path = journeyPathOf(useContext(SceneContext));
   const canvas = useThree((s) => s.gl.domElement);
   const invalidate = useThree((s) => s.invalidate);
   const group = useRef<Group>(null);
@@ -243,6 +247,9 @@ function Driven({
       state.gl.compile(place, state.camera, state.scene);
     }
     place.visible = drawn3d;
+    // He walks only on the Journey's stage, the way the camera says he goes.
+    const onStage = el?.hasAttribute("data-pip-stage") === true;
+    driver.walk(onStage ? (path.view().pip?.walk ?? 0) : 0);
     driver.update(frameStep(delta, wasMoving.current));
     wasMoving.current = driver.moving();
     poseShadow(shadow, {
@@ -263,6 +270,7 @@ function Driven({
       `${now.gazeTo.x.toFixed(2)} ${now.gazeTo.y.toFixed(2)}`,
       String(drawn3d),
       now.reaction === null ? "" : "playing",
+      now.walk === 0 ? "" : now.walk === 1 ? "right" : "left",
     ];
     const key = next.join("|");
     if (key !== marks.current) {
@@ -274,6 +282,7 @@ function Driven({
         gazeTo = "",
         visible = "",
         playing = "",
+        walk = "",
       ] = next;
       canvas.setAttribute("data-scene-pip-mode", mode);
       canvas.toggleAttribute("data-scene-pip-still", still !== "");
@@ -281,6 +290,8 @@ function Driven({
       canvas.setAttribute("data-scene-pip-gaze-to", gazeTo);
       canvas.setAttribute("data-scene-pip-visible", visible);
       canvas.toggleAttribute("data-scene-pip-playing", playing !== "");
+      if (walk === "") canvas.removeAttribute("data-scene-pip-walk");
+      else canvas.setAttribute("data-scene-pip-walk", walk);
     }
     if (!drawn) setDrawn(true);
     const spot =
