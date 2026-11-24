@@ -194,7 +194,8 @@ export function CameraRig({ screen, stations, sway }: Props): null {
       poseOf(place, size),
       beginnerLayout().shares[pipOf(place)] ?? 0,
     );
-    lastShot.current = { pip: shot.pip, pace: shot.pace };
+    lastShot.current.pip = shot.pip;
+    lastShot.current.pace = shot.pace;
     if (!shot.between) canvas.removeAttribute(MOVING);
     if (shot.moving) invalidate();
     if (sway && place.kind === "meadow")

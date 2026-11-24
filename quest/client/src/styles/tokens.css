@@ -326,7 +326,7 @@
   /* The Scene's Badge reveal, a moment outside the screen transitions' cap that any key or click skips. */
   --duration-reveal: 1500ms;
   /* Pip's walk between two Stations on the Journey's path: a glide on one screen, not a screen change, so outside the cap, and slow enough for his steps to read. */
-  --duration-walk: 800ms;
+  --duration-walk: 1200ms;
   /* A Scene moment's end state shown in its place: reduced motion's longest fade, in either setting. */
   --duration-cross-fade: 120ms;
   --stagger: 40ms;
