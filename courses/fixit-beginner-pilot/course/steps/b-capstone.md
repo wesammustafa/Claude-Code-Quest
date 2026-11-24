@@ -176,3 +176,6 @@ badge: Beginner
 - back: T4 Reread the meeting notes for what isn't settled yet.
 
 ## card
+- skill: ask
+- show: "/clear"
+- does: "Start a new conversation, with nothing from the last one in context"
