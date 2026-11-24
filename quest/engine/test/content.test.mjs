@@ -3,7 +3,7 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -59,9 +59,18 @@ const tracked = new Set(
     "\n",
   ),
 );
-const scripts = JSON.parse(
-  readFileSync(join(root, "practice-template/project/package.json"), "utf8"),
-).scripts;
+// The developer course's own rules (they name its lessons, its counts and
+// its Local app lines) hold where the course is the guide's own, with its
+// practice project's package.json. A course laid in its place (a pilot under
+// courses/<id>/, run by its tools/course-rules.mjs) meets the shared rules
+// and its own tests.
+const PROJECT_PACKAGE = join(root, "practice-template/project/package.json");
+const DEVELOPER_COURSE = existsSync(PROJECT_PACKAGE);
+/** A rule of the developer course's own: skipped for a course laid in its place. */
+const developerTest = DEVELOPER_COURSE ? test : test.skip;
+const scripts = DEVELOPER_COURSE
+  ? JSON.parse(readFileSync(PROJECT_PACKAGE, "utf8")).scripts
+  : {};
 const quotesOf = (step) =>
   step.beats
     .flatMap((b) =>
@@ -121,9 +130,11 @@ test("front matter keeps the Lesson, its Stamp and its authoring fields, with co
         !(key in l),
         `${id}: ${key} belongs to the manifest or compiler`,
       );
+    // A stamp checked against the documentation alone says so, and that no
+    // real session has re-run it yet.
     assert.match(
       l.stamp,
-      /^Verified against Claude Code v\d+\.\d+\.\d+ \(stable\) on \d{4}-\d{2}-\d{2}$/,
+      /^Verified against Claude Code v\d+\.\d+\.\d+ \(stable\) (?:on \d{4}-\d{2}-\d{2}|documentation on \d{4}-\d{2}-\d{2}, (?:pilot )?not yet re-run in a real session)$/,
     );
     assert.ok(l.intro.can.length > 0 && l.intro.minutes);
   }
@@ -131,22 +142,25 @@ test("front matter keeps the Lesson, its Stamp and its authoring fields, with co
 
 // The legacy lesson copy in the template, learn/lessons/<id>.md, carries the
 // step file's Stamp, so a re-stamp cannot leave one copy behind.
-test("stamp: each lesson's learn/lessons copy carries its step file's stamp", () => {
-  const stampOf = (path) => {
-    const text = readFileSync(join(root, path), "utf8");
-    const front = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
-    return front.match(/^stamp: (.*)$/m)?.[1] ?? null;
-  };
-  for (const f of files) {
-    const step = stampOf(`course/steps/${f}`);
-    assert.ok(step, `course/steps/${f}: no stamp`);
-    assert.equal(
-      stampOf(`practice-template/learn/lessons/${f}`),
-      step,
-      `practice-template/learn/lessons/${f}: stamp differs from course/steps/${f}`,
-    );
-  }
-});
+developerTest(
+  "stamp: each lesson's learn/lessons copy carries its step file's stamp",
+  () => {
+    const stampOf = (path) => {
+      const text = readFileSync(join(root, path), "utf8");
+      const front = text.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "";
+      return front.match(/^stamp: (.*)$/m)?.[1] ?? null;
+    };
+    for (const f of files) {
+      const step = stampOf(`course/steps/${f}`);
+      assert.ok(step, `course/steps/${f}: no stamp`);
+      assert.equal(
+        stampOf(`practice-template/learn/lessons/${f}`),
+        step,
+        `practice-template/learn/lessons/${f}: stamp differs from course/steps/${f}`,
+      );
+    }
+  },
+);
 
 test("intro: every lesson says why it matters, and its payoff is one of its can lines", () => {
   for (const [id, l] of Object.entries(parsed)) {
@@ -162,12 +176,13 @@ test("card: every lesson puts the commands its page gives on the card, each once
   for (const [id, l] of Object.entries(parsed))
     assert.ok(l.card.length > 0, `${id}: no card entries`);
   // Authored entries catch what no run line holds (design D8).
-  assert.ok(
-    ["/rewind", "/resume"].every((cmd) =>
-      parsed["b-4"].card.some((e) => e.show === cmd),
-    ),
-    "b-4 lists /rewind and /resume",
-  );
+  if (DEVELOPER_COURSE)
+    assert.ok(
+      ["/rewind", "/resume"].every((cmd) =>
+        parsed["b-4"].card.some((e) => e.show === cmd),
+      ),
+      "b-4 lists /rewind and /resume",
+    );
   const shows = Object.values(parsed).flatMap((l) => l.card.map((e) => e.show));
   assert.deepEqual(
     shows.filter((x, i) => shows.indexOf(x) !== i),
@@ -242,7 +257,8 @@ test("the first GUIDED Worked example step on each skill has a why line on a bea
     assert.ok(first.includes(at), `${at} is no first meeting's GUIDED step`);
   // The Beginner path's first meetings, so the test can't pass on an empty list.
   assert.ok(
-    first.includes("b-1 W1") && first.includes("b-5 W2"),
+    first.includes(`${PATH[0]?.id ?? ""} W1`) &&
+      (!DEVELOPER_COURSE || first.includes("b-5 W2")),
     first.join(", "),
   );
 });
@@ -282,54 +298,57 @@ function numberingOff(id, l, split = []) {
   return off;
 }
 
-test("numbering: Your turn parts and Tear down steps after the Check count as steps do (102)", () => {
-  const steps = (headings, lesson = "a-9") =>
-    parseLesson(
-      `---\nlesson: ${lesson}\n---\n\n## steps\n${headings.map((h) => `\n${h}\n- tier: challenge\n- skill: x\n- where: shell\n- beat: do\n- verify: self`).join("\n")}`,
-      "a-9.md",
+developerTest(
+  "numbering: Your turn parts and Tear down steps after the Check count as steps do (102)",
+  () => {
+    const steps = (headings, lesson = "a-9") =>
+      parseLesson(
+        `---\nlesson: ${lesson}\n---\n\n## steps\n${headings.map((h) => `\n${h}\n- tier: challenge\n- skill: x\n- where: shell\n- beat: do\n- verify: self`).join("\n")}`,
+        "a-9.md",
+      );
+    const good = steps([
+      "### Y1 | Your turn part 1 of 2 | One",
+      "### Y2 | Your turn part 2 of 2 | Two",
+      "### C | Check | Check",
+      "### D1 | Tear down step 1 of 2 | Undo",
+      "### D2 | Tear down step 2 of 2 | Again",
+    ]);
+    assert.deepEqual(numberingOff("a-9", good), []);
+    const bad = steps([
+      "### Y1 | Your turn part 1 of 2 | One",
+      "### Y2 | Your turn step 2 of 2 | Two",
+      "### C | Check | Check",
+      "### D1 | Tear down step 1 of 2 | Undo",
+      "### D2 | Tear down step 3 of 3 | Again",
+    ]);
+    assert.deepEqual(numberingOff("a-9", bad), [
+      "a-9 Y2: a step among parts",
+      'a-9 D1: says "of 2"',
+      "a-9 D2: step 3 after step 1",
+    ]);
+    // In a capstone every step is CHALLENGE, Tear down steps too; elsewhere a
+    // Tear down step gets a Your turn step's help.
+    const headings = [
+      "### Y1 | Your turn part 1 of 1 | One",
+      "### C | Check | Check",
+      "### D1 | Tear down step 1 of 1 | Undo",
+    ];
+    const course = PATH.map(() => null);
+    const at = (id) => PATH.findIndex((p) => p.id === id);
+    course[at("a-capstone")] = steps(headings, "a-capstone");
+    course[at("a-1")] = steps(headings, "a-1");
+    assert.deepEqual(ruleTiers(course, at("a-capstone")), [
+      "challenge",
+      "challenge",
+      "challenge",
+    ]);
+    assert.deepEqual(
+      ruleTiers(course, at("a-1")),
+      ["hinted", "challenge", "hinted"],
+      "D1 is hinted, as Y1 is",
     );
-  const good = steps([
-    "### Y1 | Your turn part 1 of 2 | One",
-    "### Y2 | Your turn part 2 of 2 | Two",
-    "### C | Check | Check",
-    "### D1 | Tear down step 1 of 2 | Undo",
-    "### D2 | Tear down step 2 of 2 | Again",
-  ]);
-  assert.deepEqual(numberingOff("a-9", good), []);
-  const bad = steps([
-    "### Y1 | Your turn part 1 of 2 | One",
-    "### Y2 | Your turn step 2 of 2 | Two",
-    "### C | Check | Check",
-    "### D1 | Tear down step 1 of 2 | Undo",
-    "### D2 | Tear down step 3 of 3 | Again",
-  ]);
-  assert.deepEqual(numberingOff("a-9", bad), [
-    "a-9 Y2: a step among parts",
-    'a-9 D1: says "of 2"',
-    "a-9 D2: step 3 after step 1",
-  ]);
-  // In a capstone every step is CHALLENGE, Tear down steps too; elsewhere a
-  // Tear down step gets a Your turn step's help.
-  const headings = [
-    "### Y1 | Your turn part 1 of 1 | One",
-    "### C | Check | Check",
-    "### D1 | Tear down step 1 of 1 | Undo",
-  ];
-  const course = PATH.map(() => null);
-  const at = (id) => PATH.findIndex((p) => p.id === id);
-  course[at("a-capstone")] = steps(headings, "a-capstone");
-  course[at("a-1")] = steps(headings, "a-1");
-  assert.deepEqual(ruleTiers(course, at("a-capstone")), [
-    "challenge",
-    "challenge",
-    "challenge",
-  ]);
-  assert.deepEqual(
-    ruleTiers(course, at("a-1")),
-    ["hinted", "challenge", "hinted"],
-    "D1 is hinted, as Y1 is",
-  );
-});
+  },
+);
 
 test("steps are numbered as on the page, one part after the other", () => {
   const split = [];
@@ -866,8 +885,8 @@ test("difficulty: each step's tier is the course rule's, and it climbs like a sa
   assert.deepEqual(off, []);
   for (const dip of dips) console.info(dip);
   // A safety choice keeps a guess before it at every tier.
-  const b1 = parsed["b-1"];
-  assert.ok(b1.steps.find((s) => s.id === "W3").beats[0].safety);
+  if (DEVELOPER_COURSE)
+    assert.ok(parsed["b-1"].steps.find((s) => s.id === "W3").beats[0].safety);
   for (const l of Object.values(parsed))
     for (const s of allSteps(l))
       for (const b of s.beats)
@@ -903,40 +922,45 @@ const withIntermediate = (made) =>
   );
 const CHECK = ["C", "challenge", "check"];
 
-test("difficulty: help fades within each level, a level's first lesson may open GUIDED, skill counts carry across levels, and a dip only reports", () => {
-  // i-1 opens GUIDED on a new skill, and commit, which Beginner asked three
-  // times, is CHALLENGE even in a Worked example. i-2 and i-3 are all Check.
-  // i-4 gives less help than i-1 but more than i-2, two lessons before.
-  const i4 = madeUp("i-4", [
-    ["W1", "challenge", "commit"],
-    ["W2", "challenge", "start"],
-    ["W3", "guided", "agent"],
-    CHECK,
-  ]);
-  const { off, dips } = climb(
-    withIntermediate({
-      "i-1": parseLesson(DEMO_I1, "i-1.md"),
-      "i-2": madeUp("i-2", [CHECK]),
-      "i-3": madeUp("i-3", [CHECK]),
-      "i-4": i4,
-    }),
-  );
-  assert.deepEqual(off, []);
-  assert.deepEqual(dips, ["i-4 gives more help than i-2, two lessons before"]);
-  // A later lesson in the level still opens above GUIDED and gives less help
-  // than the level's first.
-  const i2 = madeUp("i-2", [
-    ["W1", "guided", "agent"],
-    ["W2", "guided", "hook"],
-    CHECK,
-  ]);
-  assert.deepEqual(
-    climb(
-      withIntermediate({ "i-1": parseLesson(DEMO_I1, "i-1.md"), "i-2": i2 }),
-    ).off,
-    ["i-2 opens GUIDED", "i-2 doesn't give less help than i-1"],
-  );
-});
+developerTest(
+  "difficulty: help fades within each level, a level's first lesson may open GUIDED, skill counts carry across levels, and a dip only reports",
+  () => {
+    // i-1 opens GUIDED on a new skill, and commit, which Beginner asked three
+    // times, is CHALLENGE even in a Worked example. i-2 and i-3 are all Check.
+    // i-4 gives less help than i-1 but more than i-2, two lessons before.
+    const i4 = madeUp("i-4", [
+      ["W1", "challenge", "commit"],
+      ["W2", "challenge", "start"],
+      ["W3", "guided", "agent"],
+      CHECK,
+    ]);
+    const { off, dips } = climb(
+      withIntermediate({
+        "i-1": parseLesson(DEMO_I1, "i-1.md"),
+        "i-2": madeUp("i-2", [CHECK]),
+        "i-3": madeUp("i-3", [CHECK]),
+        "i-4": i4,
+      }),
+    );
+    assert.deepEqual(off, []);
+    assert.deepEqual(dips, [
+      "i-4 gives more help than i-2, two lessons before",
+    ]);
+    // A later lesson in the level still opens above GUIDED and gives less help
+    // than the level's first.
+    const i2 = madeUp("i-2", [
+      ["W1", "guided", "agent"],
+      ["W2", "guided", "hook"],
+      CHECK,
+    ]);
+    assert.deepEqual(
+      climb(
+        withIntermediate({ "i-1": parseLesson(DEMO_I1, "i-1.md"), "i-2": i2 }),
+      ).off,
+      ["i-2 opens GUIDED", "i-2 doesn't give less help than i-1"],
+    );
+  },
+);
 
 // Action beats above GUIDED that may show nothing behind h, each with its
 // reason. Any other beat that hides its command needs a rung.
@@ -1063,7 +1087,8 @@ test("warm-ups: the first two mix a recent lesson and an older one, and R1 comes
     Object.entries(parsed).flatMap(([id, l]) => pairOff(id, l)),
     [],
   );
-  for (const id of Object.keys(R1_NOT_REUSED))
+  // The exemptions are the developer course's.
+  for (const id of DEVELOPER_COURSE ? Object.keys(R1_NOT_REUSED) : [])
     assert.ok(
       parsed[id]?.warmup.length,
       `${id}: the exemption names no lesson with warm-ups`,
@@ -1074,44 +1099,50 @@ test("warm-ups: the first two mix a recent lesson and an older one, and R1 comes
 // asks again. The demo i-1's R1 is one it reuses, and its R2 an older
 // lesson's; it is read as a lesson of its own, since the shipped i-1's
 // exemption in R1_NOT_REUSED doesn't fit a pool that reuses commit.
-test("warm-ups: a lesson may recall a lesson of an earlier level, as i-1 recalls Beginner", () => {
-  const i1 = parseLesson(DEMO_I1, "i-1.md");
-  assert.deepEqual(
-    i1.warmup.map((w) => [w.from, w.skill]),
-    [
-      ["b-5", "commit"],
-      ["b-4", "compact"],
-    ],
-  );
-  assert.deepEqual([...warmupOff("i-1", i1), ...pairOff("i-1 demo", i1)], []);
-});
+developerTest(
+  "warm-ups: a lesson may recall a lesson of an earlier level, as i-1 recalls Beginner",
+  () => {
+    const i1 = parseLesson(DEMO_I1, "i-1.md");
+    assert.deepEqual(
+      i1.warmup.map((w) => [w.from, w.skill]),
+      [
+        ["b-5", "commit"],
+        ["b-4", "compact"],
+      ],
+    );
+    assert.deepEqual([...warmupOff("i-1", i1), ...pairOff("i-1 demo", i1)], []);
+  },
+);
 
 // Ticket 178: a warm-up may recall a level's index page, any level's, from
 // any lesson. The index has no lesson file and no place on PATH.
-test("warm-ups: a warm-up may recall a level index, from any lesson", () => {
-  const i1 = parseLesson(DEMO_I1_INDEX, "i-1.md");
-  assert.deepEqual(
-    i1.warmup.map((w) => [w.from, w.skill]),
-    [
-      ["b-5", "commit"],
-      ["intermediate-index", "when-to-use"],
-    ],
-  );
-  assert.deepEqual([...warmupOff("i-1", i1), ...pairOff("i-1 demo", i1)], []);
-  // Beginner's second lesson may quote the Advanced index.
-  const b2 = parseLesson(
-    DEMO_B2.replace(
-      "- from: b-1\n- beat: type",
-      "- from: advanced-index\n- beat: type",
-    ),
-    "b-2.md",
-  );
-  assert.deepEqual(
-    b2.warmup.map((w) => w.from),
-    ["b-1", "advanced-index", "b-1"],
-  );
-  assert.deepEqual(warmupOff("b-2", b2), []);
-});
+developerTest(
+  "warm-ups: a warm-up may recall a level index, from any lesson",
+  () => {
+    const i1 = parseLesson(DEMO_I1_INDEX, "i-1.md");
+    assert.deepEqual(
+      i1.warmup.map((w) => [w.from, w.skill]),
+      [
+        ["b-5", "commit"],
+        ["intermediate-index", "when-to-use"],
+      ],
+    );
+    assert.deepEqual([...warmupOff("i-1", i1), ...pairOff("i-1 demo", i1)], []);
+    // Beginner's second lesson may quote the Advanced index.
+    const b2 = parseLesson(
+      DEMO_B2.replace(
+        "- from: b-1\n- beat: type",
+        "- from: advanced-index\n- beat: type",
+      ),
+      "b-2.md",
+    );
+    assert.deepEqual(
+      b2.warmup.map((w) => w.from),
+      ["b-1", "advanced-index", "b-1"],
+    );
+    assert.deepEqual(warmupOff("b-2", b2), []);
+  },
+);
 
 // A typed answer, a wrong or decoy pick, or s on any question but a guess
 // marks the skill missed, for a later lesson's warm-up to ask it, the only
@@ -1124,10 +1155,17 @@ const marksMissed = (b) =>
     b.options.some((o) => MISSABLE.has(o.kind)));
 // Skills a question can mark missed that no later lesson's pool recalls, each
 // with its reason.
-const NO_LATER_WARMUP = {
-  "limit-run":
-    "ticket 27 cut a-4's Your turn question, which tested a flag's definition, so a-7's questions are the first that can mark limit-run, and no lesson after a-7 has warm-ups",
-};
+const NO_LATER_WARMUP = DEVELOPER_COURSE
+  ? {
+      "limit-run":
+        "ticket 27 cut a-4's Your turn question, which tested a flag's definition, so a-7's questions are the first that can mark limit-run, and no lesson after a-7 has warm-ups",
+    }
+  : {
+      // courses/fixit-beginner-pilot: b-1, b-6, then the capstone, which has
+      // no warm-ups by the rework's rule, so b-6's are the last pool.
+      start:
+        "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
+    };
 
 // The skills a question in `contents` (in PATH order) can mark missed that
 // no later lesson's pool recalls.
@@ -1167,12 +1205,16 @@ test("warm-ups: a skill a question can mark missed comes back in a later lesson'
 
 // Ticket 178: a warm-up from a level index recalls that level, so its skill
 // is no lesson's for a later pool to ask again. i-1's R1, from b-5, is.
-test("warm-ups: a level index warm-up leaves no skill for a later pool to recall", () => {
-  const i1 = parseLesson(DEMO_I1_INDEX, "i-1.md");
-  assert.deepEqual(closureGaps(PATH.map((p) => (p.id === "i-1" ? i1 : null))), [
-    "commit",
-  ]);
-});
+developerTest(
+  "warm-ups: a level index warm-up leaves no skill for a later pool to recall",
+  () => {
+    const i1 = parseLesson(DEMO_I1_INDEX, "i-1.md");
+    assert.deepEqual(
+      closureGaps(PATH.map((p) => (p.id === "i-1" ? i1 : null))),
+      ["commit"],
+    );
+  },
+);
 
 // Questions whose options keep a natural order, so their right answer's
 // place says nothing; each with its reason.
@@ -1536,88 +1578,97 @@ const B2_BACK =
 const withBack = (line, text = B2) =>
   parseLesson(text.replace(B2_BACK, line), "b-2.md");
 
-test("back lines: b-2's after item goes back to the step that switches to plan mode, before the step that asks for the change", () => {
-  assert.ok(B2.includes(B2_BACK));
-  const rung = parseLesson(B2, "b-2.md").ladder.find(
-    (r) => r.item === lessons["b-2"].items[1].text,
-  );
-  assert.deepEqual([rung.back.step, rung.back.quoted], ["W2", false]);
-  const steps = parsed["b-2"].steps.map((s) => s.id);
-  assert.equal(steps[steps.indexOf("W2") + 1], "W3");
-  assert.ok(
-    parsed["b-2"].steps
-      .find((s) => s.id === "W3")
-      .beats[0].lines.some(
-        (l) => l.key === "goal" && /Ask for the change/.test(l.text),
-      ),
-  );
-});
-
-test("back lines: a later step, a step the lesson lacks, another lesson, a warm-up or a second line fails, naming its line", () => {
-  const bad = [
-    [
-      "- back: W8 why\n",
-      /b-2\.md:\d+: back W8 is not before step W7, the first step that checks this item/,
-    ],
-    ["- back: W7 why\n", /back W7 is not before step W7/],
-    ["- back: Y1 why\n", /back Y1 is not before step W7/],
-    ["- back: W9 why\n", /b-2\.md:\d+: back W9: this lesson has no step W9/],
-    ["- back: R1 why\n", /this lesson has no step R1/],
-    ["- back: b-1 W2 why\n", /b-2\.md:\d+: back b-1 names another lesson/],
-    ["- back: b-1.W2 why\n", /back b-1\.W2 names another lesson/],
-    ["- back: W2\n", /b-2\.md:\d+: a back line is a step id, then why/],
-    [`${B2_BACK}${B2_BACK}`, /a second back line in one ladder block/],
-  ];
-  for (const [line, error] of bad)
-    assert.throws(() => withBack(line), error, line);
-  // On a beat: before the beat's own step.
-  const onY5 = (line) =>
-    withBack(
-      B2_BACK,
-      B2.replace(
-        '- after: "Stop before committing.',
-        `${line}- after: "Stop before committing.`,
-      ),
+developerTest(
+  "back lines: b-2's after item goes back to the step that switches to plan mode, before the step that asks for the change",
+  () => {
+    assert.ok(B2.includes(B2_BACK));
+    const rung = parseLesson(B2, "b-2.md").ladder.find(
+      (r) => r.item === lessons["b-2"].items[1].text,
     );
-  assert.equal(
-    onY5("- back: Y1 Your turn starts over here.\n").steps.find(
-      (s) => s.id === "Y5",
-    ).beats[3].back.step,
-    "Y1",
-  );
-  assert.throws(
-    () => onY5("- back: Y5 why\n"),
-    /back Y5 is not before step Y5, the step it goes back from/,
-  );
-  assert.throws(() => onY5("- back: C why\n"), /back C is not before step Y5/);
-  assert.throws(
-    () => onY5("- back: Y1 one\n- back: Y2 two\n"),
-    /a second back line on one beat/,
-  );
-  assert.throws(
-    () =>
+    assert.deepEqual([rung.back.step, rung.back.quoted], ["W2", false]);
+    const steps = parsed["b-2"].steps.map((s) => s.id);
+    assert.equal(steps[steps.indexOf("W2") + 1], "W3");
+    assert.ok(
+      parsed["b-2"].steps
+        .find((s) => s.id === "W3")
+        .beats[0].lines.some(
+          (l) => l.key === "goal" && /Ask for the change/.test(l.text),
+        ),
+    );
+  },
+);
+
+developerTest(
+  "back lines: a later step, a step the lesson lacks, another lesson, a warm-up or a second line fails, naming its line",
+  () => {
+    const bad = [
+      [
+        "- back: W8 why\n",
+        /b-2\.md:\d+: back W8 is not before step W7, the first step that checks this item/,
+      ],
+      ["- back: W7 why\n", /back W7 is not before step W7/],
+      ["- back: Y1 why\n", /back Y1 is not before step W7/],
+      ["- back: W9 why\n", /b-2\.md:\d+: back W9: this lesson has no step W9/],
+      ["- back: R1 why\n", /this lesson has no step R1/],
+      ["- back: b-1 W2 why\n", /b-2\.md:\d+: back b-1 names another lesson/],
+      ["- back: b-1.W2 why\n", /back b-1\.W2 names another lesson/],
+      ["- back: W2\n", /b-2\.md:\d+: a back line is a step id, then why/],
+      [`${B2_BACK}${B2_BACK}`, /a second back line in one ladder block/],
+    ];
+    for (const [line, error] of bad)
+      assert.throws(() => withBack(line), error, line);
+    // On a beat: before the beat's own step.
+    const onY5 = (line) =>
       withBack(
         B2_BACK,
         B2.replace(
-          "- from: b-1\n- where: claude\n- beat: ask\n- ask: When the trust dialog",
-          "- from: b-1\n- where: claude\n- beat: ask\n- back: W1 why\n- ask: When the trust dialog",
+          '- after: "Stop before committing.',
+          `${line}- after: "Stop before committing.`,
         ),
-      ),
-    /a back line on a warm-up/,
-  );
-  // A quote parses as one.
-  const { step, text, quoted } = withBack(
-    '- back: W2 "It can\'t edit your files until you approve the plan"\n',
-  ).ladder[1].back;
-  assert.deepEqual(
-    { step, text, quoted },
-    {
-      step: "W2",
-      text: "It can't edit your files until you approve the plan",
-      quoted: true,
-    },
-  );
-});
+      );
+    assert.equal(
+      onY5("- back: Y1 Your turn starts over here.\n").steps.find(
+        (s) => s.id === "Y5",
+      ).beats[3].back.step,
+      "Y1",
+    );
+    assert.throws(
+      () => onY5("- back: Y5 why\n"),
+      /back Y5 is not before step Y5, the step it goes back from/,
+    );
+    assert.throws(
+      () => onY5("- back: C why\n"),
+      /back C is not before step Y5/,
+    );
+    assert.throws(
+      () => onY5("- back: Y1 one\n- back: Y2 two\n"),
+      /a second back line on one beat/,
+    );
+    assert.throws(
+      () =>
+        withBack(
+          B2_BACK,
+          B2.replace(
+            "- from: b-1\n- where: claude\n- beat: ask\n- ask: When the trust dialog",
+            "- from: b-1\n- where: claude\n- beat: ask\n- back: W1 why\n- ask: When the trust dialog",
+          ),
+        ),
+      /a back line on a warm-up/,
+    );
+    // A quote parses as one.
+    const { step, text, quoted } = withBack(
+      '- back: W2 "It can\'t edit your files until you approve the plan"\n',
+    ).ladder[1].back;
+    assert.deepEqual(
+      { step, text, quoted },
+      {
+        step: "W2",
+        text: "It can't edit your files until you approve the plan",
+        quoted: true,
+      },
+    );
+  },
+);
 
 // The lesson test compares a `- key: "…"` line whose whole value is a quote,
 // so the quote after a back line's step id is one it doesn't read yet: until it does, a back line's why is the app's own words,
@@ -1966,44 +2017,47 @@ test("the rework's approve-only guess: a new lesson fails a guess whose every op
   );
 });
 
-test("the rework's safety kinds: a kind asked a second time in a level fails, in one lesson or two", () => {
-  const safe = (kind) => [
-    ...guess("- right: **No**", "- option: **Yes**"),
-    `- safety: ${kind}`,
-  ];
-  const a1 = ruled("a-1", { beats: [safe("permission-prompt")] });
-  assert.deepEqual(
-    safetyOff([
-      ["a-1", a1],
-      ["a-2", ruled("a-2", { beats: [safe("plan-approval")] })],
-    ]),
-    [],
-  );
-  assert.deepEqual(
-    safetyOff([
-      ["a-1", a1],
-      ["a-2", ruled("a-2", { beats: [safe("permission-prompt")] })],
-    ]),
-    ["advanced permission-prompt: asked 2 times (a-1 W1.1, a-2 W1.1)"],
-  );
-  assert.deepEqual(
-    safetyOff([
-      [
-        "a-1",
-        ruled("a-1", { beats: [safe("mcp-approval"), safe("mcp-approval")] }),
-      ],
-    ]),
-    ["advanced mcp-approval: asked 2 times (a-1 W1.1, a-1 W1.2)"],
-  );
-  // Each level asks it once.
-  assert.deepEqual(
-    safetyOff([
-      ["i-1", ruled("i-1", { beats: [safe("permission-prompt")] })],
-      ["a-1", a1],
-    ]),
-    [],
-  );
-});
+developerTest(
+  "the rework's safety kinds: a kind asked a second time in a level fails, in one lesson or two",
+  () => {
+    const safe = (kind) => [
+      ...guess("- right: **No**", "- option: **Yes**"),
+      `- safety: ${kind}`,
+    ];
+    const a1 = ruled("a-1", { beats: [safe("permission-prompt")] });
+    assert.deepEqual(
+      safetyOff([
+        ["a-1", a1],
+        ["a-2", ruled("a-2", { beats: [safe("plan-approval")] })],
+      ]),
+      [],
+    );
+    assert.deepEqual(
+      safetyOff([
+        ["a-1", a1],
+        ["a-2", ruled("a-2", { beats: [safe("permission-prompt")] })],
+      ]),
+      ["advanced permission-prompt: asked 2 times (a-1 W1.1, a-2 W1.1)"],
+    );
+    assert.deepEqual(
+      safetyOff([
+        [
+          "a-1",
+          ruled("a-1", { beats: [safe("mcp-approval"), safe("mcp-approval")] }),
+        ],
+      ]),
+      ["advanced mcp-approval: asked 2 times (a-1 W1.1, a-1 W1.2)"],
+    );
+    // Each level asks it once.
+    assert.deepEqual(
+      safetyOff([
+        ["i-1", ruled("i-1", { beats: [safe("permission-prompt")] })],
+        ["a-1", a1],
+      ]),
+      [],
+    );
+  },
+);
 
 test("the rework's warm-ups: a new lesson fails a warm-up whose answer is a key or a command", () => {
   const typed = (...accept) => [
@@ -2396,7 +2450,7 @@ test("where: no beat sends the learner to the terminal Claude Code is still runn
   assert.deepEqual(off, []);
   assert.deepEqual(
     exempt,
-    Object.keys(TERMINAL_WHILE_OPEN),
+    DEVELOPER_COURSE ? Object.keys(TERMINAL_WHILE_OPEN) : [],
     "an exemption names a beat that no longer says terminal while a session runs there",
   );
 });
@@ -2471,34 +2525,37 @@ const CHECK_COMMAND_BEHIND_H = {
     "any line on C.0's card, a goal or a run line, pushed even the title off the Terminal app's 60x20 ASCII card under three of its FAIL messages (only a workflow that waits for a mention, no credential, a key in a committed note), the real failures the ladders tests drive to the check rung; it needs shorter messages or another Check title before it shows its command",
 };
 
-test("card: every Check shows its npm run check command on the card, not only behind h (27, pattern I)", () => {
-  const off = [];
-  const exempt = [];
-  for (const c of contents) {
-    if (!c) continue;
-    const check = c.steps.find((s) => s.part === "Check");
-    const shows = check.beats.some((b) =>
-      cardLines(b).some(
-        (x) =>
-          (x.key === "run" && /^npm run check\b/.test(x.text)) ||
-          (CARD_TEXT.has(x.key) && /`npm run check\b/.test(x.text)),
-      ),
-    );
-    const at = `${c.lesson} ${check.id}`;
-    if (shows) continue;
-    if (CHECK_COMMAND_BEHIND_H[at]) exempt.push(at);
-    else
-      off.push(
-        `course/steps/${c.lesson}.md:${check.line} ${check.id}: no beat shows \`npm run check\` on the card${check.beats.some((b) => b.bottom.some((x) => /^npm run check\b/.test(x.text))) ? ": it is only a bottom line, behind h" : ""}`,
+developerTest(
+  "card: every Check shows its npm run check command on the card, not only behind h (27, pattern I)",
+  () => {
+    const off = [];
+    const exempt = [];
+    for (const c of contents) {
+      if (!c) continue;
+      const check = c.steps.find((s) => s.part === "Check");
+      const shows = check.beats.some((b) =>
+        cardLines(b).some(
+          (x) =>
+            (x.key === "run" && /^npm run check\b/.test(x.text)) ||
+            (CARD_TEXT.has(x.key) && /`npm run check\b/.test(x.text)),
+        ),
       );
-  }
-  assert.deepEqual(off, []);
-  assert.deepEqual(
-    exempt,
-    Object.keys(CHECK_COMMAND_BEHIND_H),
-    "an exemption names a Check that shows its command now",
-  );
-});
+      const at = `${c.lesson} ${check.id}`;
+      if (shows) continue;
+      if (CHECK_COMMAND_BEHIND_H[at]) exempt.push(at);
+      else
+        off.push(
+          `course/steps/${c.lesson}.md:${check.line} ${check.id}: no beat shows \`npm run check\` on the card${check.beats.some((b) => b.bottom.some((x) => /^npm run check\b/.test(x.text))) ? ": it is only a bottom line, behind h" : ""}`,
+        );
+    }
+    assert.deepEqual(off, []);
+    assert.deepEqual(
+      exempt,
+      Object.keys(CHECK_COMMAND_BEHIND_H),
+      "an exemption names a Check that shows its command now",
+    );
+  },
+);
 
 test("card: a beat planned and written GUIDED shows its command, not only behind h (27, pattern J)", () => {
   // The card inlines bottom lines only on a step planned GUIDED and written
@@ -2687,7 +2744,7 @@ test("code in a link's text shows as code with no backticks, as the page does, a
 
 // Lesson 2 commits its reviewed change (ticket 27, S3), so lesson 3 starts
 // from a clean tree with nothing to set aside.
-test("lesson 3 starts from the clean tree lesson 2 committed", () => {
+developerTest("lesson 3 starts from the clean tree lesson 2 committed", () => {
   const first = parsed["b-3"].steps[0].beats[0];
   assert.equal(first.verify.kind, "git-clean");
   assert.equal(first.where, "terminal");
@@ -2716,72 +2773,86 @@ test("lesson 3 starts from the clean tree lesson 2 committed", () => {
 // Dry-run fixes (ticket 304): the log read waits for the learner, since a
 // match on ^include passes from the session-start line, and every prompt a
 // beat refers to is on screen.
-test("i-2 read beats wait for the learner and show their prompts", () => {
-  const live = join(root, "practice-template", "learn", "lessons", "i-2.md");
-  for (const lesson of [
-    parsed["i-2"],
-    parseLesson(
-      readFileSync(live, "utf8"),
-      "practice-template/learn/lessons/i-2.md",
-    ),
-  ]) {
-    const step = (id) => lesson.steps.find((s) => s.id === id);
-    const read = step("W4").beats.at(-1);
-    assert.equal(read.verify.kind, "self");
-    assert.ok(read.doneLabel);
-    assert.ok(
-      step("Y2").beats.some((b) =>
-        b.lines.some(
-          (line) => line.key === "run" && line.text.includes("Read src/cli.js"),
+developerTest(
+  "i-2 read beats wait for the learner and show their prompts",
+  () => {
+    const live = join(root, "practice-template", "learn", "lessons", "i-2.md");
+    for (const lesson of [
+      parsed["i-2"],
+      parseLesson(
+        readFileSync(live, "utf8"),
+        "practice-template/learn/lessons/i-2.md",
+      ),
+    ]) {
+      const step = (id) => lesson.steps.find((s) => s.id === id);
+      const read = step("W4").beats.at(-1);
+      assert.equal(read.verify.kind, "self");
+      assert.ok(read.doneLabel);
+      assert.ok(
+        step("Y2").beats.some((b) =>
+          b.lines.some(
+            (line) =>
+              line.key === "run" && line.text.includes("Read src/cli.js"),
+          ),
         ),
-      ),
-    );
+      );
+      assert.ok(
+        !step("Y4").beats.some((b) =>
+          b.lines.some((line) => /now has a `?path_glob_match/.test(line.text)),
+        ),
+      );
+    }
+  },
+);
+
+developerTest(
+  "capstone prepares committed memory and preserves its Windows reproduction warning",
+  () => {
+    const first = parsed["b-capstone"].steps[0];
     assert.ok(
-      !step("Y4").beats.some((b) =>
-        b.lines.some((line) => /now has a `?path_glob_match/.test(line.text)),
+      first.beats.some(
+        (b) => b.verify.kind === "check" && b.verify.items?.includes(5),
       ),
     );
-  }
-});
+    assert.ok(first.beats.some((b) => b.verify.kind === "git-clean"));
+    assert.ok(first.beats.some((b) => b.winNote?.includes("Set-Content")));
+  },
+);
 
-test("capstone prepares committed memory and preserves its Windows reproduction warning", () => {
-  const first = parsed["b-capstone"].steps[0];
-  assert.ok(
-    first.beats.some(
-      (b) => b.verify.kind === "check" && b.verify.items?.includes(5),
-    ),
-  );
-  assert.ok(first.beats.some((b) => b.verify.kind === "git-clean"));
-  assert.ok(first.beats.some((b) => b.winNote?.includes("Set-Content")));
-});
-
-test("Beginner live content teaches the promoted features and all four memory notes", () => {
-  const text = (id) => readFileSync(join(dir, `${id}.md`), "utf8");
-  for (const feature of ["Ctrl+B", "/btw", "/tasks"])
-    assert.ok(text("b-3").includes(feature), feature);
-  // Ticket 27, S2: b-4 recovers with Esc and a rewind of code and
-  // conversation; /branch and Summarize from here move to Go further.
-  for (const feature of [
-    "Restore code and conversation",
-    "**Restore code**",
-    "Esc",
-    "/compact",
-    "/clear",
-  ])
-    assert.ok(text("b-4").includes(feature), feature);
-  for (const gone of ["/branch", "Summarize from here"])
-    assert.ok(!text("b-4").includes(gone), gone);
-  for (const note of [
-    "npm run tests",
-    "~/scratch/linkcheck-docs",
-    "summary at the end",
-    "linkcheck:",
-  ])
-    assert.ok(text("b-5").includes(note), note);
-  for (const scope of ["~/.claude/CLAUDE.md", "CLAUDE.local.md", "Auto memory"])
-    assert.ok(text("b-5").includes(scope), scope);
-  assert.ok(!text("b-1").includes(".practice/version.txt"));
-});
+developerTest(
+  "Beginner live content teaches the promoted features and all four memory notes",
+  () => {
+    const text = (id) => readFileSync(join(dir, `${id}.md`), "utf8");
+    for (const feature of ["Ctrl+B", "/btw", "/tasks"])
+      assert.ok(text("b-3").includes(feature), feature);
+    // Ticket 27, S2: b-4 recovers with Esc and a rewind of code and
+    // conversation; /branch and Summarize from here move to Go further.
+    for (const feature of [
+      "Restore code and conversation",
+      "**Restore code**",
+      "Esc",
+      "/compact",
+      "/clear",
+    ])
+      assert.ok(text("b-4").includes(feature), feature);
+    for (const gone of ["/branch", "Summarize from here"])
+      assert.ok(!text("b-4").includes(gone), gone);
+    for (const note of [
+      "npm run tests",
+      "~/scratch/linkcheck-docs",
+      "summary at the end",
+      "linkcheck:",
+    ])
+      assert.ok(text("b-5").includes(note), note);
+    for (const scope of [
+      "~/.claude/CLAUDE.md",
+      "CLAUDE.local.md",
+      "Auto memory",
+    ])
+      assert.ok(text("b-5").includes(scope), scope);
+    assert.ok(!text("b-1").includes(".practice/version.txt"));
+  },
+);
 
 // No hint can see whether the Learner took it, so a hint never holds a
 // command that saves a file for the check: that command is a bottom rung,
@@ -2794,7 +2865,9 @@ test("no capstone hint holds a command that saves a file for the check", () => {
   const capstones = Object.entries(parsed).filter(([id]) =>
     id.endsWith("-capstone"),
   );
-  assert.equal(capstones.length, 3);
+  // The developer course has three capstones, one of them with a hint that saves; a pilot has its own.
+  if (DEVELOPER_COURSE) assert.equal(capstones.length, 3);
+  else assert.ok(capstones.length > 0, "no capstone");
   for (const [id, { steps, ladder }] of capstones) {
     const hints = [
       ...steps.flatMap((step) => step.beats.flatMap((b) => b.hints)),
@@ -2803,15 +2876,16 @@ test("no capstone hint holds a command that saves a file for the check", () => {
     assert.deepEqual(hints.filter(savesForCheck), [], id);
   }
   // The scan finds such a command where it belongs, on a bottom rung.
-  assert.ok(
-    capstones.some(([, { steps }]) =>
-      steps.some((step) =>
-        step.beats.some((b) =>
-          b.bottom.some((x) => savesForCheck(`\`${x.text}\``)),
+  if (DEVELOPER_COURSE)
+    assert.ok(
+      capstones.some(([, { steps }]) =>
+        steps.some((step) =>
+          step.beats.some((b) =>
+            b.bottom.some((x) => savesForCheck(`\`${x.text}\``)),
+          ),
         ),
       ),
-    ),
-  );
+    );
 });
 
 // In a Practice copy, Claude, git and the Checks work in project/ (297, 325):
@@ -2835,74 +2909,89 @@ test("Beginner Lessons start Claude in the copy's project/ folder (325)", () => 
         }
       });
   }
-  assert.ok(seen >= 6, `only ${seen} session starts found`);
+  // The developer course starts six sessions; any course starts one.
+  assert.ok(
+    seen >= (DEVELOPER_COURSE ? 6 : 1),
+    `only ${seen} session starts found`,
+  );
   assert.deepEqual(wrong, []);
 });
 
 // b-5 W2 names every course line /init may write (299); the capstone's
 // /init hint, for a learner who skipped lesson 5, names the same ones (325).
-test("the Beginner capstone's /init hint names every course line b-5 does (325)", () => {
-  const all = (id) =>
-    contents
-      .find((c) => c?.lesson === id)
-      .steps.flatMap((s) =>
-        s.beats.flatMap((b) => [...b.lines.map((l) => l.text), ...b.hints]),
-      );
-  const list = all("b-5").find((t) => t.startsWith("Course lines include"));
-  assert.ok(list, "b-5's course-lines note");
-  const names = list.match(/`[^`]+`/g);
-  assert.ok(names.length >= 8, `b-5 names ${names.length}`);
-  const hint = all("b-capstone").find((t) =>
-    t.includes("In the new `CLAUDE.md`"),
-  );
-  assert.ok(hint, "the capstone's /init hint");
-  assert.deepEqual(
-    names.filter((n) => !hint.includes(n)),
-    [],
-  );
-});
+developerTest(
+  "the Beginner capstone's /init hint names every course line b-5 does (325)",
+  () => {
+    const all = (id) =>
+      contents
+        .find((c) => c?.lesson === id)
+        .steps.flatMap((s) =>
+          s.beats.flatMap((b) => [...b.lines.map((l) => l.text), ...b.hints]),
+        );
+    const list = all("b-5").find((t) => t.startsWith("Course lines include"));
+    assert.ok(list, "b-5's course-lines note");
+    const names = list.match(/`[^`]+`/g);
+    assert.ok(names.length >= 8, `b-5 names ${names.length}`);
+    const hint = all("b-capstone").find((t) =>
+      t.includes("In the new `CLAUDE.md`"),
+    );
+    assert.ok(hint, "the capstone's /init hint");
+    assert.deepEqual(
+      names.filter((n) => !hint.includes(n)),
+      [],
+    );
+  },
+);
 
 // b-2 Y4 at Hinted names the file each beat saves, so a learner needs Show
 // the exact command only for the command itself, and its hint is a whole
 // sentence, not a lead-in cut off at a colon (346, live run finding F2).
-test("b-2 Y4 names the files it saves on the card, and no hint ends in a colon (346)", () => {
-  const y4 = contents
-    .find((c) => c?.lesson === "b-2")
-    .steps.find((s) => s.id === "Y4");
-  const goals = y4.beats.map((b) =>
-    b.lines
-      .filter((l) => l.key === "goal")
-      .map((l) => l.text)
-      .join(" "),
-  );
-  assert.match(goals[0], /`git status --porcelain`/);
-  assert.match(goals[0], /`\.practice\/b-2-before\.txt`/);
-  assert.match(goals[1], /`\.practice\/b-2-plan\.txt`/);
-  assert.deepEqual(
-    y4.beats.flatMap((b) => b.hints).filter((h) => h.trim().endsWith(":")),
-    [],
-  );
-});
+developerTest(
+  "b-2 Y4 names the files it saves on the card, and no hint ends in a colon (346)",
+  () => {
+    const y4 = contents
+      .find((c) => c?.lesson === "b-2")
+      .steps.find((s) => s.id === "Y4");
+    const goals = y4.beats.map((b) =>
+      b.lines
+        .filter((l) => l.key === "goal")
+        .map((l) => l.text)
+        .join(" "),
+    );
+    assert.match(goals[0], /`git status --porcelain`/);
+    assert.match(goals[0], /`\.practice\/b-2-before\.txt`/);
+    assert.match(goals[1], /`\.practice\/b-2-plan\.txt`/);
+    assert.deepEqual(
+      y4.beats.flatMap((b) => b.hints).filter((h) => h.trim().endsWith(":")),
+      [],
+    );
+  },
+);
 
 // An edit prompt can offer a choice that allows edits for the rest of the
 // session, and that choice is the one a learner meets first in Manual mode:
 // b-2 W7's read-each-request beat warns about it as the page does (346, F3).
-test("b-2 W7 warns about the session-wide edit choice where it warns about auto mode (346)", () => {
-  const w7 = contents
-    .find((c) => c?.lesson === "b-2")
-    .steps.find((s) => s.id === "W7");
-  const beat = w7.beats.find((b) =>
-    b.lines.some((l) => l.text.startsWith("Read each request")),
-  );
-  assert.ok(beat, "W7's read-each-request beat");
-  const notes = beat.lines.filter((l) => l.key === "note").map((l) => l.text);
-  assert.ok(notes.some((t) => t.includes("**Yes, and switch to auto mode**")));
-  assert.ok(
-    notes.some((t) =>
-      t.includes("any choice that allows edits for the rest of the session"),
-    ),
-  );
-});
+developerTest(
+  "b-2 W7 warns about the session-wide edit choice where it warns about auto mode (346)",
+  () => {
+    const w7 = contents
+      .find((c) => c?.lesson === "b-2")
+      .steps.find((s) => s.id === "W7");
+    const beat = w7.beats.find((b) =>
+      b.lines.some((l) => l.text.startsWith("Read each request")),
+    );
+    assert.ok(beat, "W7's read-each-request beat");
+    const notes = beat.lines.filter((l) => l.key === "note").map((l) => l.text);
+    assert.ok(
+      notes.some((t) => t.includes("**Yes, and switch to auto mode**")),
+    );
+    assert.ok(
+      notes.some((t) =>
+        t.includes("any choice that allows edits for the rest of the session"),
+      ),
+    );
+  },
+);
 
 // Claude Code's own dialogs a Beginner meets (345): a signed-in learner sees
 // no login prompt, so b-1's sign-in line is conditional and the trust line
@@ -2910,55 +2999,58 @@ test("b-2 W7 warns about the session-wide edit choice where it warns about auto 
 // the dialog highlights; b-2 W1 says what folder the header
 // should show; and where Claude first edits a file in b-2 and the capstone,
 // a note says to decline the LSP plugin recommendation.
-test("Beginner steps prepare for Claude Code's own dialogs (345)", () => {
-  const beatsOf = (id, step) =>
-    contents
-      .find((c) => c?.lesson === id)
-      .steps.find((s) => s.id === step)
-      .beats.map((b) => [...b.lines.map((l) => l.text), ...b.hints]);
-  const w3 = beatsOf("b-1", "W3").flat();
-  assert.ok(
-    w3.some((t) => t.startsWith("If Claude Code asks you to sign in,")),
-    "b-1 W3's sign-in line is conditional",
-  );
-  assert.ok(
-    !w3.some((t) => t.startsWith("At the login prompt")),
-    "no unconditional login line",
-  );
-  assert.ok(
-    w3.some((t) =>
-      t.endsWith("read the dialog and accept it to trust the folder."),
-    ),
-    "b-1 W3's trust line",
-  );
-  assert.ok(
-    !w3.some((t) => t.includes("highlighted")),
-    "no claim about the trust dialog's highlighted choice",
-  );
-  const w1 = beatsOf("b-2", "W1").flat();
-  assert.ok(
-    w1.some((t) => t.includes("it should be your copy's `project/` folder")),
-    "b-2 W1 says which folder the header shows",
-  );
-  assert.ok(
-    w1.some((t) => t.startsWith("If it isn't, type `/exit`")),
-    "b-2 W1 says what to do in the wrong folder",
-  );
-  for (const [id, step] of [
-    ["b-2", "W7"],
-    ["b-capstone", "T6"],
-  ]) {
-    const texts = beatsOf(id, step).flat();
+developerTest(
+  "Beginner steps prepare for Claude Code's own dialogs (345)",
+  () => {
+    const beatsOf = (id, step) =>
+      contents
+        .find((c) => c?.lesson === id)
+        .steps.find((s) => s.id === step)
+        .beats.map((b) => [...b.lines.map((l) => l.text), ...b.hints]);
+    const w3 = beatsOf("b-1", "W3").flat();
     assert.ok(
-      texts.some((t) => t.includes("**LSP plugin recommendation**")),
-      `${id} ${step} names the dialog`,
+      w3.some((t) => t.startsWith("If Claude Code asks you to sign in,")),
+      "b-1 W3's sign-in line is conditional",
     );
     assert.ok(
-      texts.some((t) => t.includes("choose **No, not now**")),
-      `${id} ${step} says to decline it`,
+      !w3.some((t) => t.startsWith("At the login prompt")),
+      "no unconditional login line",
     );
-  }
-});
+    assert.ok(
+      w3.some((t) =>
+        t.endsWith("read the dialog and accept it to trust the folder."),
+      ),
+      "b-1 W3's trust line",
+    );
+    assert.ok(
+      !w3.some((t) => t.includes("highlighted")),
+      "no claim about the trust dialog's highlighted choice",
+    );
+    const w1 = beatsOf("b-2", "W1").flat();
+    assert.ok(
+      w1.some((t) => t.includes("it should be your copy's `project/` folder")),
+      "b-2 W1 says which folder the header shows",
+    );
+    assert.ok(
+      w1.some((t) => t.startsWith("If it isn't, type `/exit`")),
+      "b-2 W1 says what to do in the wrong folder",
+    );
+    for (const [id, step] of [
+      ["b-2", "W7"],
+      ["b-capstone", "T6"],
+    ]) {
+      const texts = beatsOf(id, step).flat();
+      assert.ok(
+        texts.some((t) => t.includes("**LSP plugin recommendation**")),
+        `${id} ${step} names the dialog`,
+      );
+      assert.ok(
+        texts.some((t) => t.includes("choose **No, not now**")),
+        `${id} ${step} says to decline it`,
+      );
+    }
+  },
+);
 
 // The live Beginner run's step text (349): a plan file's paths are written
 // relative to `project/`, which b-2 and the capstone say alike; b-5 names
@@ -2967,7 +3059,7 @@ test("Beginner steps prepare for Claude Code's own dialogs (345)", () => {
 // W4 says `/exit` once and b-1 W5 names `Esc`; an expect line reads after
 // the app's "You should see"; and no wrong answer's reason is a fragment or
 // another wrong answer's reason.
-test("Beginner step text reads whole on the card (349)", () => {
+developerTest("Beginner step text reads whole on the card (349)", () => {
   const beatTexts = (b) => [
     ...b.lines.map((l) => l.text),
     ...b.hints,
