@@ -95,8 +95,9 @@ badge: Beginner
 - where: editor
 - beat: do
 - verify: check 8
-- goal: "Write `fixit/march/readiness-note.md` for Maya: each fact with its source, which sources win, what's still open, and how you checked"
-- hint: "Could Maya check every fact without asking you?"
+- goal: "Write `fixit/march/readiness-note.md` for Maya: how many people can book and the line that sets it, each other fact with its source, where the lift really stands, and how you checked"
+- note: "A table, a list or a few sentences all work. Maya needs the real numbers on the right facts, not the word \"source\" on every line."
+- hint: "Could Maya check every fact without asking you? Who counts toward the booking's 40, and has anyone confirmed the lift?"
 - watching: fixit/march/readiness-note.md
 - back: T4 Reread the meeting notes for what isn't settled yet.
 
@@ -151,6 +152,9 @@ badge: Beginner
 - narrow "caps March sign-ups": What did the meeting decide about sign-ups?
 - narrow "books on the library": How does the public book?
 - narrow "No line tells": How does the public book?
+- narrow "how many volunteers": How many volunteers are there?
+- narrow "room's limit": How many people does the room hold, everyone included?
+- narrow "doesn't say there's a limit": Is there a limit on places?
 - back: T2 Reread the cited lines, the booking's occupancy line to the end of the sentence.
 
 ### the guide answers how to reach Room B, without promising step-free access
@@ -172,13 +176,21 @@ badge: Beginner
 - narrow "no number": Which number does the front desk answer?
 - back: T2 Reread the cited lines, the booking's occupancy line to the end of the sentence.
 
-### `fixit/march/readiness-note.md` shows where each fact comes from and what is still open
+### `fixit/march/readiness-note.md` gives the public limit and why, each fact's source, and where the lift really stands
 - narrow "There's no": Where should the readiness note be saved?
-- narrow "names a source for": Which file does each fact come from?
+- narrow "times. Say which fact": Which fact does each source settle?
 - narrow "flyer above": Which source is signed, and about March?
-- narrow "no section": What isn't settled yet?
-- narrow "doesn't mention the lift": What is still to be confirmed?
-- back: T4 Reread the meeting notes for what isn't settled yet.
+- narrow "occupancy line": Who counts toward the booking's 40?
+- narrow "caps March sign-ups": What did the meeting decide about sign-ups?
+- narrow "how many volunteers": How many volunteers are there?
+- narrow "room's limit": How many people does the room hold, everyone included?
+- narrow "public limit": How many people can book?
+- narrow "not why it's 30": Why is it 30 when the booking says 40?
+- narrow "who has to confirm the lift": Has anyone confirmed the lift works?
+- narrow "where the lift stands": Is the lift working, and who is confirming it?
+- narrow "still to be confirmed": What is still to be confirmed?
+- narrow "names a source for": Which file does each fact come from?
+- back: T4 Reread the meeting notes for what isn't settled yet, and the booking's occupancy line to the end of the sentence.
 
 ## card
 - skill: ask

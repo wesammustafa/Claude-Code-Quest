@@ -40,12 +40,12 @@ Two routes both work: brief Claude well, then check its draft; or ask for a quic
 2. **Check the draft against the sources.** Get every claim checked against the booking, the meeting notes and the standing notes, with the sources ranked and the lines cited. Open the cited lines yourself.
 3. **Correct the guide**, in your own words.
 4. **A request from Priya.** Read `fixit/march/priya-message.md` and decide.
-5. **Write the readiness note** for Maya: each fact with its source, which sources win, what's still open, and how you checked.
+5. **Write the readiness note** for Maya: how many people can book and the line that sets it, each other fact with its source, where the lift really stands, and how you checked. A table, a list or a few sentences all work.
 6. **A fresh check.** Clear the conversation with `/clear`, then ask the fresh session to check the guide against your readiness note and Maya's brief, reporting without fixing anything.
 
 ## Check
 
-The Lesson's check reads nine things: that the sources are as they arrived; that the guide gives the date, 10:30 to 1pm, no more places than the meeting agreed with a way to book, how to reach Room B without promising step-free access, what you can't bring with this month's new rule, no personal number and the library's public one; and that the readiness note gives each fact a source, doesn't put the flyer above the booking, and has a section for what's still open that mentions the lift.
+The Lesson's check reads nine things: that the sources are as they arrived; that the guide gives the date, 10:30 to 1pm, a limit on places no higher than the meeting agreed (30, or "places are limited") with a way to book, how to reach Room B without promising step-free access, what you can't bring with this month's new rule, no personal number and the library's public one; and that the readiness note gives the public limit of 30 with the line that explains it (no other count on the wrong fact), says the lift is still to be confirmed (and never that it works), names a source for at least four of the guide's facts, and doesn't put the flyer above the booking.
 
 What only you can judge: whether the guide fits on half a page, whether the access line is kind as well as accurate, and which one line changes if Priya confirms the lift on Friday.
 
