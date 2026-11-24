@@ -57,8 +57,9 @@ Treat its answer as you would a new colleague's: before you act on it, open the 
 
 1. In your own words, ask Claude to check each line of Jordan's note against the library's email and the meeting notes, with the file and line for each verdict. Don't ask it to change the note yet. For example: `check each line of @fixit/feb/jordan-welcome-note.md against the library's email and the January meeting notes. For each one say whether the sources agree, and give the file and line.` Typing `@` before a path includes that file in your prompt, without waiting for Claude to find and read it.
 2. Open each line Claude cites for a claim it says the sources contradict, and read it yourself. Decide from the email, not from Claude's verdict. Correct what the evidence contradicts, and mark what it doesn't cover for someone who can confirm it.
-3. Correct the parking line so a new volunteer parks in the right place, mark the extension-leads line for Priya to confirm, and keep the other lines. Edit the note in the files tab, or tell Claude exactly what to change. Either way, read the result. Say only what the email says: where to park, and why not the library.
-4. End the session with `/exit`. Your corrected note stays in the files.
+3. Optional: tell Claude exactly what to change: the parking line, from the library's email, and a mark on the extension-leads line for Priya to confirm. Name the line and what it should say, and what to leave as it is. Skip this step if you'd rather edit the note yourself in the files tab.
+4. Make sure the note sends volunteers to the right car park, marks the extension-leads line for Priya to confirm, and keeps the other lines. Edit the note in the files tab, or read what Claude changed. Either way, read the result. Say only what the email says: where to park, and why not the library.
+5. End the session with `/exit`. Your corrected note stays in the files.
 
 ## Check
 
