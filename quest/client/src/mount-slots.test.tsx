@@ -208,6 +208,20 @@ describe("every slot where 5.10 places it", () => {
     expect(before(badge, extra)).toBe(true);
   });
 
+  test("lessonCompleteReference takes the reference link's place", async () => {
+    function Reference({ lesson }: { lesson: string }) {
+      return <p data-test-reference="">{`Reference for ${lesson}`}</p>;
+    }
+    renderMounted("/lesson/b-1/complete/", snapshotOf(complete), {
+      slots: { lessonCompleteReference: Reference },
+    });
+    expect(one("[data-test-reference]")).toHaveTextContent("Reference for b-1");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(
+      screen.queryByRole("link", { name: "Compare with a reference solution" }),
+    ).toBeNull();
+  });
+
   test("courseCompleteExtra renders on Course complete", () => {
     renderMounted(
       "/course/complete/",

@@ -2,7 +2,7 @@ import { useParams } from "react-router";
 import type { LevelId, Snapshot } from "@quest/contract";
 import { ButtonLink } from "../components/Button";
 import { LessonBadge } from "../components/badges";
-import { LEVEL_NAMES } from "../course/labels";
+import { LEVEL_NAMES, levelsComplete } from "../course/labels";
 import { useSlots } from "../mount/context";
 import { Link } from "../mount/links";
 import { useProductName } from "../mount/copy";
@@ -143,7 +143,7 @@ export function CourseComplete() {
       <Pip size="hero" className="mb-2" />
       <span className={EYEBROW}>Course complete</span>
       <PageTitle title={`You finished ${product}`} className={TITLE} />
-      <p className="text-muted">All three levels are complete.</p>
+      <p className="text-muted">{levelsComplete(levels)}</p>
       {levels.map((view) => (
         <section
           key={view.id}

@@ -18,7 +18,7 @@ import { Icon } from "../components/Icon";
 import { InlineText } from "../components/InlineText";
 import { ProgressBar } from "../components/ProgressBar";
 import { LessonBadge } from "../components/badges";
-import { LEVEL_NAMES, lessonLabel } from "../course/labels";
+import { LEVEL_NAMES, lessonLabel, levelsIntro } from "../course/labels";
 import { cx } from "../lib/cx";
 import { useBelow } from "../lib/media";
 import { useMount } from "../mount/context";
@@ -120,8 +120,7 @@ const FOOTER_PLACE = [
   "md:col-start-3 max-md:order-6",
 ];
 
-const INTRO =
-  "Three levels. Each lesson ends with a check you can also run yourself.";
+const INTRO_END = "Each lesson ends with a check you can also run yourself.";
 
 /**
  * The Learning journey: three Level cards that select a Level, its Lessons on
@@ -136,21 +135,27 @@ export function Journey() {
   if (!snapshot) {
     return (
       <main className={WIDE}>
-        <JourneyHeader />
+        <JourneyHeader levels={null} />
       </main>
     );
   }
   return <Course snapshot={snapshot} />;
 }
 
-function JourneyHeader() {
+function JourneyHeader({
+  levels,
+}: {
+  levels: Snapshot["course"]["levels"] | null;
+}) {
   return (
     <header className="grid gap-2">
       <PageTitle
         title="Learning journey"
         className="text-3xl max-sm:text-2xl"
       />
-      <p className="text-muted">{INTRO}</p>
+      <p className="text-muted">
+        {levels ? `${levelsIntro(levels)} ${INTRO_END}` : INTRO_END}
+      </p>
     </header>
   );
 }
@@ -237,7 +242,7 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
   const stations = level.lessons.map((l) => l.id);
   return (
     <main className={WIDE}>
-      <JourneyHeader />
+      <JourneyHeader levels={levels} />
 
       {/* The tabs sit in one row and their footers in the next; stacked,
           each footer follows its own card. The tablist holds only the tabs,

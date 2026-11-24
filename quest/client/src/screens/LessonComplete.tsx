@@ -87,7 +87,8 @@ export function LessonComplete() {
   const reveal = useReveal(active?.lesson ?? null);
   const levelPending = useLevelPending(active?.lesson ?? null);
   const ref = useReleaseRef();
-  const { lessonCompleteExtra: Extra } = useSlots();
+  const { lessonCompleteExtra: Extra, lessonCompleteReference: Reference } =
+    useSlots();
   if (!active) return <LessonGate />;
   const { lesson, summary } = active;
   const passed = lesson.checkSummary.filter((line) => line.pass).length;
@@ -165,15 +166,19 @@ export function LessonComplete() {
       )}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <ReadLesson size="sm" />
-        {ref !== null && (
-          <a
-            href={githubTree(ref, `solutions/${lesson.id}`)}
-            target="_blank"
-            rel="noreferrer"
-            className={QUIET_LINK}
-          >
-            Compare with a reference solution
-          </a>
+        {Reference ? (
+          <Reference lesson={lesson.id} />
+        ) : (
+          ref !== null && (
+            <a
+              href={githubTree(ref, `solutions/${lesson.id}`)}
+              target="_blank"
+              rel="noreferrer"
+              className={QUIET_LINK}
+            >
+              Compare with a reference solution
+            </a>
+          )
         )}
       </div>
       {Extra && <Extra lesson={lesson.id} />}

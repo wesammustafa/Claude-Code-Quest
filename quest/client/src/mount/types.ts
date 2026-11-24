@@ -212,6 +212,11 @@ export interface ClientSlots {
   stepReadLesson?: boolean;
   /** On Lesson complete, before Next or the Level link. */
   lessonCompleteExtra?: ComponentType<{ lesson: LessonId }>;
+  /**
+   * On Lesson complete, in place of the link to the reference solution on
+   * GitHub: a mount that serves the solutions itself shows them here.
+   */
+  lessonCompleteReference?: ComponentType<{ lesson: LessonId }>;
   /** On Course complete, after the Level lists and before the buttons. */
   courseCompleteExtra?: ComponentType;
   /**

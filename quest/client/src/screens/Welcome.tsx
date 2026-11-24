@@ -3,7 +3,7 @@ import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
 import { InlineText } from "../components/InlineText";
 import { ProgressBar } from "../components/ProgressBar";
-import { lessonEyebrow } from "../course/labels";
+import { lessonEyebrow, seeLevels } from "../course/labels";
 import { useConnection } from "../live/LiveProvider";
 import { useActionProps } from "../live/useAction";
 import { useSlots } from "../mount/context";
@@ -67,6 +67,8 @@ function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
   const welcomeLine = useSlots().copy?.welcomeLine;
   const first = snapshot?.course.next ?? null;
   const welcomed = snapshot?.learner.welcomed === true;
+  // The course's own count, once the snapshot says.
+  const see = snapshot ? seeLevels(snapshot.course.levels) : "See all levels";
   const title = first !== null ? summaryOf(snapshot, first)?.title : undefined;
   // course.next is the active Lesson only on a first run, so its route shows
   // it without a lesson.open. A welcomed Learner may have another active
@@ -135,7 +137,7 @@ function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
           </Button>
         ))}
       <Link to="/journey" className={QUIET_LINK}>
-        {welcomed ? "See all three levels" : "See all three levels first"}
+        {welcomed ? see : `${see} first`}
       </Link>
     </>
   );

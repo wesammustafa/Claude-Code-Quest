@@ -25,3 +25,32 @@ export function lessonEyebrow(
 ): string {
   return `${LEVEL_NAMES[level]} · ${lessonLabel(number, capstone)}`;
 }
+
+const COUNT = ["no", "one", "two", "three", "four", "five"] as const;
+
+/**
+ * The link to the Journey, by how many Levels the course has: "See all three
+ * levels", or "See the Beginner level" for a course of one.
+ */
+export function seeLevels(levels: readonly { id: LevelId }[]): string {
+  const [only] = levels;
+  if (levels.length === 1 && only)
+    return `See the ${LEVEL_NAMES[only.id]} level`;
+  return `See all ${COUNT[levels.length] ?? String(levels.length)} levels`;
+}
+
+/** The Journey's opening words for the course's Levels: "Three levels." or "The Beginner level." */
+export function levelsIntro(levels: readonly { id: LevelId }[]): string {
+  const [only] = levels;
+  if (levels.length === 1 && only) return `The ${LEVEL_NAMES[only.id]} level.`;
+  const n = COUNT[levels.length] ?? String(levels.length);
+  return `${n.charAt(0).toUpperCase()}${n.slice(1)} levels.`;
+}
+
+/** Course complete's line: "All three levels are complete." or "The Beginner level is complete." */
+export function levelsComplete(levels: readonly { id: LevelId }[]): string {
+  const [only] = levels;
+  if (levels.length === 1 && only)
+    return `The ${LEVEL_NAMES[only.id]} level is complete.`;
+  return `All ${COUNT[levels.length] ?? String(levels.length)} levels are complete.`;
+}
