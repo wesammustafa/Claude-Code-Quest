@@ -155,6 +155,22 @@ describe("every slot where 5.10 places it", () => {
     ]);
   });
 
+  test("mainLinks follow Progress in the main nav; stepReadLesson false leaves Read the full lesson off the Step header", () => {
+    renderMounted(STEP, step);
+    const nav = within(topBar()).getByRole("navigation", { name: "Main" });
+    expect(
+      within(nav)
+        .getAllByRole("link")
+        .map((a) => a.textContent),
+    ).toEqual(["Journey", "Progress", "Lessons"]);
+    expect(
+      within(nav).getByRole("link", { name: "Lessons" }).getAttribute("href"),
+    ).toMatch(/\/lessons\/?$/);
+    expect(
+      screen.queryByRole("button", { name: "Read the full lesson" }),
+    ).not.toBeInTheDocument();
+  });
+
   test("settingsSections show in Settings; settingsHide hides Work folders, release and Codespace", async () => {
     renderMounted(STEP, step);
     await userEvent.click(

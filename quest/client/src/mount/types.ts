@@ -2,6 +2,7 @@
 // browser, say) mounts the client, on its own transport, router, added
 // screens and slots. The Local app passes none of it but `live`.
 import type { ComponentType } from "react";
+import type { IconName } from "../components/Icon";
 import type { RouteObject } from "react-router";
 import type {
   ActiveLesson,
@@ -201,6 +202,14 @@ export interface ClientSlots {
   settingsHide?: readonly ("work-folders" | "release" | "codespace")[];
   /** At the end of the top bar's main nav. */
   topBarEnd?: ComponentType;
+  /** In the top bar's main nav after Progress, drawn as Journey and Progress are. */
+  mainLinks?: readonly { to: string; icon: IconName; label: string }[];
+  /**
+   * `false` leaves "Read the full lesson" off a Step's header, for a mount
+   * that offers the Lesson pages on a screen of its own. The overview and
+   * Lesson complete keep theirs.
+   */
+  stepReadLesson?: boolean;
   /** On Lesson complete, before Next or the Level link. */
   lessonCompleteExtra?: ComponentType<{ lesson: LessonId }>;
   /** On Course complete, after the Level lists and before the buttons. */

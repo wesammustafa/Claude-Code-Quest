@@ -398,7 +398,9 @@ function Play({
                   {...(where.folder ? { note: `in ${where.folder}` } : {})}
                 />
               )}
-              <ReadLesson size="sm" className="ml-auto" />
+              {slots.stepReadLesson !== false && (
+                <ReadLesson size="sm" className="ml-auto" />
+              )}
             </div>
             {step.warmup && <Warmup warmup={step.warmup} snapshot={snapshot} />}
             {priorNote && (

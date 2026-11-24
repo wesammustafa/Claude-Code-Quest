@@ -346,7 +346,7 @@ export function TopBar() {
     setVisiting(null);
     setPanel(null);
   };
-  const { topBarEnd: End, onStepNext } = useSlots();
+  const { topBarEnd: End, mainLinks = [], onStepNext } = useSlots();
   // A route whose handle asks for Settings opens it on each arrival.
   const settingsRoute = useRouteHandle().settings === true;
   const { key } = useLocation();
@@ -431,6 +431,11 @@ export function TopBar() {
         <MainLink to="/progress" icon="progress">
           Progress
         </MainLink>
+        {mainLinks.map((link) => (
+          <MainLink key={link.to} to={link.to} icon={link.icon}>
+            {link.label}
+          </MainLink>
+        ))}
         {card.length > 0 && (
           <Button
             variant="ghost"

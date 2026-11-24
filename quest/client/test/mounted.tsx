@@ -214,6 +214,8 @@ export function renderMounted(
         Sign in
       </button>
     ),
+    mainLinks: [{ to: "/lessons", icon: "book", label: "Lessons" }],
+    stepReadLesson: false,
     lessonCompleteExtra: ({ lesson }) => (
       <p data-test-lesson-extra="">{`Extra for ${lesson}`}</p>
     ),
