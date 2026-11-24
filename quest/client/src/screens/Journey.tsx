@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -201,6 +202,37 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
     [],
   );
 
+  // Left and Right move Pip with no control focused too: a mouse user, or a
+  // keyboard user who has not tabbed in yet, presses them on the page
+  // itself. They move focus to the Station's link, whose focus moves Pip,
+  // as the links' own arrows do; Up and Down keep scrolling the page.
+  const path = useJourneyPath();
+  const home = current?.id ?? null;
+  useEffect(() => {
+    if (!onPath || !level) return;
+    const ids = level.lessons.map((l) => l.id);
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      if (
+        event.defaultPrevented ||
+        event.altKey ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        !noControlFocused(document.activeElement)
+      )
+        return;
+      const to = stationForKey(ids, path.at() ?? home, event.key);
+      if (to === null) return;
+      event.preventDefault();
+      link(to)?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [onPath, level, path, home, link]);
+
   if (!level) return null;
   const stations = level.lessons.map((l) => l.id);
   return (
@@ -346,6 +378,19 @@ function useOnPath(level: LevelId | undefined): boolean {
   const path = useJourneyPath();
   const ready = useSyncExternalStore(path.subscribe, path.ready, () => false);
   return scene && ready && level === "beginner";
+}
+
+/**
+ * Whether a key goes to no control: focus is on the page itself, or in the
+ * Journey's stage but not on its one control.
+ */
+function noControlFocused(el: Element | null): boolean {
+  if (el === null || el === document.body || el === document.documentElement)
+    return true;
+  return (
+    el.closest("[data-journey-stage]") !== null &&
+    !el.matches("a, button, input, select, textarea, [contenteditable]")
+  );
 }
 
 /** A Lesson link's part in the Journey's path: its Station, and the keys that move Pip along. */

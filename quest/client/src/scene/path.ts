@@ -158,9 +158,9 @@ export function stepStation(
 }
 
 /**
- * The Station a key moves Pip to while a Lesson link has focus: the arrow
- * keys one along, left and up back, right and down on; null for any other
- * key.
+ * The Station a key moves Pip to while a Lesson link has focus (or, for
+ * left and right, no control has): the arrow keys one along, left and up
+ * back, right and down on; null for any other key.
  */
 export function stationForKey(
   ids: readonly LessonId[],

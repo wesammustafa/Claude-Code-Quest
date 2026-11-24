@@ -210,6 +210,68 @@ describe("the Journey path, with the Scene drawing", () => {
     }
   });
 
+  test("with no control focused, Left and Right move focus and Pip along; Up, a modifier, a focused input, the stage's control and a tab are left alone", async () => {
+    const { page, path } = await onPath();
+    const blur = () => {
+      act(() => {
+        (document.activeElement as HTMLElement).blur();
+      });
+    };
+    expect(document.activeElement).toBe(document.body);
+    // From the Learner's place, b-1, before any Station is chosen.
+    expect(fireEvent.keyDown(document.body, { key: "ArrowRight" })).toBe(false);
+    expect(document.activeElement).toBe(link("b-2"));
+    expect(path.at()).toBe("b-2");
+    blur();
+    expect(fireEvent.keyDown(document.body, { key: "ArrowLeft" })).toBe(false);
+    expect(document.activeElement).toBe(link("b-1"));
+    expect(path.at()).toBe("b-1");
+    blur();
+    // Up and Down scroll the page.
+    expect(fireEvent.keyDown(document.body, { key: "ArrowUp" })).toBe(true);
+    expect(document.activeElement).toBe(document.body);
+    expect(path.at()).toBe("b-1");
+    for (const held of ["altKey", "metaKey", "ctrlKey", "shiftKey"]) {
+      const key = fireEvent.keyDown(document.body, {
+        key: "ArrowRight",
+        [held]: true,
+      });
+      expect(key).toBe(true);
+      expect(document.activeElement).toBe(document.body);
+      expect(path.at()).toBe("b-1");
+    }
+    const input = document.createElement("input");
+    document.body.append(input);
+    act(() => {
+      input.focus();
+    });
+    expect(fireEvent.keyDown(input, { key: "ArrowRight" })).toBe(true);
+    expect(document.activeElement).toBe(input);
+    expect(path.at()).toBe("b-1");
+    input.remove();
+    const whole = screen.getByRole("button", { name: WHOLE_LEVEL });
+    act(() => {
+      whole.focus();
+    });
+    expect(fireEvent.keyDown(whole, { key: "ArrowRight" })).toBe(true);
+    expect(document.activeElement).toBe(whole);
+    expect(path.at()).toBe("b-1");
+    // A Level tab keeps its own arrows: Right selects Intermediate, which
+    // has no path, so the page's arrows are off.
+    const [beginner, intermediate] = screen.getAllByRole("tab");
+    act(() => {
+      beginner?.focus();
+    });
+    fireEvent.keyDown(beginner as HTMLElement, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(intermediate);
+    expect(path.at()).toBe("b-1");
+    blur();
+    expect(fireEvent.keyDown(document.body, { key: "ArrowRight" })).toBe(true);
+    expect(document.activeElement).toBe(document.body);
+    page.unmount();
+    expect(fireEvent.keyDown(document.body, { key: "ArrowLeft" })).toBe(true);
+  });
+
   test("a swipe or a drag sideways moves Pip one Station along, and focus with it", async () => {
     const { path } = await onPath();
     const band = stage() as HTMLElement;
