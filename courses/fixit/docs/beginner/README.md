@@ -14,6 +14,7 @@
 1. [Start Claude Code and check what it tells you](01-start-and-check.md)
 2. [Give Claude a clear job](02-give-claude-a-clear-job.md)
 3. [Check every claim before anyone relies on it](02-check-every-claim.md)
+4. [Steer, undo and start fresh](04-steer-undo-and-start-fresh.md)
 
 ## Capstone
 

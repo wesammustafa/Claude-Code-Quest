@@ -82,17 +82,22 @@ const filesUnder = (dir) => {
   return out;
 };
 
-test('each lesson opens from its own prepared files, and no starting file is an author solution', () => {
+// A lesson may start from an earlier lesson's reference end, as b-4 starts
+// from b-6's corrected guide; it never ships its own answer or a later
+// lesson's.
+test("each lesson opens from its own prepared files, and no starting file is its own or a later lesson's author solution", () => {
+  const at = Object.fromEntries(PATH.map((p, i) => [p.id, i]));
   const solutions = filesUnder(join(COURSE, 'solutions')).filter((p) => !p.endsWith('steps.sh'));
-  const answers = new Map(solutions.map((p) => [readFileSync(p).toString('utf8').trim(), relative(COURSE, p)]));
-  for (const { id } of PATH) {
+  const answers = solutions.map((p) => ({ text: readFileSync(p).toString('utf8').trim(), path: relative(COURSE, p), from: relative(join(COURSE, 'solutions'), p).split('/')[0] }));
+  PATH.forEach(({ id }, i) => {
     const own = join(COURSE, 'practice-template/lessons', id, 'project');
     assert.ok(filesUnder(own).length > 0, `${id} has no prepared files`);
     for (const p of [...filesUnder(own), ...filesUnder(join(COURSE, 'practice-template/project'))]) {
-      const same = answers.get(readFileSync(p).toString('utf8').trim());
-      assert.equal(same, undefined, `${relative(COURSE, p)} is the solution ${same}`);
+      const text = readFileSync(p).toString('utf8').trim();
+      const same = answers.find((a) => a.text === text && !(at[a.from] < i));
+      assert.equal(same?.path, undefined, `${relative(COURSE, p)} is the solution ${same?.path}`);
     }
-  }
+  });
 });
 
 test("each stamp is truthful: checked against the documentation, not yet re-run, and the page's sub line agrees", () => {

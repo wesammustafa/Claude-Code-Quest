@@ -32,9 +32,19 @@
       "slow": []
     },
     {
-      "id": "b-capstone",
+      "id": "b-4",
       "level": "beginner",
       "order": 4,
+      "page": "docs/beginner/04-steer-undo-and-start-fresh.md",
+      "steps": "course/steps/b-4.md",
+      "check": "b-4",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "b-capstone",
+      "level": "beginner",
+      "order": 5,
       "page": "docs/beginner/capstone.md",
       "steps": "course/steps/b-capstone.md",
       "check": "b-capstone",
