@@ -54,7 +54,7 @@ In Questerm, Claude's words are written in advance. Changing the model or effort
 
    Finding a root cause means checking each step against evidence, where more thinking pays.
 2. **Give the changelog skill less.** In `.claude/skills/changelog/SKILL.md`, replace `model: TODO` and `effort: TODO` so the skill costs less than the session's default, Opus at medium: a smaller model, or a lower effort. Then replace the `TODO` line under `## Why these settings` with one line of your own: what makes this task routine.
-3. **Make one change and get its entry.** Pick one of the three requests in `practice/i-3/requests.md` for this release. Ask Claude to make that change, with a test. Read the diff with `/diff`, then run `/changelog`. Read the entry it writes against the diff: does it say what the change does for someone running the checker? If it doesn't, ask Claude to correct it, or correct it yourself in `CHANGELOG.md`. Before you commit, press Check: it reads the entry against the change.
+3. **Make one change and get its entry.** Pick one of the three requests in `practice/i-3/requests.md` for this release. Ask Claude to make that change, with a test. Read the diff with `/diff`: it lists every file this session changed, with the lines added and removed. Then run `/changelog`. Read the entry it writes against the diff: does it say what the change does for someone running the checker? If it doesn't, ask Claude to correct it, or correct it yourself in `CHANGELOG.md`. Before you commit, press Check: it reads the entry against the change.
 4. **Commit change, entry and both skills together.** Ask Claude to commit the change, its test, the entry and both skills as one commit.
 
 ## Check
@@ -85,12 +85,13 @@ Run `/changelog` on the same change twice: once with the skill at `model: haiku`
 
 ## Technical detail
 
-| Setting | What it does | Verify | Failure case | Reference |
+| Item | What it does | Verify | Failure case | Reference |
 |---|---|---|---|---|
 | `/model`, with aliases such as `default`, `best` (the same as `opus` since v2.1.321), `sonnet`, `opus`, `haiku` and `opusplan` | picks the session's model | `/status` | switching mid-session rebuilds the prompt cache, so the next turn costs more; on some providers an alias resolves to an older model | [Model configuration](https://code.claude.com/docs/en/model-config) |
 | `/effort`, `low` to `max` | how long Claude thinks | `/effort` prints the level in force | `max` lasts only for the session and is "prone to overthinking" | [Model configuration](https://code.claude.com/docs/en/model-config) |
 | `ultrathink` in a prompt | deeper effort for one turn | the word shows a rainbow highlight (VS Code and Desktop, v2.1.316 or later) | "think hard" is ordinary text, not a setting | [Best practices](https://code.claude.com/docs/en/best-practices#change-the-model-and-effort) |
 | `model:` and `effort:` in a skill's frontmatter | the settings while that skill runs | the status line during the skill's turn | the session's settings return after it | [Skills](https://code.claude.com/docs/en/skills) |
+| `/diff` | shows the session's uncommitted changes | the file list matches what you asked for | a file you didn't ask for: press `Esc` earlier, or ask Claude to put it back | [Commands](https://code.claude.com/docs/en/commands) |
 
 ## Go further
 

@@ -16,7 +16,7 @@ import { spawnSync } from 'node:child_process';
 import { COURSE, layChecks } from '../tools/lay.mjs';
 
 const checks = layChecks();
-const { repo, commit, write } = await import(pathToFileURL(join(checks, 'test/helpers.mjs')).href);
+const { repo, commit, write, rootWrite } = await import(pathToFileURL(join(checks, 'test/helpers.mjs')).href);
 const { openRepo } = await import(pathToFileURL(join(checks, 'repo.mjs')).href);
 const i4 = await import(pathToFileURL(join(checks, 'lessons/i-4.mjs')).href);
 const [privateFolders, sources, guard, ask, guide] = i4.items;
@@ -111,7 +111,7 @@ test("near miss: the sources rule in local settings and the guard on Edit only, 
     [SHARED]: json(settings({ deny: ['Read(./**/private/**)'], hooks: [hook('no-private-numbers.sh', 'Edit')] })),
     [LOCAL]: json({ permissions: { deny: ['Edit(./sources/**)', 'Edit(./**/booking-*)', 'Edit(./**/venue-email-*)'] } }),
   });
-  says(sources, r, /The sources rule is in your local settings, `\.claude\/settings\.local\.json`\. Sam won't have it/);
+  says(sources, r, /The sources rule is in your own local settings, `fixit\/\.claude\/settings\.local\.json`\. Sam won't have it/);
   says(guard, r, /A Write of 555-0187 to the guide wasn't blocked: match `Edit\|Write`\./);
   passes(r, [privateFolders, ask, guide]);
 });
@@ -127,10 +127,23 @@ test('private folders: any depth or one month down passes; one month, a local ru
     assert.equal(privateFolders.check(copy({ [SHARED]: json(settings({ deny: [rule, ...SOURCE_DENY] })) })), true, rule);
   says(privateFolders, copy({ [SHARED]: json(settings({ deny: ['Read(./march/private/**)', ...SOURCE_DENY] })) }), /covers one month's `private\/` folder only: next month's isn't covered/);
   says(privateFolders, copy({ [SHARED]: json(settings({ deny: ['Read', ...SOURCE_DENY] })) }), /`Read` denies more than `private\/`/);
-  says(privateFolders, copy({ [SHARED]: json(settings({ deny: SOURCE_DENY })), [LOCAL]: json({ permissions: { deny: ['Read(./**/private/**)'] } }) }), /is in your local settings/);
+  says(privateFolders, copy({ [SHARED]: json(settings({ deny: SOURCE_DENY })), [LOCAL]: json({ permissions: { deny: ['Read(./**/private/**)'] } }) }), /is in your own local settings, `fixit\/\.claude\/settings\.local\.json`/);
   says(privateFolders, copy({ [SHARED]: json(settings({ deny: SOURCE_DENY })) }), /Nothing stops Claude reading `march\/private\/roster\.csv` yet/);
   // An allow or ask rule is no deny.
   says(privateFolders, copy({ [SHARED]: json(settings({ deny: SOURCE_DENY, ask: ['Bash', 'Read(./**/private/**)'] })) }), /Nothing stops/);
+});
+
+// Claude Code reads and writes settings.local.json at the repository root
+// for a session started in a subfolder, so a rule saved there is read, and
+// the check names that file rather than saying nothing stops Claude.
+test('a rule in your own local settings at the repository root is read, and its file named', () => {
+  const dir = repo(START, { nested: true });
+  commit(dir, 'start');
+  write(dir, { [SHARED]: json(settings({ deny: SOURCE_DENY })) });
+  rootWrite(dir, { [i4.ROOT_LOCAL]: json({ permissions: { deny: ['Read(./**/private/**)'], allow: ['Bash(npm run *)'] } }) });
+  const r = openRepo(dir);
+  says(privateFolders, r, /The rule for `private\/` is in your own local settings, `\.claude\/settings\.local\.json`\. Sam won't have it/);
+  says(ask, r, /`Bash\(npm run \*\)` lets every matching command run without asking/);
 });
 
 test('sources: every month\'s bookings and emails, editable guides, and a hook that fails closed', () => {
@@ -152,7 +165,7 @@ test('sources: every month\'s bookings and emails, editable guides, and a hook t
   says(sources, hooked(hook('protect-sources.sh'), PROTECT, [PROTECT_PATH]), /`\.claude\/hooks\/protect-sources\.sh` isn't executable/);
   says(sources, copy({ ...DONE, [SHARED]: json(settings({ deny: ['Read(./**/private/**)'], hooks: [hook('protect-sources.sh'), hook('no-private-numbers.sh')] })) }), /there's no such file in `fixit\/`/);
   // A hook in local settings is named as such.
-  says(sources, copy({ ...DONE, [SHARED]: json(settings({ deny: ['Read(./**/private/**)'] })), [LOCAL]: json({ hooks: { PreToolUse: [hook('protect-sources.sh')] } }), [PROTECT_PATH]: PROTECT }), /in your local settings/);
+  says(sources, copy({ ...DONE, [SHARED]: json(settings({ deny: ['Read(./**/private/**)'] })), [LOCAL]: json({ hooks: { PreToolUse: [hook('protect-sources.sh')] } }), [PROTECT_PATH]: PROTECT }), /in your own local settings, `fixit\/\.claude\/settings\.local\.json`/);
 });
 
 test('the guard: reads an edit too, fails closed, lets the public number and private notes through', () => {
@@ -166,7 +179,7 @@ test('the guard: reads an edit too, fails closed, lets the public number and pri
   assert.notEqual(contentOnly, GUARD);
   says(guard, with_(contentOnly), /555-0187 edited into the guide wasn't blocked/);
   says(guard, with_(GUARD, { onFailure: 'block' }, {}, [GUARD_PATH]), /`\.claude\/hooks\/no-private-numbers\.sh` isn't executable/);
-  says(guard, copy({ ...DONE, [SHARED]: json(settings({ hooks: [] })), [LOCAL]: json({ hooks: { PreToolUse: [hook('no-private-numbers.sh')] } }), [GUARD_PATH]: GUARD }), /The guard is in your local settings/);
+  says(guard, copy({ ...DONE, [SHARED]: json(settings({ hooks: [] })), [LOCAL]: json({ hooks: { PreToolUse: [hook('no-private-numbers.sh')] } }), [GUARD_PATH]: GUARD }), /The guard is in your own local settings, `fixit\/\.claude\/settings\.local\.json`/);
   says(guard, copy({ ...DONE, [SHARED]: json(settings({ hooks: [] })) }), /No guard checks what's written to a public page yet/);
   // A guard that blocks every edit isn't a guard on what's written.
   says(guard, with_('#!/bin/sh\ncat >/dev/null\nexit 2\n'), /also block 555-0100/);

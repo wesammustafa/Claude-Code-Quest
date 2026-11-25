@@ -57,6 +57,8 @@ Making April's guide yourself and sending it to Sam doesn't meet the brief: Sam 
 
 The Lesson's check reads the kit and what it made: the source order in `CLAUDE.md` and the skill's step that applies it; the number guard, run on test edits as Claude Code runs it, so any guard that behaves right passes; the read rules in the shared settings; the April guide and its fact table; `KIT.md`; your note to Sam; and the guard on May's guide.
 
+One of those eight items passes before you start, and says so on the card: the kit's read rule for the `private/` folders. The kit's faults are elsewhere, and the item is there so that widening the guard doesn't cost you a guard you already had.
+
 What only you can judge: whether the guide reads well for a noticeboard, whether `KIT.md`'s limits are the ones that matter to Sam, and whether the school's public number should be added for May.
 
 **In Questerm**, Claude's replies are written in advance, worked out from what your kit's files say, and the bookings server is simulated. Questerm asks for each run in a fresh session, but the check reads your files, not a record of the sessions or of the skill running: a guide corrected by hand while the kit stays wrong still fails, because the kit is what the check reads.
