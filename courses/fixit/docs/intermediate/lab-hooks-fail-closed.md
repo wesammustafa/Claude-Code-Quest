@@ -189,7 +189,7 @@ The lab's check reads eight things:
 - `package-lock.json` and `secrets/api.txt` are as the lab started them
 - the tests pass
 
-The check runs your gate in a copy of the repository with its real `npm test`, and breaks a test there of its own.
+The check runs your gate in a copy of the repository with its real `npm test`, and breaks a test there of its own. If the check names a file with changes that aren't committed, ask Claude to commit it.
 
 What the check can't see: whether the guard blocked an edit and the gate sent Claude back in your session. It sees only that the protected files are unchanged. That part is yours to confirm.
 
