@@ -91,6 +91,16 @@
       "check": "a-6",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "a-capstone",
+      "level": "advanced",
+      "order": 9,
+      "page": "docs/advanced/capstone.md",
+      "steps": "course/steps/a-capstone.md",
+      "check": "a-capstone",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }

@@ -20,7 +20,7 @@ It's the summer series for the Millbrook Fixers: three session pages and a sched
 
 ## Capstone
 
-Release day for the summer series: a late change, reviewers who disagree, a partial run, and a go/no-go decision with its evidence.
+[Release day for the summer series](capstone.md): a late change, reviewers who disagree, a partial run, and a go/no-go decision with its evidence.
 
 ## Engineering labs (optional)
 
