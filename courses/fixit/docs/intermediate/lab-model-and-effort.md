@@ -35,7 +35,7 @@ In Questerm, Claude's words are written in advance. Changing the model or effort
    claude
    ```
 
-   Type `/status`: it lists the model and the effort this session runs, Opus at medium. Then type `/effort`: it prints the effort in force. Don't change the default: this lab compares every setting against it.
+   Type `/status`: it lists the model and the effort this session runs, Opus at medium. Then type `/effort status`: it prints the effort in force. Plain `/effort` opens a slider to change it, and `/model` opens the model picker. Don't change the default: this lab compares every setting against it.
 2. **Diagnose before escalating.** `samples/bad-escape.md` links to `bad%.md`, and `npm run linkcheck -- samples` crashes on it. Give Claude the failing file and the command, and ask why, with no edits:
 
    ```text
@@ -87,8 +87,8 @@ Run `/changelog` on the same change twice: once with the skill at `model: haiku`
 
 | Item | What it does | Verify | Failure case | Reference |
 |---|---|---|---|---|
-| `/model`, with aliases such as `default`, `best` (the same as `opus` since v2.1.321), `sonnet`, `opus`, `haiku` and `opusplan` | picks the session's model | `/status` | switching mid-session rebuilds the prompt cache, so the next turn costs more; on some providers an alias resolves to an older model | [Model configuration](https://code.claude.com/docs/en/model-config) |
-| `/effort`, `low` to `max` | how long Claude thinks | `/effort` prints the level in force | `max` lasts only for the session and is "prone to overthinking" | [Model configuration](https://code.claude.com/docs/en/model-config) |
+| `/model`, typed in the session beside `/effort`, with aliases such as `default`, `best` (the same as `opus` since v2.1.321), `sonnet`, `opus`, `haiku` and `opusplan` | picks the session's model: with an alias it also saves your default for new sessions, and with no argument it opens the picker, where `s` on a row changes this session only | `/status`, or the picker's marked row | switching mid-session rebuilds the prompt cache, so the next turn costs more; on some providers an alias resolves to an older model | [Model configuration](https://code.claude.com/docs/en/model-config) |
+| `/effort`, `low` to `max` | how long Claude thinks; typed with a level it sets one, with no argument it opens a slider | `/effort status` prints the level in force | `max` lasts only for the session and is "prone to overthinking" | [Model configuration](https://code.claude.com/docs/en/model-config) |
 | `ultrathink` in a prompt | deeper effort for one turn | the word shows a rainbow highlight (VS Code and Desktop, v2.1.316 or later) | "think hard" is ordinary text, not a setting | [Best practices](https://code.claude.com/docs/en/best-practices#change-the-model-and-effort) |
 | `model:` and `effort:` in a skill's frontmatter | the settings while that skill runs | the status line during the skill's turn | the session's settings return after it | [Skills](https://code.claude.com/docs/en/skills) |
 | `/diff` | shows the session's uncommitted changes | the file list matches what you asked for | a file you didn't ask for: press `Esc` earlier, or ask Claude to put it back | [Commands](https://code.claude.com/docs/en/commands) |
