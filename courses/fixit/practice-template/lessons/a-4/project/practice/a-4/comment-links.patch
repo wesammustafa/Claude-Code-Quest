@@ -1,0 +1,40 @@
+Skip links in editors' notes
+
+An editor's note in an HTML comment, such as <!-- Old rota: [rota](old-rota.md) -->,
+isn't part of the page, so the checker shouldn't report its links as broken.
+This change skips them, with a test.
+
+diff --git a/project/src/links.js b/project/src/links.js
+--- a/project/src/links.js
++++ b/project/src/links.js
+@@ -1,4 +1,4 @@
+-// Finds inline Markdown links, [text](target), outside code blocks.
++// Finds inline Markdown links, [text](target), outside code blocks and HTML comments.
+ export function findLinks(markdown) {
+   const links = [];
+   let inFence = false;
+@@ -8,7 +8,8 @@ export function findLinks(markdown) {
+       return;
+     }
+     if (inFence) return;
+-    const prose = line.replace(/`[^`]*`/g, '');
++    // An editor's note in an HTML comment holds no link to check.
++    const prose = line.replace(/<!--.*?-->/g, '').replace(/`[^`]*`/g, '');
+     // The target may sit in angle brackets and may be followed by a title.
+     for (const m of prose.matchAll(/(?<!!)\[([^\]]*)\]\(\s*(?:<([^>]*)>|([^)\s]+))(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/g)) {
+       links.push({ text: m[1], target: m[2] ?? m[3], line: i + 1 });
+diff --git a/project/test/links.test.js b/project/test/links.test.js
+--- a/project/test/links.test.js
++++ b/project/test/links.test.js
+@@ -17,6 +17,11 @@ test('skips images and links inside code', () => {
+   assert.deepEqual(findLinks(md), []);
+ });
+ 
++test('skips links inside an HTML comment', () => {
++  const md = 'See [setup](setup.md).\n<!-- Old rota: [rota](old-rota.md) -->\n';
++  assert.deepEqual(findLinks(md).map((l) => l.target), ['setup.md']);
++});
++
+ test('finds links that have a title', () => {
+   const links = findLinks('See [setup](setup.md "Setting up") and [rules](rules.md \'House rules\').\n');
+   assert.deepEqual(links.map((l) => l.target), ['setup.md', 'rules.md']);

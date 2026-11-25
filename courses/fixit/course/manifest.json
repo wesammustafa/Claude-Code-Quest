@@ -74,6 +74,17 @@
       "folder": "copy",
       "optional": true,
       "slow": [2]
+    },
+    {
+      "id": "a-4",
+      "level": "advanced",
+      "order": 8,
+      "page": "docs/advanced/lab-script-claude-code.md",
+      "steps": "course/steps/a-4.md",
+      "check": "a-4",
+      "folder": "copy",
+      "optional": true,
+      "slow": [1, 2, 4]
     }
   ]
 }
