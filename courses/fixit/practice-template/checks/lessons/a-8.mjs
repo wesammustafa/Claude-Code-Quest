@@ -40,7 +40,7 @@ const OPEN = /\b(?:being confirmed|to be confirmed|not (?:yet )?confirmed|unconf
 
 /** @type {Item} */
 export const pageRight = {
-  text: '`august-sam-2027-06-09.md` gives only the public numbers and claims no parking',
+  text: "`august-sam-2027-06-09.md` gives the Northside office's number and no private one, and claims no parking",
   check(repo) {
     const text = repo.read(PAGE);
     if (text === null) return `\`${PAGE}\` is missing. Reset this step to bring Sam's version back.`;
@@ -49,6 +49,7 @@ export const pageRight = {
     if (other.includes('555-0162'))
       return "The page still gives 555-0162, Sam's mobile. A public page gives only the venue's public number: the Northside office, 555-0130.";
     if (other.length) return `The page gives ${other[0]}, which is not a public number. A public page gives only the Northside office, 555-0130.`;
+    if (!numbers.includes('555-0130')) return "The page gives no number to call now. Kofi's email gives the public one: the Northside office, 555-0130.";
     const parking = sentences(text).find((s) => PARKING.test(s) && (FREE.test(s) || (ON_SITE.test(s) && !OPEN.test(s))));
     if (parking) return `The page says "${parking}" Which source says that?`;
     return true;

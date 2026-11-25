@@ -86,6 +86,10 @@ test('a private number in another format, or anyone else\'s, fails', () => {
   says(page, copy({ ...A, [PAGE]: SOLVED.replace('555-0130.', '555-0130, or Priya on 555-0187.') }), /^The page gives 555-0187, which is not a public number\./);
 });
 
+test('the whole Questions line taken out leaves no number to call, and fails', () => {
+  says(page, copy({ ...A, [PAGE]: SOLVED.replace(/^\*\*Questions\?\*\*.*\n?/m, '') }), /^The page gives no number to call now\./);
+});
+
 test('parking: free is a claim however it is hedged, a car park at the centre is one unless left open, and asking passes', () => {
   says(page, copy({ ...A, [PAGE]: where('toilet available.', 'toilet available. Free parking at the centre (to be confirmed).') }), /Free parking at the centre \(to be confirmed\)\./);
   says(page, copy({ ...A, [PAGE]: where('toilet available.', 'toilet available. Parking is free on Saturdays.') }), /Parking is free on Saturdays\./);

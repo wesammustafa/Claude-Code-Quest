@@ -70,7 +70,7 @@ The evidence changes. On Wednesday 9 June Sam edited the August page by hand, ou
 
 ## Check
 
-The Lesson's check reads three things: that `august-sam-2027-06-09.md` gives only the public numbers and claims no parking, that it still says the accessible toilet is available, as Kofi's email of 25 May does, and that `august-decision.md` says which findings you acted on, which you set aside and why, and the one question you're asking.
+The Lesson's check reads three things: that `august-sam-2027-06-09.md` gives the Northside office's number and no private one, and claims no parking, that it still says the accessible toilet is available, as Kofi's email of 25 May does, and that `august-decision.md` says which findings you acted on, which you set aside and why, and the one question you're asking.
 
 What the check can't see is whether you opened the lines the findings relied on. In this practice workspace, your requests are judged before Claude acts on them.
 
