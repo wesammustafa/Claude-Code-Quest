@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import type { Snapshot } from "@quest/contract";
+import type { LessonSummary, Snapshot } from "@quest/contract";
 import { ButtonLink } from "../components/Button";
 import { InlineText } from "../components/InlineText";
 import { Tier } from "../components/Tier";
@@ -12,7 +12,7 @@ import { PageTitle } from "../shell/PageTitle";
 import { BOX, COLUMN, EYEBROW } from "./layout";
 import { OpenLessonButton } from "./OpenLessonButton";
 import { pathOf, useCourseSnapshot } from "./lesson";
-import { courseCounts, journeyPlace, levelOf } from "./place";
+import { courseCounts, journeyPlace, levelOf, splitLabs } from "./place";
 
 /** Once the screen has settled in, Pip glances toward the next goal. */
 const GLANCE_AFTER_MS = 600;
@@ -102,29 +102,45 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
           Badges
         </h2>
         <BadgeShelfHint earned={counts.lessons.done > 0} />
-        {snapshot.course.levels.map((level) => (
-          <div key={level.id} className="grid gap-2">
-            <h3 className="text-sm text-muted">{LEVEL_NAMES[level.id]}</h3>
-            <ul className="flex flex-wrap gap-3">
-              {level.lessons.map(
-                (s) =>
-                  s.badge !== null && (
-                    <li key={s.id}>
-                      <SceneBadge
-                        lesson={s.id}
-                        name={s.badge}
-                        earned={s.complete}
-                        size="sm"
-                        turns
-                      />
-                    </li>
-                  ),
+        {snapshot.course.levels.map((level) => {
+          const { core, labs } = splitLabs(level.lessons);
+          return (
+            <div key={level.id} className="grid gap-2">
+              <h3 className="text-sm text-muted">{LEVEL_NAMES[level.id]}</h3>
+              <Badges lessons={core} />
+              {labs.length > 0 && (
+                <>
+                  <h4 className="text-xs text-muted">Optional labs</h4>
+                  <Badges lessons={labs} />
+                </>
               )}
-            </ul>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </section>
     </>
+  );
+}
+
+/** The Badges of `lessons`, earned or not yet, in course order. */
+function Badges({ lessons }: { lessons: readonly LessonSummary[] }) {
+  return (
+    <ul className="flex flex-wrap gap-3">
+      {lessons.map(
+        (s) =>
+          s.badge !== null && (
+            <li key={s.id}>
+              <SceneBadge
+                lesson={s.id}
+                name={s.badge}
+                earned={s.complete}
+                size="sm"
+                turns
+              />
+            </li>
+          ),
+      )}
+    </ul>
   );
 }
 
@@ -156,7 +172,7 @@ function NextGoal({ snapshot }: { snapshot: Snapshot }) {
         </h2>
         {current ? (
           <b>
-            {`${LEVEL_NAMES[levelOf(snapshot, current)]}, ${lessonLabel(current.number, current.capstone)}: `}
+            {`${LEVEL_NAMES[levelOf(snapshot, current)]}, ${lessonLabel(current.number, current.capstone, current.optional)}: `}
             <InlineText text={current.title} />
           </b>
         ) : (

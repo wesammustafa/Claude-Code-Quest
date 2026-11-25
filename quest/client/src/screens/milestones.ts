@@ -42,7 +42,7 @@ export function celebratable(snapshot: Snapshot | null): Milestone[] {
 
 export interface LevelMoment {
   level: LevelView;
-  /** Each Lesson of the Level with a Badge, in course order. */
+  /** Each Lesson of the Level with a Badge, in course order: its core ones, and the labs done. */
   badges: { lesson: LessonId; name: string }[];
   /** The Level after it, or null after Advanced. */
   next: LevelView | null;
@@ -58,7 +58,9 @@ export function levelMoment(
   const view = levels[at];
   if (view === undefined || !view.complete) return null;
   const badges = view.lessons.flatMap((lesson) =>
-    lesson.badge === null ? [] : [{ lesson: lesson.id, name: lesson.badge }],
+    lesson.badge === null || (lesson.optional && !lesson.complete)
+      ? []
+      : [{ lesson: lesson.id, name: lesson.badge }],
   );
   return { level: view, badges, next: levels[at + 1] ?? null };
 }

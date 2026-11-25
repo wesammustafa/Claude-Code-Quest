@@ -304,7 +304,12 @@ function CardEntries({ snapshot }: { snapshot: Snapshot }) {
     for (const level of snapshot.course.levels) {
       const summary = level.lessons.find((l) => l.id === id);
       if (summary)
-        return lessonEyebrow(level.id, summary.number, summary.capstone);
+        return lessonEyebrow(
+          level.id,
+          summary.number,
+          summary.capstone,
+          summary.optional,
+        );
     }
     return id;
   };
@@ -336,7 +341,9 @@ export function TopBar() {
     l.lessons.some((summary) => summary.id === routeId),
   );
   const levelName = level ? LEVEL_NAMES[level.id] : "";
-  const label = lesson ? lessonLabel(lesson.number, lesson.capstone) : "";
+  const label = lesson
+    ? lessonLabel(lesson.number, lesson.capstone, lesson.optional)
+    : "";
   // Steps outlines the active Lesson; a Lesson the Learner only browses
   // shows its crumbs alone.
   const active = lesson !== null && snapshot?.lesson.id === lesson.id;

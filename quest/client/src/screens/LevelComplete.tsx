@@ -111,7 +111,9 @@ function LevelNext({
   const first =
     next === null
       ? undefined
-      : snapshot.course.levels.find((view) => view.id === next)?.lessons[0];
+      : snapshot.course.levels
+          .find((view) => view.id === next)
+          ?.lessons.find((lesson) => !lesson.optional);
   if (next === null || first === undefined)
     return (
       <ButtonLink to="/journey" variant="primary" size="lg" iconEnd="arrow">
@@ -154,19 +156,16 @@ export function CourseComplete() {
             {LEVEL_NAMES[view.id]}
           </h2>
           <ul className="flex flex-wrap justify-center gap-3">
-            {view.lessons.map(
-              (lesson) =>
-                lesson.badge !== null && (
-                  <li key={lesson.id}>
-                    <LessonBadge
-                      lesson={lesson.id}
-                      name={lesson.badge}
-                      earned
-                      size="sm"
-                    />
-                  </li>
-                ),
-            )}
+            {(levelMoment(snapshot, view.id)?.badges ?? []).map((badge) => (
+              <li key={badge.lesson}>
+                <LessonBadge
+                  lesson={badge.lesson}
+                  name={badge.name}
+                  earned
+                  size="sm"
+                />
+              </li>
+            ))}
           </ul>
         </section>
       ))}

@@ -41,6 +41,8 @@ export interface PathEntry {
   newCopy?: true;
   // A lesson of a level that practises in a work folder.
   work?: true;
+  // An optional lesson (a lab), beside its level's core path.
+  optional?: true;
 }
 
 // A Lesson of the course the engine plays: its path entry, its page's
@@ -55,6 +57,7 @@ export interface CourseEntry {
   folder?: "copy";
   newCopy?: true;
   work?: true;
+  optional?: true;
   title?: string;
   url?: string;
   items: string[];
