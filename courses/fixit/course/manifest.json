@@ -297,6 +297,21 @@
         4
       ],
       "optional": true
+    },
+    {
+      "id": "a-5",
+      "level": "advanced",
+      "order": 26,
+      "page": "docs/advanced/lab-release-review.md",
+      "steps": "course/steps/a-5.md",
+      "check": "a-5",
+      "folder": "new-copy",
+      "slow": [
+        1,
+        4,
+        6
+      ],
+      "optional": true
     }
   ]
 }

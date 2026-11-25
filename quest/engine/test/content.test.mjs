@@ -1198,6 +1198,10 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "the optional lab i-8's question about the plugin panel is the first that can mark install-plugin missed, and no lesson after it is built yet; a later Advanced pool recalls it",
       "code-intel":
         "the optional lab i-8's question about the references the language server found is the first that can mark code-intel missed, and no lesson after it is built yet; a later Advanced pool recalls it",
+      "gh-secret":
+        "the optional lab a-5's credential question is the first that can mark gh-secret missed, and a-5 is the course's last lesson, so no later pool can recall it",
+      "ci-workflow":
+        "the optional lab a-5's question on Claude's CI report is the first that can mark ci-workflow missed, and a-5 is the course's last lesson, so no later pool can recall it",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

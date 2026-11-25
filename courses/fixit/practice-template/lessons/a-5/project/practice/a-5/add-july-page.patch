@@ -1,0 +1,18 @@
+Add the July session's page
+
+Priya's draft of the page for Fix-It Saturday on 10 July, with the room,
+the times and links to the booking and setup pages.
+
+diff --git a/project/samples/july.md b/project/samples/july.md
+new file mode 100644
+--- /dev/null
++++ b/project/samples/july.md
+@@ -0,0 +1,8 @@
++# Fix-It Saturday, 10 July
++
++**Where:** Millbrook Library, Room B, 10:30 to 13:00.
++
++**Access:** Room B is step-free by lift.
++
++- [Book a place](fixit-booking.md)
++- [Setting up the room](setup.md)

@@ -39,7 +39,8 @@ import * as aCapstone from './a-capstone.mjs';
 import * as a1 from './a-1.mjs';
 import * as a3 from './a-3.mjs';
 import * as a4 from './a-4.mjs';
+import * as a5 from './a-5.mjs';
 /** @import { Repo } from '../repo.mjs' */
 
 /** @type {Record<string, Lesson | undefined>} */
-export const lessons = { 'b-1': b1, 'b-2': b2, 'b-6': b6, 'b-4': b4, 'b-5': b5, 'b-capstone': bCapstone, 'b-3': b3, 'i-2': i2, 'i-1': i1, 'i-4': i4, 'i-6': i6, 'i-7': i7, 'i-capstone': iCapstone, 'i-3': i3, 'i-5': i5, 'i-8': i8, 'a-2': a2, 'a-8': a8, 'a-7': a7, 'a-9': a9, 'a-6': a6, 'a-capstone': aCapstone, 'a-1': a1, 'a-3': a3, 'a-4': a4 };
+export const lessons = { 'b-1': b1, 'b-2': b2, 'b-6': b6, 'b-4': b4, 'b-5': b5, 'b-capstone': bCapstone, 'b-3': b3, 'i-2': i2, 'i-1': i1, 'i-4': i4, 'i-6': i6, 'i-7': i7, 'i-capstone': iCapstone, 'i-3': i3, 'i-5': i5, 'i-8': i8, 'a-2': a2, 'a-8': a8, 'a-7': a7, 'a-9': a9, 'a-6': a6, 'a-capstone': aCapstone, 'a-1': a1, 'a-3': a3, 'a-4': a4, 'a-5': a5 };
