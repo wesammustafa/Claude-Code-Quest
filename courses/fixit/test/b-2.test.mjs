@@ -98,8 +98,14 @@ test('another volunteer\'s number, or a real-looking one, fails; the two allowed
   passes(numbers, done(`${VALID_A}\nPublic questions: 555-0100.\n`));
 });
 
-test('times and dates are not phone numbers', () => {
+test('times and dates are not phone numbers, and a spaced number is still Priya\'s', () => {
   passes(numbers, done(`${VALID_A}\nSaturday 13 February 2027, 10:00 to 13:30.\n`));
+  passes(numbers, done(VALID_A.replace('555-0187', '555 0187')));
+});
+
+test('10am for the volunteers beside 10:30 for the public passes, in one sentence or on the sign', () => {
+  passes(reminder, done(VALID_A.replace('The library opens at 9:30 and the room is ours from 10:00; the public comes in from 10:30.', 'Arrive at 10am to set up, doors at 10:30.')));
+  passes(sign, done(VALID_A, { [b2.SIGN]: '# FIX-IT SATURDAY\n\n## Room B\n\n## 10:30am to 1pm (volunteers set up from 10:00)\n' }));
 });
 
 test('the untouched starting state fails: no reminder and no door sign yet', () => {
