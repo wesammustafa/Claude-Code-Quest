@@ -1162,9 +1162,10 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
     }
   : {
       // courses/fixit: b-1, b-6, the capstone, which has no warm-ups by
-      // the rework's rule, then i-2, whose pool recalls start.
-      memory:
-        "i-2's Y2 question is the first that can mark memory missed, and the Intermediate lessons after it, whose pools recall it, are still to land",
+      // the rework's rule, i-2, whose pool recalls start, then i-1, whose
+      // pool recalls memory.
+      "run-skill":
+        "i-1's Y3 question is the first that can mark run-skill missed, and the Intermediate lessons after it, whose pools recall it, are still to land",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

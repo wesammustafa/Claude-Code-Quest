@@ -82,17 +82,29 @@ const filesUnder = (dir) => {
   return out;
 };
 
-test('each lesson opens from its own prepared files, and no starting file is an author solution', () => {
-  const solutions = filesUnder(join(COURSE, 'solutions')).filter((p) => !p.endsWith('steps.sh'));
-  const answers = new Map(solutions.map((p) => [readFileSync(p).toString('utf8').trim(), relative(COURSE, p)]));
-  for (const { id } of PATH) {
+// A lesson may start from an earlier lesson's Canonical end, as the
+// Intermediate kit does (the course map's starting states), but never from
+// its own answer or a later lesson's; the shared template holds no answer.
+test("each lesson opens from its own prepared files, and no starting file is its own or a later lesson's solution", () => {
+  const answersOf = (ids) => {
+    const files = ids.flatMap((id) => filesUnder(join(COURSE, 'solutions', id))).filter((p) => !p.endsWith('steps.sh'));
+    return new Map(files.map((p) => [readFileSync(p).toString('utf8').trim(), relative(COURSE, p)]));
+  };
+  const shared = filesUnder(join(COURSE, 'practice-template/project'));
+  const all = answersOf(readdirSync(join(COURSE, 'solutions')));
+  for (const p of shared) {
+    const same = all.get(readFileSync(p).toString('utf8').trim());
+    assert.equal(same, undefined, `${relative(COURSE, p)} is the solution ${same}`);
+  }
+  PATH.forEach(({ id }, i) => {
     const own = join(COURSE, 'practice-template/lessons', id, 'project');
     assert.ok(filesUnder(own).length > 0, `${id} has no prepared files`);
-    for (const p of [...filesUnder(own), ...filesUnder(join(COURSE, 'practice-template/project'))]) {
+    const answers = answersOf(PATH.slice(i).map((p) => p.id));
+    for (const p of filesUnder(own)) {
       const same = answers.get(readFileSync(p).toString('utf8').trim());
       assert.equal(same, undefined, `${relative(COURSE, p)} is the solution ${same}`);
     }
-  }
+  });
 });
 
 test("each stamp is truthful: checked against the documentation, not yet re-run, and the page's sub line agrees", () => {

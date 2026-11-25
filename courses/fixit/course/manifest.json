@@ -43,6 +43,16 @@
       "check": "i-2",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "i-1",
+      "level": "intermediate",
+      "order": 5,
+      "page": "docs/intermediate/02-turn-a-repeated-job-into-a-skill.md",
+      "steps": "course/steps/i-1.md",
+      "check": "i-1",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }

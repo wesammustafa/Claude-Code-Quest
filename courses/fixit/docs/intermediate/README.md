@@ -13,7 +13,7 @@ Sam, the Fixers' second organizer, runs sessions at another venue. In this level
 ## Lessons
 
 1. [Decide what Claude should remember](01-decide-what-to-remember.md)
-2. Turn a repeated job into a skill
+2. [Turn a repeated job into a skill](02-turn-a-repeated-job-into-a-skill.md)
 3. Decide what each part may touch
 4. Bring in a second reviewer
 5. Connect an outside tool when it earns its place
