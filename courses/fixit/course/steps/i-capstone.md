@@ -49,9 +49,15 @@ badge: Intermediate
 - hint: "What does the guide say about the times, the room and access, and what does Kofi's email say?"
 - beat: ask
 - ask: The times, the room and access all say *being confirmed*. Why?
+- option: The source order trusts only signed bookings
 - option: Kofi's email isn't a real confirmation
 - option: Claude got it wrong, so ask it again
-- option: The source order trusts only signed bookings
+- beat: do
+- when: T2.1=The source order trusts only signed bookings
+- verify: self
+- done-label: on to the fix
+- goal: "So a venue's email can't win, however clear it is. The fault is in the kit: fix it there, and every month with an emailed confirmation works."
+- hint: "Which tier of the source order would Kofi's email need to be?"
 - beat: do
 - when: T2.1=Kofi's email isn't a real confirmation
 - verify: self
@@ -62,12 +68,6 @@ badge: Intermediate
 - verify: self
 - goal: "Before you go on: Claude followed the kit exactly, and asking again gets the same answer from the same rule. Find the line of the kit that puts the signed booking first."
 - hint: "Tier 1 of the source order in `fixit/CLAUDE.md`."
-- beat: do
-- when: T2.1=The source order trusts only signed bookings
-- verify: self
-- done-label: on to the fix
-- goal: "So a venue's email can't win, however clear it is. The fault is in the kit: fix it there, and every month with an emailed confirmation works."
-- hint: "Which tier of the source order would Kofi's email need to be?"
 
 ### T3 | The task step 3 of 7 | Fix the source order
 - tier: challenge
