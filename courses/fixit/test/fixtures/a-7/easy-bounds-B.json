@@ -6,6 +6,7 @@
   "sandbox": {
     "enabled": true,
     "failIfUnavailable": true,
-    "allowUnsandboxedCommands": false
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": false
   }
 }

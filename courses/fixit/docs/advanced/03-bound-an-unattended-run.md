@@ -52,6 +52,7 @@ Then bound it. Rules name exactly what it may edit, deny rules keep it out of wh
    - `Bash(git push *)` and `WebFetch` in deny: it can't publish anything or fetch from the web.
    - `sandbox`, with `enabled` and `failIfUnavailable`: any command runs inside a fence, the sandbox, and if the fence can't start, the run doesn't start.
    - `allowUnsandboxedCommands: false`: a command can't ask to step outside the fence. There's nobody to ask anyway.
+   - `autoAllowBashIfSandboxed: false`: a command inside the fence still needs a rule that allows it. This run has none, so it runs no commands.
 
    Sam might add `july.md` next week. The rules name files, not the folder, so the run is refused when it tries to edit `july.md`, and its result lists the refusal. The run itself can still report success. Narrow rules fail safe: a page they don't name is refused, not edited. That only helps if someone reads the refusals, and a new page needs a new line.
 3. **Read the runner's flags.** Open `fixit/summer/run/refresh.sh` in the files tab. It was prepared for you, and it comes down to one `claude -p` command: you don't need to write shell, only to know what each flag bounds.

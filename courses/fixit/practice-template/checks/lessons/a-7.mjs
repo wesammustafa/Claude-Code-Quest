@@ -169,13 +169,13 @@ export const boundsNarrow = {
     if (value.permissions?.defaultMode === 'bypassPermissions')
       return '`"defaultMode": "bypassPermissions"` skips every permission check. Take it out: nobody is there to press No.';
     const sandbox = value.sandbox;
-    if (!isObject(sandbox)) return `${BOUNDS_NAME} has no \`sandbox\` settings. Add \`"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false}\`.`;
+    if (!isObject(sandbox)) return `${BOUNDS_NAME} has no \`sandbox\` settings. Add \`"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false, "autoAllowBashIfSandboxed": false}\`.`;
     if (sandbox.enabled !== true) return 'Set `"enabled": true` in `sandbox`, so any command runs fenced in.';
     if (sandbox.failIfUnavailable !== true) return 'Set `"failIfUnavailable": true` in `sandbox`: without it, a run whose sandbox can\'t start runs without one.';
     if (sandbox.allowUnsandboxedCommands !== false)
       return 'Set `"allowUnsandboxedCommands": false` in `sandbox`, so a command can\'t step outside the fence. At 02:00 nobody is there to ask.';
     if (sandbox.autoAllowBashIfSandboxed === true)
-      return '`"autoAllowBashIfSandboxed": true` lets every fenced command run without a rule. Take it out, so your rules decide.';
+      return '`"autoAllowBashIfSandboxed": true` lets every fenced command run without a rule. Set it to `false`, so your rules decide.';
     return true;
   },
 };
