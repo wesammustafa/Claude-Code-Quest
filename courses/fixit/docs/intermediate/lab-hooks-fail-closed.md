@@ -209,7 +209,7 @@ Copy the two scripts into `.claude/hooks/`, run `chmod +x` on them, add the sett
 echo '{"tool_name":"Edit","tool_input":{"file_path":"package-lock.json"}}' | .claude/hooks/protect-files.sh; echo $?
 ```
 
-It should print `2`. In Questerm, Claude's words are written in advance, but the hooks are yours: your scripts run, and their exit codes decide what is blocked.
+It should print `2`. On macOS, `sed -i` needs an empty suffix first: `sed -i '' 's/, false);/, true);/' test/links.test.js`. In Questerm, Claude's words are written in advance, but the hooks are yours: your scripts run, and their exit codes decide what is blocked.
 
 ## Technical detail
 
