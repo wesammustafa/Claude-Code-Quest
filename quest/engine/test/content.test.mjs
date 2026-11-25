@@ -1049,8 +1049,12 @@ test("the Check's recall question files a miss under a skill the course has taug
 // Lessons with no skill in their warm-up pool that comes back in their own
 // steps, so R1 can't be one; each with its reason.
 const R1_NOT_REUSED = {
-  "a-1":
-    "the level's first lesson recalls Intermediate's scope and delegation choices; the only earlier skills its steps reuse are commit and save-version, chores with no scenario worth a warm-up",
+  // The developer course's a-1; courses/fixit's a-1 lab recalls start,
+  // which its first step reuses.
+  ...(DEVELOPER_COURSE && {
+    "a-1":
+      "the level's first lesson recalls Intermediate's scope and delegation choices; the only earlier skills its steps reuse are commit and save-version, chores with no scenario worth a warm-up",
+  }),
   "i-1":
     "its pool recalls Beginner's compact, resume and rewind, which no i-1 step asks again: the commit candidate it reused went once no Beginner question could mark commit missed",
 };
@@ -1162,8 +1166,13 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
     }
   : // courses/fixit: b-5's pool recalls b-4's clear, the last skill a
     // Beginner question marks missed before the capstone, which has no
-    // warm-ups by the rework's rule.
-    {};
+    // warm-ups by the rework's rule. The labs come after it.
+    {
+      "pick-pattern":
+        "the optional lab a-1 is the first lesson whose questions can mark pick-pattern missed, and no lesson after it is built yet; in the full course a-2 asks it first and a later pool recalls it",
+      "review-diff":
+        "the optional lab a-1 is the first lesson whose questions ask about a diff, and no lesson after it is built yet; in the full course the lab b-3 asks it first",
+    };
 
 // The skills a question in `contents` (in PATH order) can mark missed that
 // no later lesson's pool recalls.

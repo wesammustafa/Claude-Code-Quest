@@ -48,6 +48,7 @@ const started = () => {
 test("probes: each takes its arguments, and nothing else", () => {
   for (const ok of [
     ["worktrees", ["2"]],
+    ["worktree-session", ["comments-fix"]],
     ["branch-ahead", ["feature/x"]],
     ["merged", ["a", "b-2"]],
     ["gone", [".claude/worktrees/docs-pass"]],
@@ -70,6 +71,9 @@ test("probes: each takes its arguments, and nothing else", () => {
     ["gone", ["../up"]],
     ["gone", ["./here"]],
     ["pushed", ["origin"]],
+    ["worktree-session", []],
+    ["worktree-session", ["a/b"]],
+    ["worktree-session", ["-x"]],
     ["todos", []],
   ]) {
     assert.ok(probeError(...bad), bad.join(" "));
@@ -149,6 +153,51 @@ test("probes: worktrees counts the live ones under .claude/worktrees/, and gone 
       recursive: true,
       force: true,
     });
+  }));
+
+test("probes: worktree-session wants the worktree under .claude/worktrees/ locked by a Claude Code session, not one made in the shell", () =>
+  withRepo(started, (dir) => {
+    assert.match(
+      probe(dir, "worktree-session", "comments-fix").hint,
+      /no \.claude\/worktrees\/comments-fix yet/,
+    );
+    git(
+      dir,
+      "worktree",
+      "add",
+      "-q",
+      "-b",
+      "worktree-comments-fix",
+      ".claude/worktrees/comments-fix",
+    );
+    const shell = probe(dir, "worktree-session", "comments-fix");
+    assert.equal(shell.pass, false, "a shell-made worktree has no session");
+    assert.match(
+      shell.hint,
+      /is there, but no Claude Code session runs in it: start one with claude --worktree comments-fix/,
+    );
+    git(
+      dir,
+      "worktree",
+      "lock",
+      "--reason",
+      "claude session comments-fix (pid 4242 start 2027-05-28T09:00:00.000Z)",
+      ".claude/worktrees/comments-fix",
+    );
+    const session = probe(dir, "worktree-session", "comments-fix");
+    assert.deepEqual(
+      [session.pass, session.evidence],
+      [true, "A Claude Code session runs in .claude/worktrees/comments-fix"],
+    );
+    assert.notEqual(session.state, shell.state, "the state follows the lock");
+    assert.equal(
+      probe(dir, "worktree-session", "schedule-test").pass,
+      false,
+      "another name's worktree does not count",
+    );
+    git(dir, "worktree", "unlock", ".claude/worktrees/comments-fix");
+    assert.equal(probe(dir, "worktree-session", "comments-fix").pass, false);
+    git(dir, "worktree", "remove", ".claude/worktrees/comments-fix");
   }));
 
 test("probes: branch-ahead finds the branch and its state is its commit; merged wants each branch in HEAD", () =>

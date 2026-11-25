@@ -73,6 +73,34 @@ function worktrees(repo: Repo, [n = ""]: string[]): Probed {
   return { pass: false, hint, state };
 }
 
+// `worktree-session <name>`: a Claude Code session runs in
+// .claude/worktrees/<name>. git lists that worktree, locked with the reason
+// `claude --worktree` gives it while its session runs (`claude session
+// <name> (pid <n> start <date>)`, as the guide's a-1 check reads it), so a
+// worktree made in the shell with `git worktree add` doesn't pass.
+function worktreeSession(repo: Repo, [name = ""]: string[]): Probed {
+  const at = claudeWorktrees(live(repo)).find((r) => nameOf(r.path) === name);
+  const state = digest(at ? `${at.path} ${String(at.locked)}` : "");
+  const where = `${CLAUDE_WORKTREES.slice(1)}${name}`;
+  if (!at)
+    return {
+      pass: false,
+      hint: `git worktree list shows no ${where} yet.`,
+      state,
+    };
+  if (typeof at.locked !== "string" || !/^"?claude session\b/.test(at.locked))
+    return {
+      pass: false,
+      hint: `${where} is there, but no Claude Code session runs in it: start one with claude --worktree ${name}.`,
+      state,
+    };
+  return {
+    pass: true,
+    evidence: `A Claude Code session runs in ${where}`,
+    state,
+  };
+}
+
 // `branch-ahead <branch>`: the branch is there; always fresh, so it passes
 // once the branch moved since the step opened.
 function branchAhead(repo: Repo, [branch = ""]: string[]): Probed {
@@ -222,6 +250,7 @@ export const RUNS: Readonly<
   Record<string, (repo: Repo, args: string[]) => Probed>
 > = {
   worktrees,
+  "worktree-session": worktreeSession,
   "branch-ahead": branchAhead,
   merged,
   gone,

@@ -1,5 +1,8 @@
 {
-  "levels": [{ "id": "beginner", "index": "docs/beginner/README.md" }],
+  "levels": [
+    { "id": "beginner", "index": "docs/beginner/README.md" },
+    { "id": "advanced", "index": "docs/advanced/README.md" }
+  ],
   "lessons": [
     {
       "id": "b-1",
@@ -60,6 +63,17 @@
       "check": "b-capstone",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "a-1",
+      "level": "advanced",
+      "order": 7,
+      "page": "docs/advanced/lab-parallel-worktrees.md",
+      "steps": "course/steps/a-1.md",
+      "check": "a-1",
+      "folder": "copy",
+      "optional": true,
+      "slow": [2]
     }
   ]
 }

@@ -22,6 +22,8 @@ export interface Probe {
 }
 
 const COUNT = /^[1-9]\d{0,2}$/;
+// A worktree's name, as `claude --worktree <name>` takes it: one path part.
+const NAME = /^(?!-)(?!\.)[\w.-]+$/;
 // A branch name as a probe takes it: no spaces, no leading dash, no `..`.
 const BRANCH = /^(?!-)(?!.*\.\.)[\w./-]+$/;
 // A path named from the work folder, like .claude/worktrees/docs-pass:
@@ -40,6 +42,7 @@ const PATH: ArgTest = {
 // card says it watches, and whether it is always fresh.
 export const PROBES: Readonly<Record<string, Probe>> = {
   worktrees: { args: [COUNT], watching: "git worktree list" },
+  "worktree-session": { args: [NAME], watching: "git worktree list" },
   "branch-ahead": { args: [BRANCH], watching: "git branch", fresh: true },
   merged: { args: [BRANCH], many: true, watching: "git log" },
   gone: { args: [PATH], watching: "git worktree list" },
@@ -60,6 +63,6 @@ export function probeError(name: string, args: readonly string[]) {
     (a, i) => !p.args[Math.min(i, p.args.length - 1)]?.test(a),
   );
   if (!count || bad !== undefined)
-    return `probe ${name} takes ${p.args.length ? `${p.args.map((r) => (r === COUNT ? "<n>" : r === BRANCH ? "<branch>" : "<path>")).join(" ")}${p.many ? "..." : ""}` : "no arguments"}${bad !== undefined ? `, not ${bad}` : ""}`;
+    return `probe ${name} takes ${p.args.length ? `${p.args.map((r) => (r === COUNT ? "<n>" : r === BRANCH ? "<branch>" : r === NAME ? "<name>" : "<path>")).join(" ")}${p.many ? "..." : ""}` : "no arguments"}${bad !== undefined ? `, not ${bad}` : ""}`;
   return null;
 }
