@@ -71,6 +71,16 @@
       "check": "a-7",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "a-9",
+      "level": "advanced",
+      "order": 7,
+      "page": "docs/advanced/04-recover-from-a-partial-failure.md",
+      "steps": "course/steps/a-9.md",
+      "check": "a-9",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }

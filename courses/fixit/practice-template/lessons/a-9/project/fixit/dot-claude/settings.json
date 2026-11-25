@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./**/private/**)",
+      "Read(./**/*roster*)",
+      "Edit(./sources/**)",
+      "Edit(./**/booking-*)",
+      "Edit(./**/venue-email-*)",
+      "mcp__bookings__cancel_booking"
+    ],
+    "ask": [
+      "Bash"
+    ],
+    "allow": [
+      "Edit(./*/attendee-guide.md)",
+      "Edit(./*/facts.md)",
+      "Edit(./*/readiness-note.md)",
+      "mcp__bookings__list_bookings",
+      "mcp__bookings__get_booking"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/no-private-numbers.sh",
+            "onFailure": "block"
+          }
+        ]
+      }
+    ]
+  }
+}

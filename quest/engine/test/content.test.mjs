@@ -1165,13 +1165,15 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
       // no warm-ups by the rework's rule, so b-6's are the last pool.
       start:
         "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
-      // a-7, Advanced lesson 3, is the last lesson its lane holds so far:
-      // its R2 recalls a-8's reconcile, and the lessons after it are not
-      // on this branch yet.
-      "limit-run":
-        "a-7's Your turn question can mark limit-run missed, and a-9 and the capstone, whose warm-ups recall it, are not on this branch yet",
-      "check-cost":
-        "a-7's Step 4 question can mark check-cost missed, and the later Advanced lessons whose warm-ups recall it are not on this branch yet",
+      // a-9, Advanced lesson 4, is the last lesson its lane holds so far:
+      // its warm-ups recall a-7's limit-run and check-cost and a-8's
+      // reconcile, and the lessons after it are not on this branch yet.
+      "headless-run":
+        "a-9's Decide first can mark headless-run missed, and a-6, whose warm-ups recall it, is not on this branch yet",
+      "stop-run":
+        "a-9's Your turn question can mark stop-run missed, and a-6, whose warm-ups recall it, is not on this branch yet",
+      "watch-run":
+        "a-9's Your turn question can mark watch-run missed, and a-6, whose warm-ups recall it, is not on this branch yet",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that
