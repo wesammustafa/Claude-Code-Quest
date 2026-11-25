@@ -186,7 +186,7 @@ What would change this: Dee confirming the lift before 10 July.
 test('the untouched starting state fails: the pages, the email, the note, the run and the review; only the numbers and the battery rule pass', () => {
   const r = copy();
   says(june, r, /^`june\.md` offers 32 places, more than Room A can take/);
-  says(july, r, /^`july\.md` still says "Where: Millbrook Library, Room B \(first floor\)\. Step-free access by lift next to the children's library\."/);
+  says(july, r, /^`july\.md` still says "Step-free access by lift next to the children's library"\. The lift/);
   says(schedule, r, /^`schedule\.md`'s June row offers 32 places/);
   passes(r, [battery, numbers]);
   says(outbox, r, /^The 14:00 email is still `scheduled`, and its body says July is "Step-free by lift"\./);
@@ -309,7 +309,7 @@ test('June pages that are wrong get the June item by name: Room B, 32 or 40 plac
 
 test('July pages: a lift claim fails, a hold notice with no number fails, a page that says it is upstairs with no lift passes', () => {
   const page = fixture('july-fixed.md');
-  says(july, copy({ [`${PUBLIC}/july.md`]: page.replace('**Not step-free on 10 July:** the lift is out of service until at least 20 July.', 'Step-free access: use the lift.') }), /still says "Where: Millbrook Library, Room B \(first floor\)\. Step-free access: use the lift\./);
+  says(july, copy({ [`${PUBLIC}/july.md`]: page.replace('**Not step-free on 10 July:** the lift is out of service until at least 20 July.', 'Step-free access: use the lift.') }), /still says "Step-free access: use the lift"\. /);
   says(july, copy({ [`${PUBLIC}/july.md`]: fixture('july-hold.md').replaceAll(' on 555-0100', '').replace(', 555-0100.', '.') }), /gives no number to call/);
   const upstairs = page.replace(/\*\*Not step-free on 10 July:\*\*.*$/m, 'Room B is upstairs, and on 10 July there is no lift: the library\'s events desk, 555-0100, can talk through options.');
   passes(copy({ [`${PUBLIC}/july.md`]: upstairs }), [july, battery]);

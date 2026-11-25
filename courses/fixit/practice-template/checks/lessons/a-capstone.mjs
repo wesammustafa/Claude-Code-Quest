@@ -60,11 +60,16 @@ const linesOf = (text) =>
 /** A line as the Learner wrote it, without list or table marks. @param {string} line */
 const shown = (line) => line.replace(/\*\*/g, '').replace(/^[-*]\s+/, '').trim();
 /** A table row's cell that speaks of access, else the whole line. @param {string} line */
-const accessOf = (line) =>
-  shown(line)
+// The words of a line that make the claim: the table cell, then the
+// sentence in it, with no closing full stop to clash with the quote's.
+const accessOf = (line) => {
+  const cell = shown(line)
     .split('|')
     .map((c) => c.trim())
     .find((c) => /step|lift/i.test(c)) ?? shown(line);
+  const sentence = cell.split(/(?<=\.)\s+/).find((c) => /step|lift/i.test(c)) ?? cell;
+  return sentence.replace(/\.$/, '');
+};
 
 // A line that says there is a lift, or that the room is step-free, with
 // nothing on it that says otherwise: a lift out of service, not step-free,
