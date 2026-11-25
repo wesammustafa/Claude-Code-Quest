@@ -56,7 +56,7 @@ Treat its answer as you would a new colleague's: before you act on it, open the 
    ```
 
    The line goes to the shell, not to Claude, and its output is added to the conversation. Without the `!`, the same words would go to Claude as a message.
-4. **Find a command, and see who you are signed in as.** Commands start with `/`. When you don't know a command's name, type `/help`: it lists the commands you can type, with what each one does. You can also type `/` in the input on its own and read the list above it, then type the first letters of a name to filter it, as in `/st` for `/status`. `Tab` takes the top match.
+4. **Find a command, and see who you are signed in as.** Commands start with `/`. When you don't know a command's name, type `/help`: it lists the commands you can type, with what each one does. You can also type `/` in the input on its own and read the list above it, then type the first letters of a name to filter it, as in `/st` for `/status`.
 
    Now type `/status`. The **Status** tab lists the version, the model and the account you signed in with. The account decides which models and features a session can use: when a colleague's Claude does something yours won't, compare accounts first. Press `Esc` to close it.
 5. **Ask, stop and ask again.** Ask `what's in the fixit folder, and what is each file for?` While Claude is still answering, press `Esc`: Claude stops and waits for your next instruction, and keeps the work done so far. Press `Esc` whenever Claude heads the wrong way, then say what you want instead. Send the question again and let it finish. Now ask the question Priya cares about: `when can volunteers get into the library on 13 February, and where should they park? Cite the file and line.`
@@ -115,6 +115,6 @@ Everything above ran in Questerm's practice workspace, with Claude's replies wri
 | `Esc` | stops the current answer or tool call; the work so far is kept | Claude waits for your next message | none | [Interactive mode](https://code.claude.com/docs/en/interactive-mode) |
 | `/exit` | ends the session; `claude -c` resumes the latest one in this folder | you're back at the shell prompt | none | [Sessions](https://code.claude.com/docs/en/sessions) |
 
-In this practice terminal `/help` and the `/` list hold the commands the course has taught so far, prompt suggestions are not shown, and a message you type while Claude works is listed above the input but not answered. On your own computer all three work as the table says.
+In this practice terminal `/help` and the `/` list hold the commands the course has taught so far, you type the rest of a command's name instead of pressing `Tab` for it, prompt suggestions are not shown, and a message you type while Claude works is listed above the input but not answered. On your own computer all of these work as the table says.
 
 The habit, ask for the source and open it, is the same everywhere. In the Desktop app's Code tab and the VS Code extension, citations are clickable and there's no shell prompt to confuse with the conversation. In Claude on the web or in the Claude apps without Claude Code, you attach the documents yourself and Claude can't open files you didn't give it, so ask it to quote the passage rather than give a line number.
