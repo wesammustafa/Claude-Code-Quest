@@ -79,9 +79,9 @@ A workflow is a script Claude writes for a task too big for one conversation: it
    ```
 
    Run on a folder of 4 files whose file agents report 3 findings, how many agents does the script start, and which line decides what you see? Then choose **Yes, run it**, and read which findings the checking agents confirmed.
-2. **Save it, and make the folder an argument.** Open the run's progress view: it shows each phase with its agent count, and each agent's prompt and answer. Save the finished run to the project's workflows folder: select the run and press `s`, keep the project location, then press `Enter`. The project location is the closest `.claude/workflows/` that already exists between your folder and the repository root, or the root itself if none does: here, the folder above `project/`. Load the reference Claude works from when it writes scripts, then ask Claude to change the saved script so it takes its folder from `args`, instead of naming one. Reload the workflows, so this session runs the changed script.
+2. **Save it, and make the folder an argument.** Open the run's progress view: it shows each phase with its agent count, and each agent's prompt and answer. Save the finished run to the project's workflows folder: select the run and press `s`, keep the project location, then press `Enter`. The project location is the closest `.claude/workflows/` that already exists between your folder and the repository root: here, the one in `project/`. Load the reference Claude works from when it writes scripts, then ask Claude to change the saved script so it takes its folder from `args`, instead of naming one. Reload the workflows, so this session runs the changed script.
 3. **Run it by name on a second folder.** Run your saved workflow by name on a folder the first run didn't audit, and read which findings it confirmed. Claude Code asks before the run again. In the shell tab, check that the run changed no file: `git status` shows no change from it.
-4. **Commit the workflow.** Commit the saved workflow. The save put it in the `.claude/workflows/` folder above `project/`, at the repository root.
+4. **Commit the workflow.** Commit the saved workflow. The save put it in `.claude/workflows/`, as `audit-dropped-errors.js`: commit that file alone.
 
 ## Check
 

@@ -3,7 +3,8 @@
 // manuscript's near misses, and workflows that only look right, each played
 // with real git and the committed script really run with the check's
 // stand-in agents, in a copy laid out as a practice copy is (project/ below
-// the git root, where /workflows saves to the project location).
+// the git root), with the saved workflow where /workflows puts it: in
+// project/.claude/workflows/, which the lab ships, or at the git root.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -56,8 +57,9 @@ function goal(dir, { change = migrate, pages = PAGES, commitIt = true } = {}) {
   return dir;
 }
 
-/** The saved workflow, `text`, at the repository root (or in project/ with `here`), committed. */
-function saved(dir, text = solution(SCRIPT), { here = false, commitIt = true } = {}) {
+/** The saved workflow, `text`, in project/.claude/workflows/ (or at the git root with `root`), committed. */
+function saved(dir, text = solution(SCRIPT), { root = false, commitIt = true } = {}) {
+  const here = !root;
   if (here) write(dir, { [SCRIPT]: text });
   else rootWrite(dir, { [SCRIPT]: text });
   if (commitIt) commit(dir, 'Add a workflow that audits dropped errors', [here ? SCRIPT : ROOT_SCRIPT]);
@@ -88,11 +90,11 @@ const HARDCODED = edited(
   "const folder = 'src'",
 );
 
-test('valid A, the solution: the pages committed on their own and the workflow saved at the repository root, passes every item', () => {
+test('valid A, the solution: the pages committed on their own and the workflow saved in the project, passes every item', () => {
   passes(lab());
 });
 
-test('valid B: two migration commits, and a workflow in project/.claude/workflows/ with parallel(), JSON verdicts and its own wording, passes', () => {
+test('valid B: two migration commits, and a workflow saved at the git root with parallel(), JSON verdicts and its own wording, passes', () => {
   const dir = goal(start(), { pages: PAGES.slice(0, 2) });
   goal(dir, { pages: PAGES.slice(2) });
   const script = `// Usage: /find-swallowed <folder>
@@ -113,7 +115,7 @@ const checked = await parallel(candidates, (c) =>
 )
 return candidates.filter((c, i) => checked[i].verdict === 'confirmed')
 `;
-  saved(dir, script, { here: true });
+  saved(dir, script, { root: true });
   passes(dir);
 });
 
@@ -141,8 +143,8 @@ test('the migration item: left uncommitted, a link cut instead of moved, and a c
 test('the plausible mistake: the migration and the workflow in one commit fails the migration item and names the workflow', () => {
   const dir = goal(start(), { commitIt: false });
   saved(dir, solution(SCRIPT), { commitIt: false });
-  commit(dir, 'Migrate the links and add the audit', [...PAGES, ROOT_SCRIPT]);
-  says(migrated, dir, /also `\.\.\/\.claude\/workflows\/audit-dropped-errors\.js`, outside `samples\/`.*git reset --soft HEAD~1/);
+  commit(dir, 'Migrate the links and add the audit', [...PAGES, SCRIPT]);
+  says(migrated, dir, /also `\.claude\/workflows\/audit-dropped-errors\.js`, outside `samples\/`.*git reset --soft HEAD~1/);
   passes(dir, [workflow, testsPass, clean]);
 });
 
@@ -195,7 +197,8 @@ test('scripts Claude Code would refuse or misread: a module import, a meta that 
 });
 
 test('the workflow item: a script left uncommitted, one saved in a subfolder, and one with an uncommitted fix, each say so', () => {
-  says(workflow, saved(goal(start()), solution(SCRIPT), { commitIt: false }), /^`\.\.\/\.claude\/workflows\/audit-dropped-errors\.js` isn't committed\. Run `git add \.\.\/\.claude\/workflows\/audit-dropped-errors\.js`/);
+  says(workflow, saved(goal(start()), solution(SCRIPT), { commitIt: false }), /^`\.claude\/workflows\/audit-dropped-errors\.js` isn't committed\. Run `git add \.claude\/workflows\/audit-dropped-errors\.js`/);
+  says(workflow, saved(goal(start()), solution(SCRIPT), { root: true, commitIt: false }), /^`\.\.\/\.claude\/workflows\/audit-dropped-errors\.js` isn't committed/);
 
   const nested = goal(start());
   rootWrite(nested, { '.claude/workflows/old/audit.js': solution(SCRIPT) });
@@ -203,7 +206,7 @@ test('the workflow item: a script left uncommitted, one saved in a subfolder, an
   says(workflow, nested, /is under `\.claude\/workflows\/`, but Claude Code reads only `\.js` files directly in that folder/);
 
   const fixedLater = saved(goal(start()), HARDCODED);
-  rootWrite(fixedLater, { [SCRIPT]: solution(SCRIPT) });
+  write(fixedLater, { [SCRIPT]: solution(SCRIPT) });
   says(workflow, fixedLater, /has changes that aren't committed: if they fix this, commit them/);
 });
 
