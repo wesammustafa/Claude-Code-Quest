@@ -1,5 +1,8 @@
 {
-  "levels": [{ "id": "beginner", "index": "docs/beginner/README.md" }],
+  "levels": [
+    { "id": "beginner", "index": "docs/beginner/README.md" },
+    { "id": "advanced", "index": "docs/advanced/README.md" }
+  ],
   "lessons": [
     {
       "id": "b-1",
@@ -28,6 +31,16 @@
       "page": "docs/beginner/capstone.md",
       "steps": "course/steps/b-capstone.md",
       "check": "b-capstone",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "a-2",
+      "level": "advanced",
+      "order": 4,
+      "page": "docs/advanced/01-split-the-work.md",
+      "steps": "course/steps/a-2.md",
+      "check": "a-2",
       "folder": "copy",
       "slow": []
     }

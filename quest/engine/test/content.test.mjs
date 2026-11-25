@@ -1165,6 +1165,11 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
       // no warm-ups by the rework's rule, so b-6's are the last pool.
       start:
         "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
+      // a-2, Advanced lesson 1, is the last lesson its lane holds so far.
+      check:
+        "a-2's R1 recalls b-capstone's check, and no lesson after a-2 is on this branch yet; with i-6 present, R1 recalls delegate instead",
+      "pick-pattern":
+        "a-2's triage questions can mark pick-pattern missed, and the Advanced lessons after it, whose warm-ups recall it, are not on this branch yet",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that
