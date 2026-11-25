@@ -53,6 +53,16 @@
       "check": "i-1",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "i-4",
+      "level": "intermediate",
+      "order": 6,
+      "page": "docs/intermediate/03-decide-what-each-part-may-touch.md",
+      "steps": "course/steps/i-4.md",
+      "check": "i-4",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }
