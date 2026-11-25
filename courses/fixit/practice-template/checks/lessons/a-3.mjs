@@ -32,6 +32,8 @@ export const title = 'Goals and saved workflows';
 
 const RUNNER = fileURLToPath(new URL('./a-3-run.mjs', import.meta.url));
 const OLD = 'library.example/events/';
+// The old address as `git grep` reads it: Questerm's git has no -F.
+const OLD_PATTERN = 'library\\.example/events/';
 const NEW = 'library.example/whats-on/';
 const OLD_URL = /https?:\/\/library\.example\/events\/[^\s)>"'\]]*/g;
 const SAMPLES = 'samples';
@@ -65,7 +67,7 @@ function git(repo, ...args) {
 function oldLinks(repo, rev) {
   /** @type {Map<string, string[]>} */
   const out = new Map();
-  for (const line of git(repo, 'grep', '-I', '-F', '-e', OLD, rev, '--', SAMPLES).split('\n').filter(Boolean)) {
+  for (const line of git(repo, 'grep', '-I', '-e', OLD_PATTERN, rev, '--', SAMPLES).split('\n').filter(Boolean)) {
     const rest = line.slice(rev.length + 1);
     const at = rest.indexOf(':');
     const file = rest.slice(0, at);
@@ -88,7 +90,7 @@ export const migratedSamples = {
     const now = oldLinks(repo, 'HEAD');
     if (now.size) {
       const files = [...now.keys()].map(code);
-      const tree = git(repo, 'grep', '-I', '-F', '-l', '-e', OLD, '--', SAMPLES);
+      const tree = git(repo, 'grep', '-I', '-l', '-e', OLD_PATTERN, '--', SAMPLES);
       if (!tree) return `${and(files)} ${files.length > 1 ? 'still link' : 'still links'} to \`${OLD}\` at \`HEAD\`, but not in your working tree: the migration isn't committed. Run the grep and the tests yourself, read \`git diff\`, then commit \`samples/\` (Worked example step 3).`;
       return `${and(files)} ${files.length > 1 ? 'still link' : 'still links'} to \`${OLD}\` at \`HEAD\`: \`git grep -n '${OLD}' -- samples\` lists the lines. Set the goal again, with the grep as its end state (Worked example step 2), then commit.`;
     }
@@ -99,11 +101,11 @@ export const migratedSamples = {
       if (lost) return `\`${file}\` no longer links to \`${lost}\`, where its old link to \`${lost.replace('/whats-on/', '/events/')}\` should point now. Only \`/events/\` changes to \`/whats-on/\`: put the link back with the rest of it as it was, and commit.`;
     }
     // The commits that removed old links change nothing outside samples/.
-    const commits = git(repo, 'rev-list', '--reverse', '--first-parent', `${start}..HEAD`).split('\n').filter(Boolean);
+    const commits = git(repo, 'rev-list', '--reverse', `${start}..HEAD`).split('\n').filter(Boolean);
     for (const sha of commits) {
       const parent = `${sha}~1`;
       if (count(oldLinks(repo, sha)) >= count(oldLinks(repo, parent))) continue;
-      const outside = git(repo, 'diff-tree', '--no-commit-id', '--name-only', '-r', parent, sha).split('\n').filter(Boolean)
+      const outside = git(repo, 'diff', '--name-only', parent, sha).split('\n').filter(Boolean)
         .map((p) => repo.local(p)).filter((p) => !p.startsWith(`${SAMPLES}/`));
       if (outside.length) {
         const subject = git(repo, 'log', '-1', '--format=%s', sha);
