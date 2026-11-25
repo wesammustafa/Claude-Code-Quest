@@ -42,9 +42,14 @@ cp summer/run/bounds.json summer/run/last-run/bounds.json
     (.permission_denials[] | "  \(.tool_name): \(.tool_input.command // .tool_input.file_path | ltrimstr($here))")
   ' summer/run/last-run/result.json
   echo "files changed:"
+  changed=no
   for f in summer/public/*.md; do
-    diff -q "$before/$(basename "$f")" "$f" > /dev/null 2>&1 || echo "  $f"
+    if ! diff -q "$before/$(basename "$f")" "$f" > /dev/null 2>&1; then
+      echo "  $f"
+      changed=yes
+    fi
   done
+  [ "$changed" = yes ] || echo "  none"
 } | tee summer/run/last-run/report.txt
 rm -rf "$before"
 exit "$status"

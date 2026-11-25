@@ -127,7 +127,7 @@ test('a hand-written slice record fails: no bounds copy, the wrong shape, or the
   delete printed[USED];
   says(slice, copy(printed), /no copy of the bounds it ran with/);
   says(slice, copy({ ...ran(NARROW), [RESULT]: 'slice ran fine, $0.08\n' }), /isn't the result of a `claude -p` run/);
-  says(slice, copy({ ...ran(NARROW), [RESULT]: RAN.replace('headless-5f0c2a91b7e4', '00000000-0000-4000-8000-00000000c0de') }), /holds the check's stand-in reply/);
+  says(slice, copy({ ...ran(NARROW), [RESULT]: RAN.replace('83360660-3c19-466f-9d7e-f119a3b6d906', '00000000-0000-4000-8000-00000000c0de') }), /holds the check's stand-in reply/);
 });
 
 test('a slice that hit a limit, or cost the whole budget, fails', () => {
