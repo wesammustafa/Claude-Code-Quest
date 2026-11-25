@@ -30,6 +30,16 @@
       "check": "b-capstone",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "b-3",
+      "level": "beginner",
+      "order": 4,
+      "page": "docs/beginner/lab-request-to-commit.md",
+      "steps": "course/steps/b-3.md",
+      "check": "b-3",
+      "folder": "copy",
+      "slow": [0, 1, 2, 5, 6, 7, 8]
     }
   ]
 }

@@ -1165,6 +1165,8 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
       // no warm-ups by the rework's rule, so b-6's are the last pool.
       start:
         "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
+      "review-diff":
+        "the optional lab b-3 is the first lesson whose questions ask about a diff, and it comes after the capstone, so no later Beginner pool can recall it",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that
