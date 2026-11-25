@@ -1192,6 +1192,12 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "the optional lab i-5's questions are the first that can mark probe-guard missed, and no lesson after it is built yet; in the full course i-4 asks it first and a later pool recalls it",
       "run-workflow":
         "the optional lab a-3's question on its workflow script is the first that can mark run-workflow missed, and no lesson after it is built yet; a later Advanced lab's pool can recall it",
+      install:
+        "the optional lab i-8's warm-up is the first question that can mark install missed, and no lesson after it is built yet; a later pool recalls it",
+      "install-plugin":
+        "the optional lab i-8's question about the plugin panel is the first that can mark install-plugin missed, and no lesson after it is built yet; a later Advanced pool recalls it",
+      "code-intel":
+        "the optional lab i-8's question about the references the language server found is the first that can mark code-intel missed, and no lesson after it is built yet; a later Advanced pool recalls it",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that
