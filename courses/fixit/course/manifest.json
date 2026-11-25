@@ -61,6 +61,16 @@
       "check": "a-8",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "a-7",
+      "level": "advanced",
+      "order": 6,
+      "page": "docs/advanced/03-bound-an-unattended-run.md",
+      "steps": "course/steps/a-7.md",
+      "check": "a-7",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }

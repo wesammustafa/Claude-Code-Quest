@@ -19,7 +19,8 @@ import * as b6 from './b-6.mjs';
 import * as bCapstone from './b-capstone.mjs';
 import * as a2 from './a-2.mjs';
 import * as a8 from './a-8.mjs';
+import * as a7 from './a-7.mjs';
 /** @import { Repo } from '../repo.mjs' */
 
 /** @type {Record<string, Lesson | undefined>} */
-export const lessons = { 'b-1': b1, 'b-6': b6, 'b-capstone': bCapstone, 'a-2': a2, 'a-8': a8 };
+export const lessons = { 'b-1': b1, 'b-6': b6, 'b-capstone': bCapstone, 'a-2': a2, 'a-8': a8, 'a-7': a7 };
