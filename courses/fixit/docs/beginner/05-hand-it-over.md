@@ -43,9 +43,9 @@ A new session, or this one after `/clear`, starts with no memory of this convers
 ## Your turn
 
 1. **Run the fresh check yourself.** Start an empty conversation, so the check knows only what's written down: type `/clear`. Then, in your own words, ask the fresh session to check what Maya will publish against the readiness note's criteria and the sources, and to report problems rather than fix them. The choice that's yours: what to check. Maya publishes the guide and prints the door sign. Checking only the guide is quicker. Decide. Stuck? Ask yourself what the check should measure against, and what counts as evidence. Should the checker also be the fixer? You'll want to see the findings first.
-2. **Fix it, or note it?** The door sign says 10am. Maya prints it tomorrow. What do you do? *Still open* is for what the evidence can't settle yet. This one is settled: the sign is wrong. Asking Claude whether 10am is close enough doesn't help. You already have the evidence. Asking again gets a second opinion, not a better one. Fix what's wrong, then write down the rule the fresh session had to guess, so the next check doesn't have to.
+2. **Fix it, or note it?** The door sign says 10am. Maya prints it tomorrow. What do you do? **Still open** is for what the evidence can't settle yet. This one is settled: the sign is wrong. Asking Claude whether 10am is close enough doesn't help. You already have the evidence. Asking again gets a second opinion, not a better one. Fix what's wrong, then write down the rule the fresh session had to guess, so the next check doesn't have to.
 3. **Ask Claude to make it ready.** This step is optional. Ask Claude to correct the door sign's time, and to add a line to the readiness note saying which sources win when they disagree. Or skip the step and make the changes yourself in the files tab.
-4. **Make it ready.** Make sure `fixit/feb/door-sign.md` gives the guide's time, that `fixit/feb/readiness-note.md` says which sources win when they disagree, and that its *Still open* part is honest: is anything in the guide true only for this one Saturday, or not yet confirmed? Stuck? Which source did every row of the readiness note use, and which never? Then read `fixit/feb/venue-email-feb-update.md` again: does it say Park Lane is free every Saturday, or that it's open on this one?
+4. **Make it ready.** Make sure `fixit/feb/door-sign.md` gives the guide's time, that `fixit/feb/readiness-note.md` says which sources win when they disagree, and that its **Still open** part is honest: is anything in the guide true only for this one Saturday, or not yet confirmed? Stuck? Which source did every row of the readiness note use, and which never? Then read `fixit/feb/venue-email-feb-update.md` again: does it say Park Lane is free every Saturday, or that it's open on this one?
 5. **Save a version.** This step is optional, and not part of the check. When it's ready, ask Claude to save a version of the February files called "February guide ready". Claude records a snapshot of the folder you can always go back to, even after rewinds and new sessions. Under the hood this is a Git commit; you don't need to know Git to use it.
 
 ## Check
@@ -59,7 +59,7 @@ The Lesson's check reads four things:
 
 It reads the files, not a record of your sessions: Questerm keeps no record of the fresh session for a check to read, so the step that asks for it judges your request instead.
 
-What only you can judge: Maya, who wasn't in any of these conversations, could use the readiness note to answer a caller. If someone rings the desk asking "can I park at the library?", which row answers them? And *Still open* holds what's true only for this one Saturday, or says nothing is, because you looked.
+What only you can judge: Maya, who wasn't in any of these conversations, could use the readiness note to answer a caller. If someone rings the desk asking "can I park at the library?", which row answers them? And **Still open** holds what's true only for this one Saturday, or says nothing is, because you looked.
 
 ## On your own computer
 

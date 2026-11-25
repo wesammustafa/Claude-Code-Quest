@@ -194,8 +194,8 @@ export const openSaid = {
   check(repo) {
     const note = readNote(repo);
     if (note.error !== undefined) return note.error;
-    if (note.open === null) return 'The readiness note has no *Still open* part. Add one: what the evidence can\'t settle yet, or that nothing is open.';
-    if (!/\w/.test(note.open.said)) return "The readiness note's *Still open* part is empty. Is anything in the guide true only for this one Saturday, or not yet confirmed? If nothing is, say so.";
+    if (note.open === null) return 'The readiness note has no **Still open** part. Add one: what the evidence can\'t settle yet, or that nothing is open.';
+    if (!/\w/.test(note.open.said)) return "The readiness note's **Still open** part is empty. Is anything in the guide true only for this one Saturday, or not yet confirmed? If nothing is, say so.";
     return true;
   },
 };

@@ -146,8 +146,8 @@ test('the Still open part: present and saying something, or saying nothing is op
   passes(open, done(withOpen('## Still open\n\n- **Parking.** Park Lane is confirmed for 13 February only.')));
   passes(open, done(withOpen('**Still open:**\n\n- Park Lane parking, for this Saturday only')));
   passes(open, done(withOpen('Open questions: none, every row is confirmed.')));
-  says(open, done(NOTE_A.replace(OPEN_A, '')), /has no \*Still open\* part/);
-  says(open, done(withOpen('## Still open\n\n## How I checked\n\n- Opened each line.')), /\*Still open\* part is empty\. Is anything in the guide true only for this one Saturday/);
+  says(open, done(NOTE_A.replace(OPEN_A, '')), /has no \*\*Still open\*\* part/);
+  says(open, done(withOpen('## Still open\n\n## How I checked\n\n- Opened each line.')), /\*\*Still open\*\* part is empty\. Is anything in the guide true only for this one Saturday/);
   says(open, done(withOpen('**Still open:**')), /is empty/);
 });
 
