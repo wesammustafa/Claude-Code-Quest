@@ -15,6 +15,7 @@
 2. [Give Claude a clear job](02-give-claude-a-clear-job.md)
 3. [Check every claim before anyone relies on it](02-check-every-claim.md)
 4. [Steer, undo and start fresh](04-steer-undo-and-start-fresh.md)
+5. [Hand it over: show it is ready](05-hand-it-over.md)
 
 ## Capstone
 

@@ -72,8 +72,19 @@ export const tableMade = {
   },
 };
 
-const START_10 = /(?<![\w:.])(?:10(?::00)?\s*(?:am|a\.m\.)|10:00|ten o['’]?clock)(?![\w:])/i;
-const START_1030 = /\b10[:.]30(?!\d)|\bhalf past ten\b/i;
+export const START_10 = /(?<![\w:.])(?:10(?::00)?\s*(?:am|a\.m\.)|10:00|ten o['’]?clock)(?![\w:])/i;
+export const START_1030 = /\b10[:.]30(?!\d)|\bhalf past ten\b/i;
+
+// What a guide says, read claim by claim: true, or the hint. b-5 reads its
+// attendee guide with these too.
+/** @param {string} text */
+export function startSaid(text) {
+  const lines = claims(text);
+  const early = lines.find((c) => START_10.test(c));
+  if (early) return `The guide still says "${quote(early)}". Line 5 of \`${NOTES}\` says the public comes in from 10:30: the room is booked from 10:00 so the volunteers can set up.`;
+  if (!lines.some((c) => START_1030.test(c))) return `No line says when the public can come in. Line 5 of \`${NOTES}\` says: write that time into the guide.`;
+  return true;
+}
 
 /** @type {Item} */
 export const timeRight = {
@@ -81,10 +92,7 @@ export const timeRight = {
   check(repo) {
     const d = readDraft(repo);
     if (d.error !== undefined) return d.error;
-    const early = d.lines.find((c) => START_10.test(c));
-    if (early) return `The guide still says "${quote(early)}". Line 5 of \`${NOTES}\` says the public comes in from 10:30: the room is booked from 10:00 so the volunteers can set up.`;
-    if (!d.lines.some((c) => START_1030.test(c))) return `No line says when the public can come in. Line 5 of \`${NOTES}\` says: write that time into the guide.`;
-    return true;
+    return startSaid(d.text);
   },
 };
 
@@ -127,16 +135,22 @@ export const accessRight = {
 const TURN_UP = /\bjust turn up\b|\bplenty of (?:space|room|places)\b|\bno need to book\b|\bno booking\b|\bdrop in any ?time\b/i;
 const BOOK = /\bbook(?:s|ed|ing)?\b|\bevents page\b|\bsign[- ]?ups?\b|\bregister\b/i;
 
+/** @param {string} text */
+export function bookingSaid(text) {
+  const lines = claims(text);
+  const open = lines.find((c) => TURN_UP.test(c));
+  if (open) return `The guide still says "${quote(open)}". Line 7 of \`${NOTES}\` caps sign-ups at 32, and line 18 of \`${GROUP}\` says the public books on the library's events page.`;
+  if (!lines.some((c) => BOOK.test(c))) return `No line tells people to book. Line 18 of \`${GROUP}\` says how the public books: add it.`;
+  return true;
+}
+
 /** @type {Item} */
 export const bookingRight = {
   text: 'the guide tells people to book',
   check(repo) {
     const d = readDraft(repo);
     if (d.error !== undefined) return d.error;
-    const open = d.lines.find((c) => TURN_UP.test(c));
-    if (open) return `The guide still says "${quote(open)}". Line 7 of \`${NOTES}\` caps sign-ups at 32, and line 18 of \`${GROUP}\` says the public books on the library's events page.`;
-    if (!d.lines.some((c) => BOOK.test(c))) return `No line tells people to book. Line 18 of \`${GROUP}\` says how the public books: add it.`;
-    return true;
+    return bookingSaid(d.text);
   },
 };
 
@@ -158,15 +172,20 @@ export const rulesRight = {
 
 const PHONE = /\b555[- .]?01\d\d\b/g;
 
+/** @param {string} text */
+export function numberSaid(text) {
+  const other = [...text.matchAll(PHONE)].map((m) => m[0]).find((n) => n.replace(/\D/g, '') !== '5550100');
+  if (other) return `The guide gives ${other}. Line 23 of \`${GROUP}\` says Priya's number never goes on anything public; line 22 gives the public number.`;
+  return true;
+}
+
 /** @type {Item} */
 export const privacyRight = {
   text: 'the only phone number is the library\'s public one',
   check(repo) {
     const d = readDraft(repo);
     if (d.error !== undefined) return d.error;
-    const other = [...d.text.matchAll(PHONE)].map((m) => m[0]).find((n) => n.replace(/\D/g, '') !== '5550100');
-    if (other) return `The guide gives ${other}. Line 23 of \`${GROUP}\` says Priya's number never goes on anything public; line 22 gives the public number.`;
-    return true;
+    return numberSaid(d.text);
   },
 };
 

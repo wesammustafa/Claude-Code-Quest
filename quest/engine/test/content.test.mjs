@@ -1160,12 +1160,10 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
       "limit-run":
         "ticket 27 cut a-4's Your turn question, which tested a flag's definition, so a-7's questions are the first that can mark limit-run, and no lesson after a-7 has warm-ups",
     }
-  : {
-      // courses/fixit: b-1, b-2, b-6, b-4, then the capstone, which has
-      // no warm-ups by the rework's rule, so b-4's are the last pool.
-      clear:
-        "b-4's compact-or-clear question can mark clear missed, and b-4's pool is the last in this lane; the full course recalls clear in b-5's pool",
-    };
+  : // courses/fixit: b-5's pool recalls b-4's clear, the last skill a
+    // Beginner question marks missed before the capstone, which has no
+    // warm-ups by the rework's rule.
+    {};
 
 // The skills a question in `contents` (in PATH order) can mark missed that
 // no later lesson's pool recalls.

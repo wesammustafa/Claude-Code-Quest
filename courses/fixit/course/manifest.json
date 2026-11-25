@@ -42,9 +42,19 @@
       "slow": []
     },
     {
-      "id": "b-capstone",
+      "id": "b-5",
       "level": "beginner",
       "order": 5,
+      "page": "docs/beginner/05-hand-it-over.md",
+      "steps": "course/steps/b-5.md",
+      "check": "b-5",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "b-capstone",
+      "level": "beginner",
+      "order": 6,
       "page": "docs/beginner/capstone.md",
       "steps": "course/steps/b-capstone.md",
       "check": "b-capstone",
