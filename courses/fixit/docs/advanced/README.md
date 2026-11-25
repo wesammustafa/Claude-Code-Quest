@@ -16,7 +16,7 @@ It's the summer series for the Millbrook Fixers: three session pages and a sched
 2. [Reconcile conflicting findings](02-reconcile-findings.md)
 3. [Bound an unattended run](03-bound-an-unattended-run.md)
 4. [Recover from a partial failure](04-recover-from-a-partial-failure.md)
-5. Share the workflow with its limits
+5. [Share the workflow with its limits](05-share-the-workflow.md)
 
 ## Capstone
 

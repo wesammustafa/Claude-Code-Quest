@@ -81,6 +81,16 @@
       "check": "a-9",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "a-6",
+      "level": "advanced",
+      "order": 8,
+      "page": "docs/advanced/05-share-the-workflow.md",
+      "steps": "course/steps/a-6.md",
+      "check": "a-6",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }
