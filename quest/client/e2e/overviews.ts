@@ -30,6 +30,7 @@ export const walkCourse = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -45,6 +46,7 @@ export const walkCourse = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -60,6 +62,7 @@ export const walkCourse = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -75,6 +78,7 @@ export const walkCourse = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -90,6 +94,7 @@ export const walkCourse = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -105,6 +110,7 @@ export const walkCourse = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
       ],
@@ -128,6 +134,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -145,6 +152,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -162,6 +170,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -179,6 +188,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -196,6 +206,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -213,6 +224,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -230,6 +242,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -247,6 +260,7 @@ export const walkCourse = {
             level: "intermediate",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -262,6 +276,7 @@ export const walkCourse = {
           folder: {
             kind: "pinned",
           },
+          optional: false,
           tearDownLeft: false,
         },
       ],
@@ -285,6 +300,7 @@ export const walkCourse = {
             level: "advanced",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -302,6 +318,7 @@ export const walkCourse = {
             level: "advanced",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -319,6 +336,7 @@ export const walkCourse = {
             level: "advanced",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -336,6 +354,7 @@ export const walkCourse = {
             level: "advanced",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -353,6 +372,7 @@ export const walkCourse = {
             lesson: "a-5",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -370,6 +390,7 @@ export const walkCourse = {
             level: "advanced",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -387,6 +408,7 @@ export const walkCourse = {
             level: "advanced",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -404,6 +426,7 @@ export const walkCourse = {
             lesson: "a-capstone",
             set: true,
           },
+          optional: false,
           tearDownLeft: false,
         },
       ],

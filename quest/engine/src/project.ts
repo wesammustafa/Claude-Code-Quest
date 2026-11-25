@@ -56,6 +56,7 @@ import {
   beatState,
   cardOf,
   contentOf,
+  coreLessons,
   currentBeat,
   currentStep,
   doneBefore,
@@ -88,6 +89,7 @@ import {
   repoNeed,
   ruleTiers,
   rungsOf,
+  sendOrder,
   stepNote,
   stepsOf,
   tearDownLeft,
@@ -136,15 +138,15 @@ export function startedLesson(
 // ---- the course --------------------------------------------------------------
 function courseView(s: EngineState): CourseView {
   return {
-    levels: levelsOf(s).map((level) => {
-      const lessons = levelLessons(s, level);
-      return {
-        id: level,
-        complete: lessons.every((l) => progressOf(s, l.id).complete),
-        lessons: lessons.map((l) => summary(s, l)),
-      };
-    }),
-    next: s.course.find((l) => l.content && toFinish(s, l))?.id ?? null,
+    levels: levelsOf(s).map((level) => ({
+      id: level,
+      complete: coreLessons(s, level).every(
+        (l) => progressOf(s, l.id).complete,
+      ),
+      lessons: levelLessons(s, level).map((l) => summary(s, l)),
+    })),
+    next:
+      sendOrder(s.course).find((l) => l.content && toFinish(s, l))?.id ?? null,
   };
 }
 
@@ -167,6 +169,7 @@ function summary(s: EngineState, l: CourseEntry): LessonSummary {
     stamp: l.content?.stamp ?? "",
     page: l.page ?? "",
     capstone: l.id.endsWith("capstone"),
+    optional: Boolean(l.optional),
     complete: progressOf(s, l.id).complete,
     badge: l.content?.badge ?? null,
     folder: folderNeed(s, l),

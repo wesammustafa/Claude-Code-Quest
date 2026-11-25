@@ -98,7 +98,7 @@ export function LessonComplete() {
     <main className={MOMENT}>
       <Pip size="hero" className="mb-2" />
       <span className={EYEBROW}>
-        {`${lessonLabel(summary?.number ?? null, lesson.capstone)} complete`}
+        {`${lessonLabel(summary?.number ?? null, lesson.capstone, summary?.optional ?? false)} complete`}
       </span>
       <PageTitle
         title={`Complete: ${lesson.title}`}

@@ -23,7 +23,7 @@ export function LessonPreview({ id }: { id: string }) {
     <main className={COLUMN} data-lesson-preview="">
       <header className="grid gap-2">
         <span className={EYEBROW}>
-          {`${LEVEL_NAMES[level.id]} · ${lessonLabel(summary.number, summary.capstone)}`}
+          {`${LEVEL_NAMES[level.id]} · ${lessonLabel(summary.number, summary.capstone, summary.optional)}`}
         </span>
         <PageTitle title={summary.title} className="text-3xl max-sm:text-2xl">
           <InlineText text={summary.title} />

@@ -164,6 +164,7 @@ export function LessonOverview() {
             lesson.level,
             summary?.number ?? null,
             lesson.capstone,
+            summary?.optional ?? false,
           )}
         </span>
         <PageTitle title={lesson.title} className="text-3xl max-sm:text-2xl">

@@ -49,13 +49,24 @@ export interface Count {
   total: number;
 }
 
-/** How many Lessons, and how many Levels, are complete: completion only. */
+/** A Level's core path and its optional Lessons (labs), each in course order. */
+export function splitLabs(lessons: readonly LessonSummary[]): {
+  core: LessonSummary[];
+  labs: LessonSummary[];
+} {
+  return {
+    core: lessons.filter((l) => !l.optional),
+    labs: lessons.filter((l) => l.optional),
+  };
+}
+
+/** How many core Lessons, and how many Levels, are complete: completion only. */
 export function courseCounts(snapshot: Snapshot): {
   lessons: Count;
   levels: Count;
 } {
   const { levels } = snapshot.course;
-  const lessons = levels.flatMap((level) => level.lessons);
+  const lessons = levels.flatMap((level) => splitLabs(level.lessons).core);
   return {
     lessons: {
       done: lessons.filter((s) => s.complete).length,

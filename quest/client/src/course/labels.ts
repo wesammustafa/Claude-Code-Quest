@@ -9,10 +9,16 @@ export const LEVEL_NAMES: Readonly<Record<LevelId, string>> = {
 };
 
 /**
- * "Lesson 3" or "Capstone", as the Learner reads a lesson's place in its
- * Level; plain "Lesson" when the course gives no number.
+ * "Lesson 3", "Capstone" or "Lab" (an optional Lesson), as the Learner reads
+ * a lesson's place in its Level; plain "Lesson" when the course gives no
+ * number.
  */
-export function lessonLabel(number: number | null, capstone: boolean): string {
+export function lessonLabel(
+  number: number | null,
+  capstone: boolean,
+  optional: boolean,
+): string {
+  if (optional) return "Lab";
   if (capstone) return "Capstone";
   return number === null ? "Lesson" : `Lesson ${String(number)}`;
 }
@@ -22,8 +28,9 @@ export function lessonEyebrow(
   level: LevelId,
   number: number | null,
   capstone: boolean,
+  optional: boolean,
 ): string {
-  return `${LEVEL_NAMES[level]} · ${lessonLabel(number, capstone)}`;
+  return `${LEVEL_NAMES[level]} · ${lessonLabel(number, capstone, optional)}`;
 }
 
 const COUNT = ["no", "one", "two", "three", "four", "five"] as const;

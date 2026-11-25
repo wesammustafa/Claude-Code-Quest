@@ -61,6 +61,26 @@ describe("levelMoment", () => {
     expect(moment?.next?.id).toBe("intermediate");
   });
 
+  test("a lab's Badge only once the lab is done: the Level completes without it", () => {
+    const withLab = (complete: boolean) =>
+      levelMoment(
+        snapshotOf(completeCapstone, {
+          course: {
+            ...beginnerDone,
+            levels: beginnerDone.levels.map((level) => ({
+              ...level,
+              lessons: level.lessons.map((l) =>
+                l.id === "b-3" ? { ...l, optional: true, complete } : l,
+              ),
+            })),
+          },
+        }),
+        "beginner",
+      )?.badges.map((b) => b.lesson);
+    expect(withLab(false)).not.toContain("b-3");
+    expect(withLab(true)).toContain("b-3");
+  });
+
   test("null for a Level that is not complete", () => {
     expect(
       levelMoment(

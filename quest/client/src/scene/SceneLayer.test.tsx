@@ -280,6 +280,24 @@ describe("the Scene, on", () => {
     }
   });
 
+  test("draws a Station for each core Lesson, none for a lab beside the path", async () => {
+    const heard: Heard = { props: [], mounts: 0 };
+    const withLab = {
+      ...course,
+      levels: course.levels.map((level) => ({
+        ...level,
+        lessons: level.lessons.map((l) =>
+          l.id === "b-2" ? { ...l, optional: true } : l,
+        ),
+      })),
+    };
+    renderMounted("/journey/", snapshotOf(overview, { course: withLab }), {
+      scene: sceneWith(heard),
+    });
+    await drawn(heard);
+    expect(last(heard)?.stations.map((s) => s.lesson)).toEqual(["b-1"]);
+  });
+
   test("the frame keeps its background until the Scene has drawn, then paints none", async () => {
     const heard: Heard = { props: [], mounts: 0 };
     renderMounted("/journey/", snapshotOf(overview), {
