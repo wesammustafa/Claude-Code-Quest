@@ -184,7 +184,7 @@ function patchCommit(repo) {
   try {
     repo.git('rev-parse', '--verify', '--quiet', 'HEAD^');
   } catch {
-    return /** @type {PatchCommit} */ ({ error: 'There is no commit of yours yet. Once the fix and its test are in, ask Claude to commit them together (step 5).' });
+    return /** @type {PatchCommit} */ ({ error: 'There is no commit of yours yet. Once the fix and its test are in, ask Claude to commit them together (Your turn step 3).' });
   }
   // Each commit against its first parent: a merge's combined diff can omit
   // files changed by only one parent.
@@ -192,7 +192,7 @@ function patchCommit(repo) {
   const sha = repo.git('log', '-1', '--min-parents=1', '--diff-filter=A', '--format=%H', '--', PATCH_TEST);
   if (!sha) {
     const shown = changed('HEAD').join(', ') || 'no files';
-    return /** @type {PatchCommit} */ ({ error: `No commit adds Ade's test, \`${PATCH_TEST}\`, yet; your last commit changes ${shown}. Ask Claude to commit the fix and its test together (step 5).` });
+    return /** @type {PatchCommit} */ ({ error: `No commit adds Ade's test, \`${PATCH_TEST}\`, yet; your last commit changes ${shown}. Ask Claude to commit the fix and its test together (Your turn step 3).` });
   }
   return { sha, files: changed(sha) };
 }
@@ -309,14 +309,14 @@ export const items = [
       if (other) return other;
       const { broken, error } = brokenIn(repo, { 'doc.md': '[app](//cdn.example.com/app.js)\n[booking](/events/fixit-booking.md)\n[root](/missing.md)\n[page](missing.md)\n' });
       if (error) return error;
-      if (broken.has(1)) return `The checker still reports \`//cdn.example.com/app.js\` as broken. Apply Ade's patch with \`git apply ${PATCH}\` (step 2), then fix what it gets wrong.`;
+      if (broken.has(1)) return `The checker still reports \`//cdn.example.com/app.js\` as broken. Apply Ade's patch with \`git apply ${PATCH}\` (Worked example step 3), then fix what it gets wrong.`;
       /** @type {Record<number, string>} */
       const links = { 2: '`/events/fixit-booking.md`', 3: '`/missing.md`', 4: '`missing.md`' };
       const skipped = [2, 3, 4].filter((line) => !broken.has(line)).map((line) => links[line]);
       if (!skipped.length) return true;
       const which = skipped.length === 1 ? skipped[0] : `${skipped.slice(0, -1).join(', ')} and ${skipped.at(-1)}`;
       const booking = skipped.includes(links[2] ?? '') ? ' The booking link on the events page would break and nobody would know.' : '';
-      if (!patchCommitted(repo)) return `The checker no longer reports ${which}, though Ade's description says every link but the \`//\` ones is checked as before.${booking} Tell Claude which link the patch skips by mistake (step 3).`;
+      if (!patchCommitted(repo)) return `The checker no longer reports ${which}, though Ade's description says every link but the \`//\` ones is checked as before.${booking} Tell Claude which link the patch skips by mistake (Your turn step 1).`;
       return `Your commit still skips ${which}.${booking} Fix the rule so only \`//\` links are skipped, with a test that fails on Ade's version, and commit both.`;
     },
   },
@@ -331,7 +331,7 @@ export const items = [
       });
       if ('error' in result) return result.error;
       if ('caught' in result) return true;
-      if (!patchCommitted(repo)) return 'Your tests still pass with Ade\'s `isExternal` put back, so none of them would have caught his patch. Ask Claude for a test that fails on Ade\'s version, on the link his patch skips by mistake (step 3).';
+      if (!patchCommitted(repo)) return 'Your tests still pass with Ade\'s `isExternal` put back, so none of them would have caught his patch. Ask Claude for a test that fails on Ade\'s version, on the link his patch skips by mistake (Your turn step 1).';
       return 'Your tests still pass with Ade\'s `isExternal` put back: none of them fails on a link his patch skips by mistake. Add a test for that link and commit it.';
     },
   },
@@ -361,14 +361,24 @@ export const items = [
     },
   },
   {
-    text: 'that commit changes no file outside `src/links.js` and `test/`',
+    text: 'the fix for Ade\'s patch changes no file outside `src/links.js` and `test/`, before and after it is committed',
     check(repo) {
+      const outside = (/** @type {string} */ f) => f !== 'src/links.js' && !f.startsWith('test/');
+      const one = (/** @type {string[]} */ extra, /** @type {string} */ it, /** @type {string} */ them) => (extra.length === 1 ? it : them);
+      const sha = repo.git('log', '-1', '--min-parents=1', '--diff-filter=A', '--format=%H', '--', PATCH_TEST);
+      if (!sha) {
+        // Not committed yet: what the working tree changes, as step 2's Check sees it before the commit.
+        const extra = statusPaths(repo.git('status', '--porcelain', '--untracked-files=all'), repo.prefix).filter(outside);
+        if (!extra.length) return true;
+        const list = extra.map((f) => `\`${f}\``).join(', ');
+        return `${list} ${one(extra, 'has a change', 'have changes')} your request didn't name. Ask Claude to put ${one(extra, 'it', 'them')} back as ${one(extra, 'it was', 'they were')}, before you commit (Your turn step 2).`;
+      }
       const { files, error } = patchCommit(repo);
       if (error) return error;
-      const extra = files.filter((f) => f !== 'src/links.js' && !f.startsWith('test/'));
+      const extra = files.filter(outside);
       if (!extra.length) return true;
       const list = extra.map((f) => `\`${f}\``).join(', ');
-      return `The commit that adds \`${PATCH_TEST}\` also changes ${list}, which the request didn't name. Ask Claude to take ${extra.length === 1 ? 'it' : 'them'} out of the commit and put ${extra.length === 1 ? 'it' : 'them'} back as before.`;
+      return `The commit that adds \`${PATCH_TEST}\` also changes ${list}, which the request didn't name. Ask Claude to take ${one(extra, 'it', 'them')} out of the commit and put ${one(extra, 'it', 'them')} back as before.`;
     },
   },
   {
@@ -378,7 +388,7 @@ export const items = [
       if (other) return other;
       const one = runChecker(repo, { 'linkcheck.json': '{ "files": ["docs"] }\n' });
       if (one.status === null) return crashed(one);
-      if (one.status !== 2) return `With \`{ "files": ["docs"] }\` and no \`docs\` folder, the checker exits with code ${one.status}, not 2: Sun-hee's bug is still there. Plan the fix test first (step 6).`;
+      if (one.status !== 2) return `With \`{ "files": ["docs"] }\` and no \`docs\` folder, the checker exits with code ${one.status}, not 2: Sun-hee's bug is still there. Plan the fix test first (Your turn step 4).`;
       if (!/\bdocs\b/.test(`${one.stderr}\n${one.stdout}`)) return 'The checker exits with code 2 for a missing `docs` folder, but its error doesn\'t name the folder. Sun-hee\'s report asks for an error that names it.';
       const two = runChecker(repo, { 'linkcheck.json': '{ "files": ["notes", "archive"] }\n', 'notes/page.md': '# Notes\n' });
       if (two.status === null) return crashed(two);
@@ -407,7 +417,7 @@ export const items = [
       });
       if ('error' in result) return result.error;
       if ('caught' in result) return true;
-      return 'Your tests still pass with the checker\'s code from before your fixes, so none of them catches Sun-hee\'s bug. Ask Claude for a test that fails before the fix, and watch it fail first (step 7).';
+      return 'Your tests still pass with the checker\'s code from before your fixes, so none of them catches Sun-hee\'s bug. Ask Claude for a test that fails before the fix, and watch it fail first (Your turn step 5).';
     },
   },
   {
@@ -421,7 +431,7 @@ export const items = [
       });
       if ('error' in result) return result.error;
       if ('caught' in result) return true;
-      return 'Your tests still pass with a fix whose error leaves out the folder\'s name, so they check only that an error is thrown. Ask Claude to make the test check that the error names the missing folder (step 7).';
+      return 'Your tests still pass with a fix whose error leaves out the folder\'s name, so they check only that an error is thrown. Ask Claude to make the test check that the error names the missing folder (Your turn step 5).';
     },
   },
   testsPass,

@@ -139,7 +139,17 @@ test('the untouched start fails: the CDN link is reported, no test catches anyth
   says(folder, dir, /exits with code 0, not 2: Sun-hee's bug/);
   says(red, dir, /catches Sun-hee's bug/);
   says(named, dir, /only that an error is thrown/);
-  passes(dir, [titles, testsPass, clean]);
+  passes(dir, [titles, scope, testsPass, clean]);
+});
+
+test('before the commit, a change to src/cli.js fails the scope item, and the fix with its test alone passes it', () => {
+  const dir = start();
+  apply(dir);
+  write(dir, { 'test/external.test.js': solution('test/external.test.js'), 'src/links.js': solution('src/links.js') });
+  passes(dir, [links, flaw, scope]);
+  write(dir, { 'src/cli.js': START['src/cli.js'].replace("folder's Markdown files.", "folder's Markdown files. Links such as //cdn ones are external.") });
+  says(scope, dir, /`src\/cli\.js` has a change your request didn't name\. Ask Claude to put it back as it was, before you commit/);
+  passes(dir, [links, flaw]);
 });
 
 test("Ade's patch as he sent it, committed, fails on the links it skips and on its own commit", () => {

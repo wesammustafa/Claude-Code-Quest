@@ -65,8 +65,8 @@ In this practice workspace Claude's replies are written in advance. Git, Node.js
 **Part 1: Ade's patch.**
 
 1. **Ask Claude why, then for the fix.** In your own words, tell Claude which link the patch wrongly skips, ask it to fix `src/links.js` so only `//` links are skipped, and ask for a test that fails with Ade's version and passes with the fix. If Claude starts on a file your request didn't name, press `Esc` and tell it to keep to your request.
-2. **Read the diff before committing.** Type `/diff` and read every changed file, the tests included. Every file in it should be one your request named. If `src/cli.js` is in the list, ask Claude to put it back.
-3. **Commit fix and test together.** Ask Claude to commit the fix and its test as one commit. Asking Claude is enough; you don't need Git commands. The shell is there if you want them.
+2. **Read the diff before committing.** Type `/diff` and read every changed file, the tests included. Every file in it should be one your request named. Before you commit, press Check: it runs the checker on the booking link and looks for files your request didn't name. If it names `src/cli.js`, ask Claude to put it back as it was. If the booking link is still skipped, ask Claude again for the fix.
+3. **Commit fix and test together.** Ask Claude to commit the fix and its test as one commit. Asking Claude is enough; you don't need Git commands.
 
 **Part 2: the silent missing folder.**
 
@@ -75,8 +75,8 @@ In this practice workspace Claude's replies are written in advance. Git, Node.js
 Her report is `practice/b-3/missing-folder.md`.
 
 4. **Plan it test first, and review the plan.** Switch to plan mode: press `Shift+Tab` until the status bar shows `⏸ plan mode on`. Ask for a plan that writes a test first, runs it to see it fail, then fixes the bug. Read the plan before you approve it: does its test check that the error names the missing folder, or only that there is an error? If it falls short, use the plan menu to tell Claude what to change.
-5. **Watch red, then green, then review.** Approve the plan with **Yes, and use auto mode**. Watch the new test fail before the fix (red), then pass after it (green). Review the diff: if the test still doesn't check that the error names the missing folder, ask Claude to make it, and make sure `npm test` still passes.
-6. **Commit.** Ask Claude to commit the fix and its test together, or commit them yourself in the shell.
+5. **Watch red, then green, then review.** Approve the plan with **Yes, and use auto mode**. Watch the new test fail before the fix (red), then pass after it (green). Review the diff, then press Check. If the test still doesn't check that the error names the missing folder, ask Claude to make it, and make sure `npm test` still passes.
+6. **Commit.** Ask Claude to commit the fix and its test together.
 
 ## Check
 
@@ -86,7 +86,7 @@ The lab's check reads ten things:
 - links such as `//cdn.example.com/app.js` are skipped, and every other link, the booking link included, is checked as before
 - your tests fail with Ade's `isExternal` put back
 - the commit that adds Ade's test, `test/external.test.js`, also holds your change to `isExternal` in `src/links.js`
-- that commit changes no file outside `src/links.js` and `test/`
+- the fix for Ade's patch changes no file outside `src/links.js` and `test/`, before and after it is committed
 - a folder in `linkcheck.json` that doesn't exist stops the checker with code 2 and an error that names it, whether it is the first folder listed or a later one
 - your tests fail with the checker's code from the start put back
 - your tests fail with a fix whose error leaves out the folder's name
