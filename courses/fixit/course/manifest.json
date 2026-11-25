@@ -1,5 +1,8 @@
 {
-  "levels": [{ "id": "beginner", "index": "docs/beginner/README.md" }],
+  "levels": [
+    { "id": "beginner", "index": "docs/beginner/README.md" },
+    { "id": "intermediate", "index": "docs/intermediate/README.md" }
+  ],
   "lessons": [
     {
       "id": "b-1",
@@ -28,6 +31,16 @@
       "page": "docs/beginner/capstone.md",
       "steps": "course/steps/b-capstone.md",
       "check": "b-capstone",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "i-2",
+      "level": "intermediate",
+      "order": 4,
+      "page": "docs/intermediate/01-decide-what-to-remember.md",
+      "steps": "course/steps/i-2.md",
+      "check": "i-2",
       "folder": "copy",
       "slow": []
     }

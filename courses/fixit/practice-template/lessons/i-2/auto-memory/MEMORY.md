@@ -1,0 +1,3 @@
+- Room B at Millbrook Library holds 40 people, including volunteers and staff.
+- The coordinator prefers short answers with the source file named.
+- Public enquiries for the Fixers go to the library events desk, 555-0100.
