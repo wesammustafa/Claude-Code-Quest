@@ -1186,6 +1186,12 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
       // what a-6's own questions mark.
       "share-setup":
         "a-6's Decide first can mark share-setup missed, and the Advanced capstone, the only core lesson after it, has no warm-ups",
+      status:
+        "the optional lab i-3's warm-up is the first question that can mark status missed, and no lesson after it is built yet; a later Intermediate or Advanced pool recalls it",
+      "probe-guard":
+        "the optional lab i-5's questions are the first that can mark probe-guard missed, and no lesson after it is built yet; in the full course i-4 asks it first and a later pool recalls it",
+      "run-workflow":
+        "the optional lab a-3's question on its workflow script is the first that can mark run-workflow missed, and no lesson after it is built yet; a later Advanced lab's pool can recall it",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

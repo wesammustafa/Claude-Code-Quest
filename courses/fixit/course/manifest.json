@@ -77,9 +77,28 @@
       "slow": []
     },
     {
+      "id": "b-3",
+      "level": "beginner",
+      "order": 7,
+      "page": "docs/beginner/lab-request-to-commit.md",
+      "steps": "course/steps/b-3.md",
+      "check": "b-3",
+      "folder": "copy",
+      "slow": [
+        0,
+        1,
+        2,
+        5,
+        6,
+        7,
+        8
+      ],
+      "optional": true
+    },
+    {
       "id": "i-2",
       "level": "intermediate",
-      "order": 7,
+      "order": 8,
       "page": "docs/intermediate/01-decide-what-to-remember.md",
       "steps": "course/steps/i-2.md",
       "check": "i-2",
@@ -89,7 +108,7 @@
     {
       "id": "i-1",
       "level": "intermediate",
-      "order": 8,
+      "order": 9,
       "page": "docs/intermediate/02-turn-a-repeated-job-into-a-skill.md",
       "steps": "course/steps/i-1.md",
       "check": "i-1",
@@ -99,7 +118,7 @@
     {
       "id": "i-4",
       "level": "intermediate",
-      "order": 9,
+      "order": 10,
       "page": "docs/intermediate/03-decide-what-each-part-may-touch.md",
       "steps": "course/steps/i-4.md",
       "check": "i-4",
@@ -109,7 +128,7 @@
     {
       "id": "i-6",
       "level": "intermediate",
-      "order": 10,
+      "order": 11,
       "page": "docs/intermediate/04-bring-in-a-second-reviewer.md",
       "steps": "course/steps/i-6.md",
       "check": "i-6",
@@ -119,7 +138,7 @@
     {
       "id": "i-7",
       "level": "intermediate",
-      "order": 11,
+      "order": 12,
       "page": "docs/intermediate/05-connect-an-outside-tool.md",
       "steps": "course/steps/i-7.md",
       "check": "i-7",
@@ -129,7 +148,7 @@
     {
       "id": "i-capstone",
       "level": "intermediate",
-      "order": 12,
+      "order": 13,
       "page": "docs/intermediate/capstone.md",
       "steps": "course/steps/i-capstone.md",
       "check": "i-capstone",
@@ -137,9 +156,39 @@
       "slow": []
     },
     {
+      "id": "i-3",
+      "level": "intermediate",
+      "order": 14,
+      "page": "docs/intermediate/lab-model-and-effort.md",
+      "steps": "course/steps/i-3.md",
+      "check": "i-3",
+      "folder": "copy",
+      "slow": [
+        2,
+        3,
+        4
+      ],
+      "optional": true
+    },
+    {
+      "id": "i-5",
+      "level": "intermediate",
+      "order": 15,
+      "page": "docs/intermediate/lab-hooks-fail-closed.md",
+      "steps": "course/steps/i-5.md",
+      "check": "i-5",
+      "folder": "copy",
+      "slow": [
+        2,
+        4,
+        7
+      ],
+      "optional": true
+    },
+    {
       "id": "a-2",
       "level": "advanced",
-      "order": 13,
+      "order": 16,
       "page": "docs/advanced/01-split-the-work.md",
       "steps": "course/steps/a-2.md",
       "check": "a-2",
@@ -149,7 +198,7 @@
     {
       "id": "a-8",
       "level": "advanced",
-      "order": 14,
+      "order": 17,
       "page": "docs/advanced/02-reconcile-findings.md",
       "steps": "course/steps/a-8.md",
       "check": "a-8",
@@ -159,7 +208,7 @@
     {
       "id": "a-7",
       "level": "advanced",
-      "order": 15,
+      "order": 18,
       "page": "docs/advanced/03-bound-an-unattended-run.md",
       "steps": "course/steps/a-7.md",
       "check": "a-7",
@@ -169,7 +218,7 @@
     {
       "id": "a-9",
       "level": "advanced",
-      "order": 16,
+      "order": 19,
       "page": "docs/advanced/04-recover-from-a-partial-failure.md",
       "steps": "course/steps/a-9.md",
       "check": "a-9",
@@ -179,7 +228,7 @@
     {
       "id": "a-6",
       "level": "advanced",
-      "order": 17,
+      "order": 20,
       "page": "docs/advanced/05-share-the-workflow.md",
       "steps": "course/steps/a-6.md",
       "check": "a-6",
@@ -189,7 +238,7 @@
     {
       "id": "a-capstone",
       "level": "advanced",
-      "order": 18,
+      "order": 21,
       "page": "docs/advanced/capstone.md",
       "steps": "course/steps/a-capstone.md",
       "check": "a-capstone",
@@ -199,7 +248,7 @@
     {
       "id": "a-1",
       "level": "advanced",
-      "order": 19,
+      "order": 22,
       "page": "docs/advanced/lab-parallel-worktrees.md",
       "steps": "course/steps/a-1.md",
       "check": "a-1",
@@ -210,9 +259,23 @@
       "optional": true
     },
     {
+      "id": "a-3",
+      "level": "advanced",
+      "order": 23,
+      "page": "docs/advanced/lab-goals-and-workflows.md",
+      "steps": "course/steps/a-3.md",
+      "check": "a-3",
+      "folder": "copy",
+      "slow": [
+        1,
+        2
+      ],
+      "optional": true
+    },
+    {
       "id": "a-4",
       "level": "advanced",
-      "order": 20,
+      "order": 24,
       "page": "docs/advanced/lab-script-claude-code.md",
       "steps": "course/steps/a-4.md",
       "check": "a-4",

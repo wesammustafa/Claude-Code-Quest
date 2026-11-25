@@ -20,3 +20,7 @@ Six lessons, the capstone last, built around the Millbrook Fixers, a volunteer r
 ## Capstone
 
 [The March attendee guide](capstone.md): write the guide members of the public use to decide whether to come, from a signed booking, two sets of notes and an old flyer that disagree, and show Maya why every line can be trusted.
+
+## Optional lab
+
+[From request to commit in code](lab-request-to-commit.md): the code version of lesson 2, on the Fix-It group's website repository. Check that Ade's patch to the link checker does only what it says, fix it with a test that fails on his version, read the diff and commit; then fix a silent missing folder test first. No core lesson or capstone depends on it.

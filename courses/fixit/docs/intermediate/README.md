@@ -22,10 +22,8 @@ Sam, the Fixers' second organizer, runs sessions at another venue. In this level
 
 [Hand the kit to Sam](capstone.md): a fresh session uses the kit on a different venue, and you fix the kit, not just its output.
 
-## Engineering labs (optional)
+## Optional labs
 
-You can skip every lab and still finish the level. Each one takes a decision from this level into code:
+[Model and effort, one variable at a time](lab-model-and-effort.md): the experiment behind lesson 4, on the Fix-It group's website repository. Find out why an answer about the link checker's crash was weak before reaching for a bigger model, then give the routine changelog skill cheaper settings and the root-cause skill deeper ones, and commit one change with an entry that says what it does. No core lesson or capstone depends on it.
 
-- Model and effort, one variable at a time, beside lesson 4
-- Hooks that fail closed, beside lesson 3
-- Evaluate, trial and share a plugin, beside lesson 5
+[Hooks that fail closed](lab-hooks-fail-closed.md): the deep end of lesson 3, on the website repository. Register a guard that blocks edits to `package-lock.json` and `secrets/` even when its own script is missing, find the hole a shell write leaves and close it with a deny rule, and have Claude write a Stop hook that sends it back while the tests fail. No core lesson or capstone depends on it.
