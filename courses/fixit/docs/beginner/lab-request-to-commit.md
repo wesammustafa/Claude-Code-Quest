@@ -74,7 +74,7 @@ In this practice workspace Claude's replies are written in advance. Git, Node.js
 
 Her report is `practice/b-3/missing-folder.md`.
 
-4. **Plan it test first, and review the plan.** Switch to plan mode: press `Shift+Tab` until the status bar shows `⏸ plan mode on`. Ask for a plan that writes a test first, runs it to see it fail, then fixes the bug. Read the plan before you approve it: does its test check that the error names the missing folder, or only that there is an error? If it falls short, use the plan menu to tell Claude what to change.
+4. **Plan it test first, and review the plan.** Switch to plan mode: press `Shift+Tab` until the status bar shows `⏸ plan mode on`. Ask for a plan that writes a test first, runs it to see it fail, then fixes the bug. Read the plan before you approve it: does its test check that the error names the missing folder, or only that there is an error? Approve only once it does. If it falls short, use the plan menu to tell Claude what to change.
 5. **Watch red, then green, then review.** Approve the plan with **Yes, and use auto mode**. Watch the new test fail before the fix (red), then pass after it (green). Review the diff, then press Check. If the test still doesn't check that the error names the missing folder, ask Claude to make it, and make sure `npm test` still passes.
 6. **Commit.** Ask Claude to commit the fix and its test together.
 
