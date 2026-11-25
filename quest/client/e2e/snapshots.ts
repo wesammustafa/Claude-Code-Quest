@@ -38,6 +38,7 @@ export const course: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -53,6 +54,7 @@ export const course: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
       ],
@@ -614,6 +616,7 @@ export const fullCourse: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -629,6 +632,7 @@ export const fullCourse: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -644,6 +648,7 @@ export const fullCourse: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -659,6 +664,7 @@ export const fullCourse: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -674,6 +680,7 @@ export const fullCourse: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -689,6 +696,7 @@ export const fullCourse: CourseView = {
           folder: {
             kind: "copy",
           },
+          optional: false,
           tearDownLeft: false,
         },
       ],
@@ -712,6 +720,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -729,6 +738,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -746,6 +756,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -763,6 +774,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -780,6 +792,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -797,6 +810,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -814,6 +828,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -831,6 +846,7 @@ export const fullCourse: CourseView = {
             level: "intermediate",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -846,6 +862,7 @@ export const fullCourse: CourseView = {
           folder: {
             kind: "pinned",
           },
+          optional: false,
           tearDownLeft: false,
         },
       ],
@@ -869,6 +886,7 @@ export const fullCourse: CourseView = {
             level: "advanced",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -886,6 +904,7 @@ export const fullCourse: CourseView = {
             level: "advanced",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -903,6 +922,7 @@ export const fullCourse: CourseView = {
             level: "advanced",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -920,6 +940,7 @@ export const fullCourse: CourseView = {
             level: "advanced",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -937,6 +958,7 @@ export const fullCourse: CourseView = {
             lesson: "a-5",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -954,6 +976,7 @@ export const fullCourse: CourseView = {
             level: "advanced",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -971,6 +994,7 @@ export const fullCourse: CourseView = {
             level: "advanced",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
         {
@@ -988,6 +1012,7 @@ export const fullCourse: CourseView = {
             lesson: "a-capstone",
             set: false,
           },
+          optional: false,
           tearDownLeft: false,
         },
       ],

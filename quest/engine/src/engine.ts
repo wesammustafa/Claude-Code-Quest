@@ -257,18 +257,19 @@ export function initialState({
   // Every lesson of the course has its progress now.
   const of = (l: CourseEntry) =>
     must(progress[l.id], `no progress for ${l.id}`);
+  const order = sendOrder(course);
   const open =
-    course.find((l) => placed.has(l.id) && !of(l).complete) ??
-    course.find((l) => l.content && of(l).step && !of(l).complete) ??
-    course.find((l) => l.content && !of(l).complete);
+    order.find((l) => placed.has(l.id) && !of(l).complete) ??
+    order.find((l) => l.content && of(l).step && !of(l).complete) ??
+    order.find((l) => l.content && !of(l).complete);
   const folders = { ...(saved?.folders ?? {}) };
   // Every lesson in the app is done: open the map at the next lesson, or
   // where only lessons that run in a new copy with no folder saved are left,
   // at the first of them.
   const next = must(
     open ??
-      course.find((l) => toFinish({ progress, folders }, l)) ??
-      course.find((l) => !of(l).complete) ??
+      order.find((l) => toFinish({ progress, folders }, l)) ??
+      order.find((l) => !of(l).complete) ??
       course[0],
     "a course with no lesson",
   );
@@ -490,16 +491,33 @@ export const progressOf = (s: EngineState, id: LessonId = s.lesson) =>
 // A lesson's level, from its PATH entry: 'beginner' for b-2.
 export const levelOf = (s: EngineState, id: LessonId = s.lesson) =>
   lessonOf(s, id)?.level;
-// The lessons of a level, in course order, capstone last.
+// The lessons of a level, in course order, its optional ones (labs) too.
 export const levelLessons = (s: EngineState, level: string | undefined) =>
   s.course.filter((l) => l.level === level);
+// A level's core lessons: all but its optional ones (labs). The level is
+// complete when these are.
+export const coreLessons = (s: EngineState, level: string | undefined) =>
+  levelLessons(s, level).filter((l) => !l.optional);
+// The course in the order the app sends the Learner along: its core
+// lessons, then its optional ones, each in course order. A lab is never
+// where the app goes while a core lesson is left.
+export const sendOrder = (course: readonly CourseEntry[]) => [
+  ...course.filter((l) => !l.optional),
+  ...course.filter((l) => l.optional),
+];
 // The course's levels, in course order.
 export const levelsOf = (s: EngineState) => [
   ...new Set(s.course.map((l) => l.level)),
 ];
-// A lesson's number within its level, as its page says "Lesson 2 of 8".
-export const lessonNumber = (s: EngineState, id: LessonId = s.lesson) =>
-  levelLessons(s, levelOf(s, id)).findIndex((l) => l.id === id) + 1;
+// A lesson's number within its level, as its page says "Lesson 2 of 8":
+// among the level's core lessons, or, for an optional one, its labs.
+export function lessonNumber(s: EngineState, id: LessonId = s.lesson) {
+  const lab = Boolean(lessonOf(s, id)?.optional);
+  const kin = levelLessons(s, levelOf(s, id)).filter(
+    (l) => Boolean(l.optional) === lab,
+  );
+  return kin.findIndex((l) => l.id === id) + 1;
+}
 export const contentOf = (s: EngineState, id: LessonId = s.lesson) =>
   lessonOf(s, id)?.content;
 // Where a lesson pins its folder: 'copy', the practice copy whatever its
@@ -714,8 +732,10 @@ export function doneBefore(s: EngineState) {
   if (!s.lesson.endsWith("capstone"))
     return practised.has(currentStep(s).skill);
   const idx = s.course.findIndex((l) => l.id === s.lesson);
+  // A capstone never asks for a lab, so the labs before it count for none.
   return s.course
     .slice(0, idx)
+    .filter((l) => !l.optional)
     .every((l) =>
       (l.content?.steps ?? []).every(
         (x) =>

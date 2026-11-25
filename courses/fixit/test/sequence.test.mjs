@@ -40,6 +40,13 @@ test("the lessons follow the course map's order, each in its own level, labs aft
   assert.ok(ids.includes('b-1') && ids.includes('b-capstone'));
 });
 
+test('the labs alone are optional: each lab\'s manifest entry says "optional": true, and no core lesson\'s does', () => {
+  for (const p of PATH) {
+    const lab = LABS.includes(p.id);
+    assert.equal(Boolean(p.optional), lab, `${p.id} is ${lab ? 'a lab: give it "optional": true' : 'a core lesson, never optional'}`);
+  }
+});
+
 test("each step's tier is the course rule's for this sequence, b-6 after b-1", () => {
   const off = [];
   contents.forEach((c, i) => {

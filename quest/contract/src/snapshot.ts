@@ -39,21 +39,24 @@ export interface Snapshot {
 export interface CourseView {
   /** The Levels in course order. */
   levels: LevelView[];
-  /** The next Lesson the Learner can finish, or null when none is left. */
+  /**
+   * The next Lesson the Learner can finish, or null when none is left: a
+   * core Lesson while one is left, then an optional one.
+   */
   next: LessonId | null;
 }
 
 export interface LevelView {
   id: LevelId;
-  /** Every Lesson of the Level, its capstone too, is complete. */
+  /** Every core Lesson of the Level, its capstone too, is complete: optional ones never count. */
   complete: boolean;
-  /** Its Lessons in course order, the capstone last. */
+  /** Its Lessons in course order: the core ones, the capstone last of them, and its optional ones. */
   lessons: LessonSummary[];
 }
 
 export interface LessonSummary {
   id: LessonId;
-  /** Its number within its Level, from 1. */
+  /** Its number within its Level, from 1: among the core Lessons, or, for an optional one, among the optional ones. */
   number: number;
   /** The Lesson's title. */
   title: string;
@@ -65,6 +68,8 @@ export interface LessonSummary {
   page: string;
   /** The Level's capstone. */
   capstone: boolean;
+  /** An optional Lesson (a lab): beside the Level's core path, outside its completion. */
+  optional: boolean;
   /** Completed once: a replay keeps it complete and keeps its Badge. */
   complete: boolean;
   /** Its Badge's name, or null for a Lesson with none. */
