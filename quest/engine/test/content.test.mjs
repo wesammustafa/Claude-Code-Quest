@@ -1176,6 +1176,16 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "i-7's Y2 question is the first that can mark share-mcp missed, and the lessons after it, whose pools recall it, are still to land",
       "use-mcp":
         "i-7's Y3 question is the first that can mark use-mcp missed, and the lessons after it, whose pools recall it, are still to land",
+      // courses/fixit: b-1, b-6, then the capstone, which has
+      // no warm-ups by the rework's rule, so b-6's are the last pool.
+      start:
+        "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
+      // a-6, Advanced lesson 5, is the last core lesson before the
+      // capstone, which has no warm-ups: its warm-ups recall a-9's
+      // headless-run, stop-run and watch-run, and no later pool can recall
+      // what a-6's own questions mark.
+      "share-setup":
+        "a-6's Decide first can mark share-setup missed, and the Advanced capstone, the only core lesson after it, has no warm-ups",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

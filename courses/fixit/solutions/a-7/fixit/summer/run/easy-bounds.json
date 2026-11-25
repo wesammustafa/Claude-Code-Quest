@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(./sources/**)",
+      "Read(./summer/**)",
+      "Edit(./summer/public/june-easy.md)",
+      "Edit(./summer/public/july-easy.md)",
+      "Edit(./summer/public/august-easy.md)"
+    ],
+    "deny": ["Read(**/private/**)", "Edit(./sources/**)", "Bash(git push *)", "WebFetch"]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": false
+  }
+}

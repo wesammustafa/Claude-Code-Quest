@@ -1,0 +1,10 @@
+{
+  "_note": "Passed with --strict-mcp-config --mcp-config, so a run loads only this read-only bookings connection, the same one the kit's .mcp.json lists, and no other server.",
+  "mcpServers": {
+    "bookings": {
+      "command": "npx",
+      "args": ["-y", "fixers-bookings-mcp@1.4.2", "--read-only"],
+      "env": { "BOOKINGS_VENUES": "millbrook-library" }
+    }
+  }
+}

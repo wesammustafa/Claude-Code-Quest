@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "bookings": {
+      "command": "npx",
+      "args": ["-y", "fixers-bookings-mcp@1.4.2", "--read-only"],
+      "env": {
+        "BOOKINGS_VENUES": "millbrook-library"
+      }
+    }
+  }
+}

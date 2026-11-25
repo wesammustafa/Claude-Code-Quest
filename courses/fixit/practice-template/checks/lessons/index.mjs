@@ -26,9 +26,14 @@ import * as i4 from './i-4.mjs';
 import * as i6 from './i-6.mjs';
 import * as i7 from './i-7.mjs';
 import * as iCapstone from './i-capstone.mjs';
+import * as a2 from './a-2.mjs';
+import * as a8 from './a-8.mjs';
+import * as a7 from './a-7.mjs';
+import * as a9 from './a-9.mjs';
+import * as a6 from './a-6.mjs';
 import * as a1 from './a-1.mjs';
 import * as a4 from './a-4.mjs';
 /** @import { Repo } from '../repo.mjs' */
 
 /** @type {Record<string, Lesson | undefined>} */
-export const lessons = { 'b-1': b1, 'b-2': b2, 'b-6': b6, 'b-4': b4, 'b-5': b5, 'b-capstone': bCapstone, 'i-2': i2, 'i-1': i1, 'i-4': i4, 'i-6': i6, 'i-7': i7, 'i-capstone': iCapstone, 'a-1': a1, 'a-4': a4 };
+export const lessons = { 'b-1': b1, 'b-2': b2, 'b-6': b6, 'b-4': b4, 'b-5': b5, 'b-capstone': bCapstone, 'i-2': i2, 'i-1': i1, 'i-4': i4, 'i-6': i6, 'i-7': i7, 'i-capstone': iCapstone, 'a-2': a2, 'a-8': a8, 'a-7': a7, 'a-9': a9, 'a-6': a6, 'a-1': a1, 'a-4': a4 };
