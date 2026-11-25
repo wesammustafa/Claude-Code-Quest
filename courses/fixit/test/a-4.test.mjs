@@ -252,6 +252,17 @@ test('the behaviour: the raw JSON printed, the diff in the prompt, and a run tha
   write(dir, { [SCRIPT]: readFileSync(join(dir, SCRIPT), 'utf8').replace('set -euo pipefail', 'set -u').replace(`jq -e '.is_error == false and .subtype == "success"' "$out" > /dev/null || {`, 'true || {') });
   git(dir, 'commit', '-q', '-am', 'hide failures');
   says(behaves, dir, /When `claude -p` exits non-zero .* it exited 0/);
+  // The nothing-staged guard taken out, and the argument ignored.
+  dir = start();
+  script(dir, line());
+  write(dir, { [SCRIPT]: readFileSync(join(dir, SCRIPT), 'utf8').replace(/if git diff --cached --quiet; then[\s\S]*?\nfi\n/, '') });
+  git(dir, 'commit', '-q', '-am', 'no guard');
+  says(behaves, dir, /With nothing staged, it still ran `claude -p`/);
+  dir = start();
+  script(dir, line());
+  write(dir, { [SCRIPT]: readFileSync(join(dir, SCRIPT), 'utf8').replace('out="${1:-.practice/a-4-result.json}"', 'out=.practice/a-4-result.json') });
+  git(dir, 'commit', '-q', '-am', 'fixed path');
+  says(behaves, dir, /It saved the JSON to `\.practice\/a-4-result\.json`, though its first argument named another path/);
   // The skeleton's plumbing, untouched, passes it.
   dir = start();
   script(dir, line());
