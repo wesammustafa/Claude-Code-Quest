@@ -1,6 +1,6 @@
 # Fix-It Beginner pilot
 
-A second course, selected explicitly, beside the guide's own: three Beginner lessons (b-1, b-6 and the capstone) built around the Millbrook Fixers' repair workshop, for learners with no terminal, Git or programming background. The guide's default course in `course/` is unchanged and stays the default.
+A second course, selected explicitly, beside the guide's own: the Beginner level's six lessons (b-1, b-2, b-6, b-4, b-5 and the capstone) built around the Millbrook Fixers' repair workshop, for learners with no terminal, Git or programming background. The guide's default course in `course/` is unchanged and stays the default.
 
 The folder mirrors the guide's own layout:
 

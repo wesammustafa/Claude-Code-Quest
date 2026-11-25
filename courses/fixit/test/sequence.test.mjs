@@ -114,3 +114,17 @@ test("each stamp is truthful: checked against the documentation, not yet re-run,
     assert.ok(text(page).split('\n')[2].includes(stamp), `${page} gives another stamp`);
   }
 });
+
+test("each core lesson's page gives its place in its level, Lesson N of 6, and a numbered page's file name starts with N", () => {
+  const off = [];
+  for (const { id, level, page } of PATH) {
+    if (LABS.includes(id)) continue;
+    const core = ORDER[level].filter((l) => !LABS.includes(l));
+    const n = core.indexOf(id) + 1;
+    const place = `Lesson ${n} of ${core.length}`;
+    if (!text(page).split('\n')[2].includes(place)) off.push(`${page}'s sub line doesn't say ${place}`);
+    const prefix = /^(\d+)-/.exec(page.split('/').at(-1) ?? '')?.[1];
+    if (prefix !== undefined && Number(prefix) !== n) off.push(`${page} is numbered ${prefix}, but ${id} is lesson ${n}`);
+  }
+  assert.deepEqual(off, []);
+});

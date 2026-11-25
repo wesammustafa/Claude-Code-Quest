@@ -100,3 +100,17 @@ test('step-free, free parking, a private number and an unhedged biscuit each fai
   says(privacy, copy({ ...base, [b6.DRAFT]: MODEL_GUIDE.replace('555-0100.', '555-0100, or text Priya on 555 0187.') }), /555 0187/);
   passes(copy({ ...base, [b6.DRAFT]: MODEL_GUIDE.replace('Tea is free,', 'Tea is free, biscuits if someone brings them,') }), [biscuits]);
 });
+
+test('a 10am start written 10.00am, or "doors open at 10", fails the time', () => {
+  const base = { [b6.TABLE]: MODEL_TABLE };
+  says(time, copy({ ...base, [b6.DRAFT]: MODEL_GUIDE.replace('10:30am to 1pm', '10.00am to 1pm') }), /10\.00am.*Line 5/);
+  says(time, copy({ ...base, [b6.DRAFT]: MODEL_GUIDE.replace("Please don't arrive before 10:30; we're setting up.", 'Doors open at 10.') }), /Doors open at 10.*Line 5/);
+  passes(copy({ ...base, [b6.DRAFT]: MODEL_GUIDE.replace('10:30am to 1pm', '10.30am to 1pm') }), [time]);
+});
+
+test('a guide that says biscuits are not provided, in any common words, does not promise them', () => {
+  const base = { [b6.TABLE]: MODEL_TABLE };
+  for (const said of ["biscuits aren't provided,", 'biscuits are not promised,', "we can't promise biscuits,", 'no biscuits,'])
+    passes(copy({ ...base, [b6.DRAFT]: MODEL_GUIDE.replace('Tea is free,', `Tea is free, ${said}`) }), [biscuits]);
+  says(biscuits, copy({ ...base, [b6.DRAFT]: MODEL_GUIDE.replace('Tea is free,', 'Tea is free, biscuits are provided,') }), /line 12/);
+});

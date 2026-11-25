@@ -129,3 +129,10 @@ test('a missing note fails with the way back', () => {
   commit(dir, 'start');
   says(parking, openRepo(dir), /is missing\. Reset this step/);
 });
+
+test('a leads line marked as settled ("confirmed", "checked") fails: nobody has confirmed it', () => {
+  for (const mark of ['(confirmed)', '(Priya confirmed)', '(checked with the library)', '- confirmed by Priya'])
+    says(leads, copy(model.replace(FIXED_LEADS, `- Bring your own tools if you have them; the library lends us extension leads ${mark}.`)), /still reads as settled/);
+  for (const mark of ['(not confirmed yet)', '(to be checked)', '(unconfirmed)', '(Priya is checking)'])
+    passes(leads, copy(model.replace(FIXED_LEADS, `- Bring your own tools if you have them; the library lends us extension leads ${mark}.`)));
+});

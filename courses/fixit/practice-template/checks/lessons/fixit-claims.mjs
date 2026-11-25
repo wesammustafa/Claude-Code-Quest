@@ -42,5 +42,6 @@ export function untouched(repo, path, text) {
 }
 
 // Words that mark a claim as not yet settled: for someone to confirm or
-// check, to be confirmed, or a question.
-export const OPEN = /\b(?:confirm(?:s|ed|ing)?|check(?:s|ed|ing)?|verify|tbc|tbd|to be confirmed|not (?:yet )?(?:confirmed|sure|known|certain)|unconfirmed|unsure|unknown|ask (?:priya|dee|the library|maya)|being confirmed)\b|\?/i;
+// check, to be confirmed, or a question. "Confirmed" and "checked" alone
+// say it is settled, so they mark nothing.
+export const OPEN = /\b(?:confirm(?:s|ing)?|check(?:s|ing)?|verify|tbc|tbd|to be (?:confirmed|checked)|not (?:yet )?(?:confirmed|checked|sure|known|certain)|unconfirmed|unchecked|unsure|unknown|ask (?:priya|dee|the library|maya)|being (?:confirmed|checked))\b|\?/i;

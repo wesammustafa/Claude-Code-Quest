@@ -1,6 +1,6 @@
 # Capstone: the March attendee guide
 
-<sub>**Beginner** · Capstone · 30 to 45 minutes · Needs: [lesson 2](02-check-every-claim.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · Capstone, Lesson 6 of 6 · 30 to 45 minutes · Needs: the five [Beginner lessons](README.md), or their skills · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 

@@ -160,3 +160,17 @@ test('head counts are read for what they count', () => {
   assert.equal(kinds('Up to 30 people can book; 30 volunteers'), '30 public, 30 volunteers');
   assert.equal(kinds('Doors at 10:30; walk-ins at 11 if space; 20 Feb notes line 11'), '');
 });
+
+test('a 10am start in other forms fails: 10.00am, "doors open at 10", "10 to 1pm"', () => {
+  const when = '**When:** Saturday 13 March 2027, 10:30am to 1pm. Please don\'t arrive before 10:30; we\'re setting up.';
+  for (const said of ['**When:** Saturday 13 March 2027, 10.00am to 1pm. Please don\'t arrive before 10:30.', '**When:** Saturday 13 March 2027, 10:30am to 1pm. Doors open at 10.', '**When:** Saturday 13 March 2027, 10 to 1pm. Public from 10:30.'])
+    says(times, copy({ [cap.GUIDE]: A.replace(when, said) }), /booking admits the public from 10:30/);
+  passes(copy({ [cap.GUIDE]: A.replace(when, '**When:** Saturday 13 March 2027, 10.30am to 1pm. Doors open at 10:30, with fixers at 10 tables.') }), [times]);
+});
+
+test('access promised in other words fails: "lift access", wheelchair users can take the lift', () => {
+  const getting = /\*\*Getting to Room B:\*\*.*\n/;
+  for (const said of ['**Getting to Room B:** lift access to Room B, first floor.', "**Getting to Room B:** wheelchair users can take the lift by the children's library."])
+    says(access, copy({ [cap.GUIDE]: A.replace(getting, `${said}\n`) }), /Line 12/);
+  passes(copy({ [cap.GUIDE]: A.replace(getting, "**Getting to Room B:** there's a lift by the children's library, but we're still confirming it works: call 555-0100 before you travel.\n") }), [access]);
+});

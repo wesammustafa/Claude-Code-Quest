@@ -4,6 +4,7 @@
 // reads each claim by what it says, not its exact words, and quotes the line
 // it judged.
 import { claims, quote, untouched } from './fixit-claims.mjs';
+import { START_10, START_1030 } from './b-6.mjs';
 /** @import { Item } from './index.mjs' */
 /** @import { Repo } from '../repo.mjs' */
 
@@ -63,8 +64,6 @@ export const dateRight = {
   },
 };
 
-const START_10 = /(?<![\w:.])(?:10(?::00)?\s*(?:am|a\.m\.)|10:00|ten o['’]?clock)(?![\w:])/i;
-const START_1030 = /\b10[:.]30(?!\d)|\bhalf past ten\b/i;
 const END_1 = /\b1(?::00)?\s*(?:pm|p\.m\.)|\b13:00\b|\bone o['’]?clock\b|\b1pm\b/i;
 
 /** @type {Item} */
@@ -217,7 +216,7 @@ export const capacityRight = {
 };
 
 const ACCESS = /\baccess(?:ible|ibility)?\b|\blift\b|\bstep[- ]free\b|\bwheelchair\b|\bstairs?\b|\bupstairs\b|\belevator\b/i;
-const ASSERTS_ACCESS = /\bstep[- ]free\b|\bwheelchair[- ]accessible\b|\bfully accessible\b|\baccessible by lift\b|\blevel access\b|\bthere(?:['’]s| is) a (?:working )?lift\b|\blift is working\b/i;
+const ASSERTS_ACCESS = /\bstep[- ]free\b|\bwheelchair[- ]accessible\b|\bfully accessible\b|\baccessible by lift\b|\blevel access\b|\bthere(?:['’]s| is) a (?:working )?lift\b|\blift is working\b|\blift access\b|\bwheelchair users?\b[^.]{0,20}\b(?:can|may|will)\b/i;
 const QUALIFIED = /\b(?:being confirmed|not (?:yet )?confirmed|unconfirmed|to be confirmed|tbc|still confirming|confirming|check|call|ring|phone|ask|may not|might not|out of (?:service|order)|had repairs|repairs?)\b/i;
 
 /** @type {Item} */

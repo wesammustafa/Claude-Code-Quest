@@ -1,6 +1,6 @@
 // @ts-check
 // Check every claim before anyone relies on it (Fix-It pilot, Beginner
-// lesson 2). The check reads the fact table the Learner makes and the
+// lesson 3). The check reads the fact table the Learner makes and the
 // February attendee guide they correct, one claim at a time, by what each
 // claim says rather than its exact words, and that the sources are as they
 // arrived.
@@ -72,7 +72,16 @@ export const tableMade = {
   },
 };
 
-export const START_10 = /(?<![\w:.])(?:10(?::00)?\s*(?:am|a\.m\.)|10:00|ten o['’]?clock)(?![\w:])/i;
+// A 10am start in any common form: 10am, 10.00am, 10:00, "10 to 1pm", or
+// "doors open at 10".
+export const START_10 = new RegExp(
+  [
+    /(?<![\w:.])(?:10(?:[:.]00)?\s*(?:am|a\.m\.)|10[:.]00|ten o['’]?clock)(?![\w:])/.source,
+    /(?<![\w:.])10\s*(?:-|–|to|until|till)\s*1(?:\s*pm|:00)?(?!\d|[:.]\d)/.source,
+    /\b(?:open\w*|start\w*|doors?|arriv\w*|begin\w*)\b[^.\n]{0,15}?\b(?:at|from)\s+10(?!\w|[:.]\d)/.source,
+  ].join('|'),
+  'i',
+);
 export const START_1030 = /\b10[:.]30(?!\d)|\bhalf past ten\b/i;
 
 // What a guide says, read claim by claim: true, or the hint. b-5 reads its
@@ -189,7 +198,7 @@ export const privacyRight = {
   },
 };
 
-const MAYBE = /\bif (?:someone|anyone|somebody) brings\b|\bnot promised\b|\bcan['’]t promise\b|\bno biscuits\b|\bmaybe\b|\bperhaps\b|\bif we have\b|\bbring your own\b/i;
+const MAYBE = /(?:\bnot|n['’]t)\s+(?:promised|provided|guaranteed)\b|\bif (?:someone|anyone|somebody) brings\b|\bcan['’]t promise\b|\bno biscuits\b|\bmaybe\b|\bperhaps\b|\bif we have\b|\bbring your own\b/i;
 
 /** @type {Item} */
 export const biscuitsRight = {

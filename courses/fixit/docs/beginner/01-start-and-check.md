@@ -1,6 +1,6 @@
 # Start Claude Code and check what it tells you
 
-<sub>**Beginner** · Lesson 1 of 2 · about 15 minutes · Needs: [Beginner index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · Lesson 1 of 6 · about 15 minutes · Needs: [Beginner index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 
@@ -15,7 +15,7 @@ Jordan's note is `fixit/feb/jordan-welcome-note.md`, six short lines. The librar
 ## You need
 
 - In Questerm: nothing. Claude Code is already installed in the practice workspace, and you are signed in as the practice account, **Practice Learner**. Claude's replies are written in advance, and nothing leaves your browser.
-- On your own computer: a terminal and a plan that includes Claude Code: Pro, Max, Team or Enterprise, a Claude Console account, or a supported cloud provider. The free Claude plan doesn't include it ([Quickstart](https://code.claude.com/docs/en/quickstart)). Step 2 shows the install.
+- On your own computer: a terminal and a plan that includes Claude Code: Pro, Max, Ultra, Team or Enterprise, a Claude Console account, or a supported cloud provider. The free Claude plan doesn't include it ([Quickstart](https://code.claude.com/docs/en/quickstart)). Step 2 shows the install.
 
 ## The idea
 
@@ -71,3 +71,28 @@ The Lesson's check reads four things:
 - the note's other true lines are still there
 
 What only you can judge: would a new volunteer who has never been to the library know where to park from your parking line alone?
+
+## On your own computer
+
+Everything above ran in Questerm's practice workspace, with Claude's replies written in advance and the practice account. To do it for real you need Claude Code on your computer and a plan that includes it, as **You need** says.
+
+1. **Open a terminal.** macOS: Terminal (in Applications, Utilities). Windows: PowerShell. Linux: your terminal app. New to terminals? Anthropic's [terminal guide for new users](https://code.claude.com/docs/en/terminal-guide) walks through it.
+2. **Install**, as in step 2. In the Windows Command Prompt, where the prompt doesn't start with `PS`, type `curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd` instead. The installer shows no progress bar while it downloads. If you'd rather not use a terminal at all, the Claude **Desktop app** (macOS, Windows) has Claude Code in its **Code** tab.
+3. **Make a practice folder** with two or three documents you want to check against each other, and move into it: `cd` followed by the folder's path. Don't start Claude in your home folder; trust there isn't remembered.
+4. **Start Claude:** `claude`. The first time, it opens your browser to sign in. Then the trust dialog appears; trust a folder you made.
+5. Ask a question about your documents with "cite the file and line", and open what it cites.
+
+## Technical detail
+
+| Command | What it does | How to check | Watch out for | Reference |
+|---|---|---|---|---|
+| `claude --version` | prints the installed version | the output ends in `(Claude Code)` | `command not found`: the install folder isn't on your PATH, as in step 2 | [Setup](https://code.claude.com/docs/en/setup) |
+| `claude doctor` | read-only install and settings diagnostics, without starting a session | it prints its report and exits | run it when something else fails | [Setup](https://code.claude.com/docs/en/setup) |
+| `claude` | starts a session in the current folder | the header shows the version, model and folder | the trust dialog every time in your home folder: start from a project folder | [Quickstart](https://code.claude.com/docs/en/quickstart) |
+| The trust dialog | lists the rules and folders the project would grant before they apply; deny and ask rules apply regardless | it doesn't come back in the same project | `claude -p` never shows it, but a project's hooks and MCP servers can still run there | [Security](https://code.claude.com/docs/en/security), [Permissions](https://code.claude.com/docs/en/permissions) |
+| `/status` | the version, model, account and connectivity | the account row matches who you meant to sign in as | the wrong account: `/login` to switch | [Commands](https://code.claude.com/docs/en/commands) |
+| `@` and a path | includes that file in your message | the file appears as attached | over the read limit, it isn't included whole | [Common workflows](https://code.claude.com/docs/en/common-workflows) |
+| `Esc` | stops the current answer or tool call; the work so far is kept | Claude waits for your next message | none | [Interactive mode](https://code.claude.com/docs/en/interactive-mode) |
+| `/exit` | ends the session; `claude -c` resumes the latest one in this folder | you're back at the shell prompt | none | [Sessions](https://code.claude.com/docs/en/sessions) |
+
+The habit, ask for the source and open it, is the same everywhere. In the Desktop app's Code tab and the VS Code extension, citations are clickable and there's no shell prompt to confuse with the conversation. In Claude on the web or in the Claude apps without Claude Code, you attach the documents yourself and Claude can't open files you didn't give it, so ask it to quote the passage rather than give a line number.
