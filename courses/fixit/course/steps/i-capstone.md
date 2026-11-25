@@ -76,7 +76,7 @@ badge: Intermediate
 - beat: do
 - verify: self
 - done-label: it's changed
-- goal: "Change the kit so a venue's written confirmation wins on venue facts, whatever form it takes, while flyers and forwarded listings still never do. Change the skill's step 3 to match. Ask Claude in your own words, or edit the two files in the files tab."
+- goal: "Change the kit so a venue's written confirmation wins on venue facts, whatever form it takes, while flyers and forwarded listings still never do. Change the skill's step 3 to match. Ask Claude in your own words."
 - hint: "Which part of the kit says which source wins, and which step of the skill repeats it?"
 - hint: "Describe the kind of source, not this month's venue: the next venue may confirm another way."
 - bottom: "In CLAUDE.md, make tier 1 of the source order the venue's written confirmation: a signed booking, or an email from the venue's staff confirming the booking. Change step 3 of the attendee-guide skill to match."
@@ -84,6 +84,7 @@ badge: Intermediate
 - verify: check 0
 - watching: fixit/.claude/skills/attendee-guide/SKILL.md
 - goal: "The check reads tier 1 of the source order in `CLAUDE.md`, and the skill's step that applies it: a venue's written confirmation in any form, no one venue named, and flyers still last."
+- note: "To word either file your own way, edit it in the files tab, then check again."
 
 ### T4 | The task step 4 of 7 | Fix the leak where it starts and where it lands
 - tier: challenge
@@ -92,7 +93,7 @@ badge: Intermediate
 - beat: do
 - verify: self
 - done-label: it's changed
-- goal: "Make sure no number but a venue's public one can reach a public page, whichever file it came from, and that the guard still blocks if it can't run. Ask Claude, or edit the files yourself."
+- goal: "Make sure no number but a venue's public one can reach a public page, whichever file it came from, and that the guard still blocks if it can't run. Ask Claude in your own words."
 - hint: "Which part of the kit is guidance, and which part can't be skipped?"
 - hint: "Where did 555-0162 come from, and why didn't the read rule stop it?"
 - hint: "What does the guard know about?"
@@ -113,6 +114,7 @@ badge: Intermediate
 - verify: check 1 2
 - watching: fixit/.claude/hooks/no-private-numbers.sh
 - goal: "The check runs your guard on test edits: Sam's, a volunteer's and a caretaker's numbers blocked on a public page, the venues' public numbers let through, private notes left alone, and a block when it can't read the edit. And the kit still keeps Claude out of `private/` folders."
+- note: "To change the guard yourself, edit it in the files tab, then check again."
 
 ### T5 | The task step 5 of 7 | Run it again as Sam, fresh
 - tier: challenge

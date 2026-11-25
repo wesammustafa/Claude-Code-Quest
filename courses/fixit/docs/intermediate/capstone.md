@@ -59,7 +59,7 @@ The Lesson's check reads the kit and what it made: the source order in `CLAUDE.m
 
 What only you can judge: whether the guide reads well for a noticeboard, whether `KIT.md`'s limits are the ones that matter to Sam, and whether the school's public number should be added for May.
 
-**In this practice workspace**, Claude's replies are written in advance, worked out from what your kit's files say, and the bookings server is simulated. Questerm starts each run as a fresh session, but the check reads your files, not a record of the sessions or of the skill running: a guide corrected by hand while the kit stays wrong still fails, because the kit is what the check reads.
+**In Questerm**, Claude's replies are written in advance, worked out from what your kit's files say, and the bookings server is simulated. Questerm asks for each run in a fresh session, but the check reads your files, not a record of the sessions or of the skill running: a guide corrected by hand while the kit stays wrong still fails, because the kit is what the check reads.
 
 ## On your own computer
 
