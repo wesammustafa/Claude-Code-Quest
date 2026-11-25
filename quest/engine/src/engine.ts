@@ -498,6 +498,13 @@ export const levelLessons = (s: EngineState, level: string | undefined) =>
 // complete when these are.
 export const coreLessons = (s: EngineState, level: string | undefined) =>
   levelLessons(s, level).filter((l) => !l.optional);
+// A level is complete with its core lessons, and it needs one: a level of
+// labs alone, which a course of part of the lineup can hold, is never
+// complete, as moments.ts asks of a level.completed event's lessons.
+export const levelComplete = (s: EngineState, level: string | undefined) => {
+  const core = coreLessons(s, level);
+  return core.length > 0 && core.every((l) => progressOf(s, l.id).complete);
+};
 // The course in the order the app sends the Learner along: its core
 // lessons, then its optional ones, each in course order. A lab is never
 // where the app goes while a core lesson is left.

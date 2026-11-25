@@ -9,16 +9,18 @@ export const LEVEL_NAMES: Readonly<Record<LevelId, string>> = {
 };
 
 /**
- * "Lesson 3", "Capstone" or "Lab" (an optional Lesson), as the Learner reads
- * a lesson's place in its Level; plain "Lesson" when the course gives no
- * number.
+ * "Lesson 3", "Capstone" or "Optional lab" (an optional Lesson), as the
+ * Learner reads a lesson's place in its Level; plain "Lesson" when the
+ * course gives no number. One name for a lab everywhere the Learner meets
+ * one: the Journey's labs, the page's own sub line and the Landing all say
+ * optional lab too.
  */
 export function lessonLabel(
   number: number | null,
   capstone: boolean,
   optional: boolean,
 ): string {
-  if (optional) return "Lab";
+  if (optional) return "Optional lab";
   if (capstone) return "Capstone";
   return number === null ? "Lesson" : `Lesson ${String(number)}`;
 }

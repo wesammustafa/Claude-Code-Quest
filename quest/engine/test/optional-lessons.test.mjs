@@ -75,6 +75,27 @@ test("a Level is complete with its core Lessons, its lab not done; next and the 
   assert.equal(d.state.lesson, "i-1");
 });
 
+test("a Level of labs alone is not complete, with nothing done or every lab done", () => {
+  // A course of part of the lineup: Beginner holds its labs and no core
+  // Lesson, as a build of the Advanced labs alone once did.
+  const labsOnly = labbed.filter(
+    (l) => l.level !== "beginner" || l.id === "b-3",
+  );
+  const fresh = project(driver({ course: labsOnly }).state);
+  assert.equal(fresh.course.levels[0].id, "beginner");
+  assert.equal(fresh.course.levels[0].complete, false);
+  const done = project(
+    driver({
+      course: labsOnly,
+      saved: save({
+        lessons: { "b-3": finished(course.find((l) => l.id === "b-3")) },
+      }),
+    }).state,
+  );
+  assert.equal(done.course.levels[0].lessons.at(-1).complete, true);
+  assert.equal(done.course.levels[0].complete, false);
+});
+
 test("once every core Lesson is done, next is the first lab left", () => {
   const s = project(
     driver({ course: labbed, saved: save({ lessons: coreDone(ALL) }) }).state,

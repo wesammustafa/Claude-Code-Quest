@@ -248,6 +248,10 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
   // The path is the Level's core Lessons; its labs sit beside it.
   const { core, labs } = splitLabs(level.lessons);
   const stations = core.map((l) => l.id);
+  // A course with optional labs names its extras in the Level panel below,
+  // so the card's Electives disclosure, the extra reading of a course that
+  // has no labs, stays out of its way: one name for the Learner.
+  const hasLabs = levels.some((l) => l.lessons.some((s) => s.optional));
   return (
     <main className={WIDE}>
       <JourneyHeader levels={levels} />
@@ -266,6 +270,11 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
             const path = splitLabs(l.lessons).core;
             const done = path.filter((s) => s.complete).length;
             const name = LEVEL_NAMES[l.id];
+            // A Level with no core Lesson, which a course of part of the
+            // lineup can hold, has nothing to report: no count, no bar and
+            // no Complete, which the engine withholds from it too. Its tab
+            // carries its name, and its labs sit in the panel.
+            const counted = path.length > 0;
             return (
               <button
                 key={l.id}
@@ -297,36 +306,44 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
               >
                 <span className="flex items-center gap-2.5">
                   <b className="text-lg">{name}</b>
-                  {l.complete && (
-                    <span className="flex items-center gap-1 text-sm text-accent-text">
-                      <Icon name="check" size="sm" />
-                      Complete
-                    </span>
+                  {counted && (
+                    <>
+                      {l.complete && (
+                        <span className="flex items-center gap-1 text-sm text-accent-text">
+                          <Icon name="check" size="sm" />
+                          Complete
+                        </span>
+                      )}
+                      <span className="ml-auto text-sm text-muted">{`${String(done)} of ${String(path.length)}`}</span>
+                    </>
                   )}
-                  <span className="ml-auto text-sm text-muted">{`${String(done)} of ${String(path.length)}`}</span>
                 </span>
                 {/* The words above already say how far: the tab's name stays theirs. */}
-                <span aria-hidden="true" className="grid">
-                  <ProgressBar
-                    value={done}
-                    max={path.length}
-                    label={`${name} progress`}
-                  />
-                </span>
+                {counted && (
+                  <span aria-hidden="true" className="grid">
+                    <ProgressBar
+                      value={done}
+                      max={path.length}
+                      label={`${name} progress`}
+                    />
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
-        {/* The card's footer, outside the tab, holds the Level's Electives. */}
-        {levels.map((l, i) => (
-          <div
-            key={l.id}
-            data-level-footer=""
-            className={cx("empty:hidden md:row-start-2", FOOTER_PLACE[i])}
-          >
-            <Electives level={l.id} />
-          </div>
-        ))}
+        {/* The card's footer, outside the tab, holds the Level's Electives,
+            in a course whose extras are pages to read rather than labs. */}
+        {!hasLabs &&
+          levels.map((l, i) => (
+            <div
+              key={l.id}
+              data-level-footer=""
+              className={cx("empty:hidden md:row-start-2", FOOTER_PLACE[i])}
+            >
+              <Electives level={l.id} />
+            </div>
+          ))}
       </div>
 
       {onPath && (

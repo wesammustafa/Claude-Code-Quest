@@ -56,7 +56,6 @@ import {
   beatState,
   cardOf,
   contentOf,
-  coreLessons,
   currentBeat,
   currentStep,
   doneBefore,
@@ -72,6 +71,7 @@ import {
   isLastBeat,
   lessonIn,
   lessonNumber,
+  levelComplete,
   levelFolder,
   levelKey,
   levelLessons,
@@ -140,9 +140,10 @@ function courseView(s: EngineState): CourseView {
   return {
     levels: levelsOf(s).map((level) => ({
       id: level,
-      complete: coreLessons(s, level).every(
-        (l) => progressOf(s, l.id).complete,
-      ),
+      // A Level of labs alone, which a course of part of the lineup can
+      // hold, has no core Lesson to finish: it is complete with nothing
+      // done no more than an empty course is.
+      complete: levelComplete(s, level),
       lessons: levelLessons(s, level).map((l) => summary(s, l)),
     })),
     next:

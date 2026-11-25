@@ -167,7 +167,7 @@ export function Workspace() {
   const Offer = useSlots().lessonAccess?.Offer;
   if (!active) return <LessonGate />;
   const { lesson } = active;
-  // The eyebrow's "Beginner · Lesson 2", "Capstone" or "Lab".
+  // The eyebrow's "Beginner · Lesson 2", "Capstone" or "Optional lab".
   const place = lessonEyebrow(
     lesson.level,
     active.summary?.number ?? null,

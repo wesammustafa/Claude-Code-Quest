@@ -48,7 +48,7 @@ export interface CourseView {
 
 export interface LevelView {
   id: LevelId;
-  /** Every core Lesson of the Level, its capstone too, is complete: optional ones never count. */
+  /** Every core Lesson of the Level, its capstone too, is complete: optional ones never count, and a Level of labs alone is never complete. */
   complete: boolean;
   /** Its Lessons in course order: the core ones, the capstone last of them, and its optional ones. */
   lessons: LessonSummary[];

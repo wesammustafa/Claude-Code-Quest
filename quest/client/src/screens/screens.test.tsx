@@ -160,8 +160,9 @@ const APP_WORDS: readonly RegExp[] = [
   /^(Hints open once you have run Check again\.|Hints open once you have tried an answer\.)$/,
   /^Show the exact command\? This step then counts as Every command shown\.$/,
   /^Hint \d+\. ?$/,
-  // A Level's optional Lessons (labs).
-  /^((Beginner|Intermediate|Advanced)(, | · ))?Lab(: )?$/,
+  // A Level's optional Lessons (labs), by the one name the Learner reads.
+  /^((Beginner|Intermediate|Advanced)(, | · ))?Optional lab(: )?$/,
+  /^Optional lab complete$/,
   /^(Optional labs|Extra practice\. The level is complete without them\.)$/,
 ];
 
@@ -180,6 +181,26 @@ const labCourse: CourseView = {
       lessons: [...core, { ...lab, number: 1, optional: true }],
     };
   }),
+};
+
+// labCourse with every Beginner Lesson a lab: the Level of labs alone a
+// course of part of the lineup holds, which the engine never calls complete.
+const labsOnlyCourse: CourseView = {
+  ...labCourse,
+  levels: labCourse.levels.map((level) =>
+    level.id === "beginner"
+      ? {
+          ...level,
+          complete: false,
+          lessons:
+            fullCourse.levels[0]?.lessons.map((l, i) => ({
+              ...l,
+              number: i + 1,
+              optional: true,
+            })) ?? [],
+        }
+      : level,
+  ),
 };
 
 /** Every string the snapshot carries, to match quotes against. */
@@ -966,19 +987,79 @@ describe("Learning journey", () => {
     ]);
     const labs = within(panel).getByRole("region", { name: "Optional labs" });
     expect(
-      within(labs).getByRole("link", { name: /^Lab: .+, done$/ }),
+      within(labs).getByRole("link", { name: /^Optional lab: .+, done$/ }),
     ).toHaveAttribute("href", "/lesson/b-3");
     expect(screen.getAllByRole("tab")[0]).toHaveTextContent("2 of 5");
     expect(unquoted(at)).toEqual([]);
   });
 
-  test("a lab's preview says Lab", () => {
+  test("a Level of labs alone says nothing about completion: no Complete, no count, no bar", async () => {
+    const user = userEvent.setup();
+    const at = snapshotOf(overviewAt("i-1"), {
+      welcomed: true,
+      course: labsOnlyCourse,
+    });
+    renderConnected("/journey", at);
+    const tab = screen.getByRole("tab", { name: /^Beginner/ });
+    expect(tab).toHaveAccessibleName("Beginner");
+    expect(tab.textContent).not.toContain("Complete");
+    expect(
+      within(tab).queryByRole("progressbar", { name: "Beginner progress" }),
+    ).not.toBeInTheDocument();
+    // A Level that does have core Lessons still counts them.
+    expect(
+      screen.getByRole("tab", { name: /^Intermediate/ }),
+    ).toHaveAccessibleName(expect.stringMatching(/^Intermediate\d+ of \d+$/));
+    // The Level's labs are still there to play, in its panel.
+    await user.click(tab);
+    const panel = screen.getByRole("tabpanel");
+    expect(panel.querySelectorAll("ol a[data-state]")).toHaveLength(0);
+    expect(
+      within(within(panel).getByRole("region", { name: "Optional labs" }))
+        .getAllByRole("link")
+        .map((a) => a.getAttribute("href")),
+    ).toEqual([
+      "/lesson/b-1",
+      "/lesson/b-2",
+      "/lesson/b-3",
+      "/lesson/b-4",
+      "/lesson/b-5",
+      "/lesson/b-capstone",
+    ]);
+    expect(unquoted(at)).toEqual([]);
+  });
+
+  test("a course whose extras are labs shows no Electives disclosure, so the Learner reads one name", async () => {
+    const user = userEvent.setup();
+    const labs = snapshotOf(overviewAt("b-4"), {
+      welcomed: true,
+      course: labCourse,
+    });
+    const page = renderConnected("/journey", labs);
+    expect(screen.queryAllByText("Electives")).toEqual([]);
+    await user.click(screen.getByRole("tab", { name: /^Beginner/ }));
+    expect(
+      within(screen.getByRole("tabpanel")).getByRole("region", {
+        name: "Optional labs",
+      }),
+    ).toBeInTheDocument();
+    expect(page.pageFetches).toEqual([]);
+    cleanup();
+    // A course with no lab keeps the disclosure: its extras are pages.
+    renderConnected(
+      "/journey",
+      snapshotOf(overviewAt("b-4"), { welcomed: true, course: fullCourse }),
+    );
+    expect(screen.getAllByText("Electives")).toHaveLength(3);
+  });
+
+  test("a lab's preview says Optional lab", () => {
     const at = snapshotOf(overviewAt("b-4"), {
       welcomed: true,
       course: labCourse,
     });
     renderConnected("/lesson/b-3", at);
-    expect(screen.getByText("Beginner · Lab")).toBeInTheDocument();
+    expect(screen.getByText("Beginner · Optional lab")).toBeInTheDocument();
     expect(unquoted(at)).toEqual([]);
   });
 
@@ -1100,7 +1181,7 @@ describe("Progress", () => {
         .map((b) => b.getAttribute("aria-label")),
     ).toEqual(["Builder"]);
     const goal = screen.getByRole("region", { name: "Next goal" });
-    expect(goal.textContent).toContain("Beginner, Lab: ");
+    expect(goal.textContent).toContain("Beginner, Optional lab: ");
     expect(unquoted(snapshot)).toEqual([]);
   });
 
