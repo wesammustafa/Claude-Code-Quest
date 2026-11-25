@@ -15,9 +15,10 @@
 /** @typedef {{ title: string, items: readonly Item[] }} Lesson */
 
 import * as b1 from './b-1.mjs';
+import * as b2 from './b-2.mjs';
 import * as b6 from './b-6.mjs';
 import * as bCapstone from './b-capstone.mjs';
 /** @import { Repo } from '../repo.mjs' */
 
 /** @type {Record<string, Lesson | undefined>} */
-export const lessons = { 'b-1': b1, 'b-6': b6, 'b-capstone': bCapstone };
+export const lessons = { 'b-1': b1, 'b-2': b2, 'b-6': b6, 'b-capstone': bCapstone };

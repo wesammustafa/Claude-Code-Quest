@@ -12,9 +12,19 @@
       "slow": [0]
     },
     {
-      "id": "b-6",
+      "id": "b-2",
       "level": "beginner",
       "order": 2,
+      "page": "docs/beginner/02-give-claude-a-clear-job.md",
+      "steps": "course/steps/b-2.md",
+      "check": "b-2",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "b-6",
+      "level": "beginner",
+      "order": 3,
       "page": "docs/beginner/02-check-every-claim.md",
       "steps": "course/steps/b-6.md",
       "check": "b-6",
@@ -24,7 +34,7 @@
     {
       "id": "b-capstone",
       "level": "beginner",
-      "order": 3,
+      "order": 4,
       "page": "docs/beginner/capstone.md",
       "steps": "course/steps/b-capstone.md",
       "check": "b-capstone",
