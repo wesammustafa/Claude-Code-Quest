@@ -2,6 +2,9 @@
 // easy-read set (valid A, three helpers each writing one page), another
 // valid set in other words (valid B, written in one session and checked by
 // three helpers), the manuscript's near misses, and the ones beyond it.
+// Then the Learner's choice in how-to-run.md: subagents for the easy-read
+// helpers, which only report back, and an agent team for July's fallback,
+// whose helpers must challenge each other.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -13,7 +16,7 @@ const checks = layChecks();
 const { repo, commit, write } = await import(pathToFileURL(join(checks, 'test/helpers.mjs')).href);
 const { openRepo } = await import(pathToFileURL(join(checks, 'repo.mjs')).href);
 const a2 = await import(pathToFileURL(join(checks, 'lessons/a-2.mjs')).href);
-const [kept, easy, access] = a2.items;
+const [kept, easy, access, choices] = a2.items;
 
 const read = (p) => readFileSync(join(COURSE, p), 'utf8');
 const START = {};
@@ -34,6 +37,18 @@ const solution = (name) => read(`solutions/a-2/${PUBLIC}/${name}`);
 const WORKED = Object.fromEntries(['june', 'july', 'august', 'schedule'].map((p) => [`${PUBLIC}/${p}.md`, solution(`${p}.md`)]));
 const EASY_A = Object.fromEntries(IDS.map((id) => [`${PUBLIC}/${id}-easy.md`, solution(`${id}-easy.md`)]));
 const EASY_B = Object.fromEntries(IDS.map((id) => [`${PUBLIC}/${id}-easy.md`, read(`test/fixtures/a-2/${id}-easy-B.md`)]));
+const HOW = 'fixit/summer/a-2/how-to-run.md';
+const HOW_A = { [HOW]: read(`solutions/a-2/${HOW}`) };
+/** The prepared how-to-run.md with `one` after job 1's "Run it with:" and `two` after job 2's. */
+function choose(one, two) {
+  const [head, mid, tail] = START[HOW].split('\nRun it with:');
+  assert.equal(tail.trim(), '', 'two Run it with: lines, the second last');
+  return { [HOW]: `${head}\nRun it with: ${one}${mid}\nRun it with: ${two}${tail}` };
+}
+const HOW_B = choose(
+  '\nSub-agents. Each helper works on its own page alone and hands its result back, and a team would cost more.',
+  'An agent team (teammates who message each other), because they have to argue it out between them.',
+);
 
 function copy(files = {}) {
   const dir = repo(START, { nested: true });
@@ -41,16 +56,17 @@ function copy(files = {}) {
   write(dir, files);
   return openRepo(dir);
 }
-const all = [kept, easy, access];
+const pages = [kept, easy, access];
+const all = [...pages, choices];
 const passes = (r, items = all) => { for (const i of items) assert.equal(i.check(r), true, i.text); };
 const says = (item, r, re) => { const got = item.check(r); assert.notEqual(got, true, item.text); assert.match(got, re); };
 
-test('valid A: the model easy-read set beside the pages the Worked example left passes every item', () => {
-  passes(copy({ ...WORKED, ...EASY_A }));
+test('valid A: the model easy-read set beside the pages the Worked example left, and the model choices, pass every item', () => {
+  passes(copy({ ...WORKED, ...EASY_A, ...HOW_A }));
 });
 
-test('valid B: an easy-read set in other words, paragraphs and a "Getting in" line first, passes too', () => {
-  passes(copy({ ...WORKED, ...EASY_B }));
+test('valid B: an easy-read set in other words, paragraphs and a "Getting in" line first, and choices in other words, pass too', () => {
+  passes(copy({ ...WORKED, ...EASY_B, ...HOW_B }));
 });
 
 test('pages the Worked example never changed fail: the battery rule is missing', () => {
@@ -64,14 +80,15 @@ test('the easy-read job passes with the battery rule written another way', () =>
     [`${PUBLIC}/june.md`]: START[`${PUBLIC}/june.md`].replace('e-scooter batteries.', 'e-scooter batteries, and lithium power tool batteries over 36V.'),
     [`${PUBLIC}/schedule.md`]: START[`${PUBLIC}/schedule.md`].replace('\nBook on', '\nNew from June: no lithium power tool batteries rated over 36 V.\n\nBook on'),
   };
-  passes(copy({ ...WORKED, ...other, ...EASY_A }));
+  passes(copy({ ...WORKED, ...other, ...EASY_A, ...HOW_A }));
 });
 
-test('the untouched starting state fails every item: no easy-read page yet, and no battery rule', () => {
+test('the untouched starting state fails every item: no easy-read page yet, no battery rule, and no choice', () => {
   const r = copy();
   says(easy, r, /There's no `fixit\/summer\/public\/june-easy\.md` yet/);
   says(access, r, /There's no/);
   says(kept, r, /^`june\.md` doesn't have the new battery rule/);
+  says(choices, r, /^Under Job 1, `how-to-run\.md` names neither way\. After "Run it with:", write `subagents` or `agent team`/);
 });
 
 test('the near miss of Step 7: "rewrite each page in easy-read" changes the originals, and the check names june.md', () => {
@@ -130,4 +147,40 @@ test("a copy of the page saved as its easy-read version fails: its first line is
   const r = copy({ ...WORKED, ...copied });
   says(access, r, /The first line of `june-easy\.md` is "\*\*When:\*\* Saturday 12 June 2027, 10:30am to 1pm"/);
   passes(r, [easy, kept]);
+});
+
+test('an agent team for the easy-read helpers, which only report back, fails for its cost', () => {
+  const r = copy(choose('agent team, so the three helpers can work together', 'agent team, because they must argue it out'));
+  says(choices, r, /^Job 1 runs as an agent team, but each easy-read helper reads its own sources and only reports back: none needs another's findings\. Agent teams use significantly more tokens than a single session, so subagents fit\.$/);
+});
+
+test("subagents for July's fallback, whose helpers must challenge each other, fail", () => {
+  const r = copy(choose('subagents because each only reports back', 'subagents, one per option, because that is cheaper'));
+  says(choices, r, /^Job 2 runs as subagents, but subagents report back to the main conversation\. Priya's three helpers must challenge each other's case and agree one plan between them: that is what an agent team is for\.$/);
+});
+
+test('the two ways swapped fail on job 1 first', () => {
+  says(choices, copy(choose('an agent team because it is thorough', 'subagents because they are quick')), /^Job 1 runs as an agent team/);
+});
+
+test('a way with no reason fails, and so does a way the file does not offer', () => {
+  says(choices, copy(choose('subagents', 'agent team because they argue it out')), /^Job 1 says `subagents` but not why\. Add "because" and your reason\.$/);
+  says(choices, copy(choose('subagents because each reports back', 'Agent team.')), /^Job 2 says `agent team` but not why/);
+  says(choices, copy(choose('one session, because three short pages are cheap', 'agent team because they argue it out')), /^Under Job 1, `how-to-run\.md` names neither way/);
+});
+
+test('a way turned down is not the way picked, in either apostrophe', () => {
+  passes(copy(choose('subagents, not an agent team, because each only reports back', 'not subagents but an agent team: the helpers have to argue it out')), [choices]);
+  passes(copy(choose('Don\u2019t use an agent team: subagents, since each page is its own job', 'a team of three, because they challenge each other')), [choices]);
+});
+
+test('the reason may come before the way, and the answer on the line below', () => {
+  passes(copy(choose('\nEach helper only reports back, so subagents.', '\n\nThey have to challenge each other: an agent team.')), [choices]);
+});
+
+test('a file with its job headings gone, or no file, is named', () => {
+  says(choices, copy({ [HOW]: '1: subagents because each reports back\n2: agent team because they argue\n' }), /^`how-to-run\.md` has no heading for Job 1\. Keep both job headings/);
+  const r = copy();
+  r.gitLocal('rm', '-qf', HOW);
+  says(choices, r, /^There's no `fixit\/summer\/a-2\/how-to-run\.md`\. Write it in the files tab/);
 });

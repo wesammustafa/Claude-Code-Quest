@@ -4,7 +4,10 @@
 // pages, each against its own session, and that the session pages and the
 // schedule are as the Worked example left them. Which helper wrote or
 // checked each page is the host's to record (handoff N7); until it is, the
-// Lesson asks the Learner, and the check reads only the files.
+// Lesson asks the Learner, and the check reads only the files. Last, it
+// reads the Learner's own choice for two jobs: subagents for helpers that
+// only report back, an agent team for helpers that must challenge each
+// other. Questerm runs no agent team, so the choice is all it can read.
 import { quote } from './fixit-claims.mjs';
 /** @import { Item } from './index.mjs' */
 /** @import { Repo } from '../repo.mjs' */
@@ -112,6 +115,72 @@ export const originalsKept = {
   },
 };
 
+export const CHOICES = 'fixit/summer/a-2/how-to-run.md';
+const NAME = 'how-to-run.md';
+/** The two jobs the file asks about, and the way each needs. */
+const JOBS = [
+  {
+    n: 1,
+    way: 'subagents',
+    wrong: 'Job 1 runs as an agent team, but each easy-read helper reads its own sources and only reports back: none needs another\'s findings. Agent teams use significantly more tokens than a single session, so subagents fit.',
+  },
+  {
+    n: 2,
+    way: 'agent team',
+    wrong: 'Job 2 runs as subagents, but subagents report back to the main conversation. Priya\'s three helpers must challenge each other\'s case and agree one plan between them: that is what an agent team is for.',
+  },
+];
+const LABEL = { subagents: '`subagents`', 'agent team': '`agent team`' };
+const TEAM = /\bagent[\s-]+teams?\b|\bteam(?:s|mates?)?\b/i;
+const SUBAGENTS = /\bsub[\s-]?agents?\b/i;
+// A way the Learner turns down, such as "subagents, not an agent team",
+// names the other one.
+const NOT = /\b(?:not|no|never|don't|rather than|instead of|without)\s+(?:use\s+|using\s+)?(?:an?\s+|the\s+)?(?:agent[\s-]+teams?|teams?|teammates?|sub[\s-]?agents?)\b/gi;
+// Words that join a way to its reason, and so are no reason of their own.
+const FILLER = /\b(?:because|since|as|so|an?|the|run|it|with)\b|[^\p{L}\p{N}\s']/giu;
+
+/** What the Learner wrote for job `n`: the text after its "Run it with:", or under its heading; null with no heading. @param {string} text @param {number} n */
+export function answerFor(text, n) {
+  const lines = text.replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
+  const start = lines.findIndex((line) => new RegExp(`^#{1,6}\\s*Job\\s*${n}\\b`, 'i').test(line));
+  if (start === -1) return null;
+  const end = lines.findIndex((line, i) => i > start && /^#{1,6}\s/.test(line));
+  const body = lines.slice(start + 1, end === -1 ? undefined : end).join('\n');
+  const at = body.search(/run it with\s*:?/i);
+  return at === -1 ? body : body.slice(at).replace(/^run it with\s*:?/i, '');
+}
+
+/** The way an answer picks first, once the ways it turns down are gone, and the rest of the answer, its reason. @param {string} answer */
+export function wayOf(answer) {
+  const kept = answer.replace(/\u2019/g, "'").replace(NOT, ' ');
+  const team = kept.search(TEAM);
+  const sub = kept.search(SUBAGENTS);
+  if (team === -1 && sub === -1) return null;
+  const way = sub === -1 || (team !== -1 && team < sub) ? 'agent team' : 'subagents';
+  const match = /** @type {RegExpExecArray} */ ((way === 'agent team' ? TEAM : SUBAGENTS).exec(kept));
+  const reason = `${kept.slice(0, match.index)} ${kept.slice(match.index + match[0].length)}`.replace(FILLER, ' ').trim();
+  return { way, reason };
+}
+
+/** @type {Item} */
+export const runChoices = {
+  text: '`how-to-run.md` runs the easy-read pages with subagents and July\'s fallback with an agent team, and says why',
+  check(repo) {
+    const text = repo.read(CHOICES);
+    if (text === null) return `There's no \`${CHOICES}\`. Write it in the files tab: a heading for each job, and under each, \`subagents\` or \`agent team\` and why.`;
+    for (const job of JOBS) {
+      const answer = answerFor(text, job.n);
+      if (answer === null) return `\`${NAME}\` has no heading for Job ${job.n}. Keep both job headings, and write your choice under each.`;
+      const picked = wayOf(answer);
+      if (picked === null) return `Under Job ${job.n}, \`${NAME}\` names neither way. After "Run it with:", write \`subagents\` or \`agent team\`, then "because" and your reason.`;
+      if (picked.way !== job.way) return job.wrong;
+      if (!/\p{L}{2,}/u.test(picked.reason)) return `Job ${job.n} says ${LABEL[picked.way]} but not why. Add "because" and your reason.`;
+    }
+    return true;
+  },
+};
+
 // The pages first: a Learner who rewrote them in place reads that before
-// the missing easy-read files it explains.
-export const items = [originalsKept, easyMade, accessFirst];
+// the missing easy-read files it explains. The choice comes last, so the
+// first three keep the numbers Y3's cards check.
+export const items = [originalsKept, easyMade, accessFirst, runChoices];
