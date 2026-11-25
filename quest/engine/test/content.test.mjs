@@ -1163,9 +1163,12 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
   : {
       // courses/fixit: b-1, b-6, the capstone, which has no warm-ups by
       // the rework's rule, i-2, whose pool recalls start, i-1, whose pool
-      // recalls memory, then i-4, whose pool recalls start and run-skill.
-      sandbox:
-        "i-4's W3 question is the first that can mark sandbox missed, and the lessons after it, whose pools recall it, are still to land",
+      // recalls memory, then i-4, whose pool recalls start and run-skill,
+      // then i-6, whose pool recalls write-skill and sandbox.
+      "set-model":
+        "i-6's Y2 question is the first that can mark set-model missed, and the lessons after it, whose pools recall it, are still to land",
+      "write-skill":
+        "i-6's R1 is the first question that can mark write-skill missed, and the lessons after it, whose pools recall it, are still to land",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

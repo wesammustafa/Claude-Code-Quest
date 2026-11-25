@@ -63,6 +63,16 @@
       "check": "i-4",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "i-6",
+      "level": "intermediate",
+      "order": 7,
+      "page": "docs/intermediate/04-bring-in-a-second-reviewer.md",
+      "steps": "course/steps/i-6.md",
+      "check": "i-6",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }

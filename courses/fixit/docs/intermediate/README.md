@@ -15,7 +15,7 @@ Sam, the Fixers' second organizer, runs sessions at another venue. In this level
 1. [Decide what Claude should remember](01-decide-what-to-remember.md)
 2. [Turn a repeated job into a skill](02-turn-a-repeated-job-into-a-skill.md)
 3. [Decide what each part may touch](03-decide-what-each-part-may-touch.md)
-4. Bring in a second reviewer
+4. [Bring in a second reviewer](04-bring-in-a-second-reviewer.md)
 5. Connect an outside tool when it earns its place
 
 ## Capstone
