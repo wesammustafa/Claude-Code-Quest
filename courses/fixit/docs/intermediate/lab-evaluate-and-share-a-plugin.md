@@ -33,7 +33,7 @@ Where you install it decides who gets it. Each place is a scope:
 
 A trial belongs at local scope. Share a plugin at project scope only once the team has chosen it, and share the smallest thing that does the job. Project scope commits the setting that turns the plugin on; each teammate still installs it.
 
-A code intelligence plugin gives Claude a language server, a program that knows your code's structure. It finds where a function is defined and every place that calls it. A text search finds the word, not the callers.
+A code intelligence plugin gives Claude a language server, a program that knows your code's structure. The language server finds where a function is defined and every place that calls it. A text search finds the word, not the callers.
 
 In Questerm, Claude's words are written in advance, and the plugins come from a pinned copy of Anthropic's official marketplace. The language server's answers are computed from your own copy of the code.
 
@@ -51,7 +51,7 @@ In Questerm, Claude's words are written in advance, and the plugins come from a 
    command -v typescript-language-server
    ```
 
-   It prints the path of the program. Nothing printed means it isn't on your PATH.
+   It prints the path of the program. Nothing printed means it isn't on your PATH, the folders the terminal looks in for programs.
 2. **Read the panel, then trial it locally.** Start a session in the `project/` folder:
 
    ```bash
@@ -70,7 +70,7 @@ In Questerm, Claude's words are written in advance, and the plugins come from a 
    /reload-plugins --force
    ```
 
-   Claude Code waits for `--force` here, since the new `LSP` tool would cost one request without the prompt cache.
+   Claude Code waits for `--force` here, because adding the `LSP` tool makes the next request cost more.
 3. **See where the trial lives.** In the shell tab, run `git status --short`: it lists nothing, because Git ignores your local settings. Claude Code keeps `.claude/settings.local.json` at the repository root, the folder above `project/`, and keeps it out of Git. A trial in your local settings never reaches a teammate's machine.
 
 ## Your turn
