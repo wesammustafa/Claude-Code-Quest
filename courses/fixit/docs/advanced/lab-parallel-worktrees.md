@@ -31,9 +31,10 @@ In this practice workspace Claude's replies are written in advance. Git, Node.js
 
 ## Worked example
 
-1. **Decide first, then open the repository.** A worktree is a fresh checkout of the repository. Before you start, decide what it won't have that your folder has. Then start Claude Code in the `project/` folder and trust the folder when it asks:
+1. **Decide first, then open the repository.** A worktree is a fresh checkout of the repository. Before you start, decide what it won't have that your folder has. Then start Claude Code at the repository's root, the folder above `project/`, and trust the folder when it asks. Git keeps the whole repository there, and that's where `claude --worktree` makes the worktrees:
 
    ```bash
+   cd ..
    claude
    ```
 
@@ -43,7 +44,7 @@ In this practice workspace Claude's replies are written in advance. Git, Node.js
    Add .claude/worktrees/ to the .gitignore at the repository root and commit it.
    ```
 
-   The repository root is the folder above `project/`, where the worktrees will go. Without the rule, they show up as untracked files in your main checkout. In the shell tab, push the commit, since a new worktree starts from the remote's main branch:
+   Without the rule, the worktrees show up as untracked files in your main checkout. In the shell tab, push the commit, since a new worktree starts from the remote's main branch:
 
    ```bash
    git push
