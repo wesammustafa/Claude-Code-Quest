@@ -13,7 +13,7 @@ const checks = layChecks();
 const { repo, commit, write } = await import(pathToFileURL(join(checks, 'test/helpers.mjs')).href);
 const { openRepo } = await import(pathToFileURL(join(checks, 'repo.mjs')).href);
 const a2 = await import(pathToFileURL(join(checks, 'lessons/a-2.mjs')).href);
-const [easy, access, kept] = a2.items;
+const [kept, easy, access] = a2.items;
 
 const read = (p) => readFileSync(join(COURSE, p), 'utf8');
 const START = {};
@@ -41,7 +41,7 @@ function copy(files = {}) {
   write(dir, files);
   return openRepo(dir);
 }
-const all = [easy, access, kept];
+const all = [kept, easy, access];
 const passes = (r, items = all) => { for (const i of items) assert.equal(i.check(r), true, i.text); };
 const says = (item, r, re) => { const got = item.check(r); assert.notEqual(got, true, item.text); assert.match(got, re); };
 

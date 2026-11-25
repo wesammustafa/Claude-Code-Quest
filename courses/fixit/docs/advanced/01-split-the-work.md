@@ -66,7 +66,7 @@ The jobs change. You triage two, then run the one where splitting pays.
 
 ## Check
 
-The Lesson's check reads three things: that `june-easy.md`, `july-easy.md` and `august-easy.md` each give their own session's date and place, that each puts the access line first, and that the three session pages and the schedule are as the Worked example left them.
+The Lesson's check reads three things: that the three session pages and the schedule are as the Worked example left them, that `june-easy.md`, `july-easy.md` and `august-easy.md` each give their own session's date and place, and that each puts the access line first.
 
 What the check can't see is which helper wrote or checked each page. In this practice workspace, your request is judged before Claude acts on it. On your own computer, the transcript shows a `●` line for each subagent.
 

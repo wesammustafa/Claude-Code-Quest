@@ -110,4 +110,6 @@ export const originalsKept = {
   },
 };
 
-export const items = [easyMade, accessFirst, originalsKept];
+// The pages first: a Learner who rewrote them in place reads that before
+// the missing easy-read files it explains.
+export const items = [originalsKept, easyMade, accessFirst];
