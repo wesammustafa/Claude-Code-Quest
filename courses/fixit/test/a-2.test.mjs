@@ -53,20 +53,25 @@ test('valid B: an easy-read set in other words, paragraphs and a "Getting in" li
   passes(copy({ ...WORKED, ...EASY_B }));
 });
 
-test('the easy-read job passes on pages the Worked example never changed, and with the rule written another way', () => {
-  passes(copy(EASY_A));
+test('pages the Worked example never changed fail: the battery rule is missing', () => {
+  says(kept, copy(EASY_A), /^`june\.md` doesn't have the new battery rule\. The Worked example adds it in Step 3/);
+  const schedule = { ...WORKED, [`${PUBLIC}/schedule.md`]: START[`${PUBLIC}/schedule.md`] };
+  says(kept, copy({ ...schedule, ...EASY_A }), /^`schedule\.md` doesn't have the new battery rule/);
+});
+
+test('the easy-read job passes with the battery rule written another way', () => {
   const other = {
     [`${PUBLIC}/june.md`]: START[`${PUBLIC}/june.md`].replace('e-scooter batteries.', 'e-scooter batteries, and lithium power tool batteries over 36V.'),
     [`${PUBLIC}/schedule.md`]: START[`${PUBLIC}/schedule.md`].replace('\nBook on', '\nNew from June: no lithium power tool batteries rated over 36 V.\n\nBook on'),
   };
-  passes(copy({ ...other, ...EASY_A }));
+  passes(copy({ ...WORKED, ...other, ...EASY_A }));
 });
 
-test('the untouched starting state fails: no easy-read page yet', () => {
+test('the untouched starting state fails every item: no easy-read page yet, and no battery rule', () => {
   const r = copy();
   says(easy, r, /There's no `fixit\/summer\/public\/june-easy\.md` yet/);
   says(access, r, /There's no/);
-  passes(r, [kept]);
+  says(kept, r, /^`june\.md` doesn't have the new battery rule/);
 });
 
 test('the near miss of Step 7: "rewrite each page in easy-read" changes the originals, and the check names june.md', () => {

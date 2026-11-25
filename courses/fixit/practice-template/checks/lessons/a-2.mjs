@@ -101,10 +101,12 @@ export const originalsKept = {
       const text = repo.read(path);
       if (text === null) return `\`${path}\` is missing. Reset this step to bring it back.`;
       const was = started(repo, path);
-      if (was !== null && withoutRule(was) === withoutRule(text)) continue;
-      return path === SCHEDULE
-        ? `\`${name}\` changed. The schedule is built from the session pages, so the easy-read job leaves it as it was. Reset this step to bring it back.`
-        : `\`${name}\` changed. The easy-read job leaves the original pages as they were. Reset this step to bring them back.`;
+      if (was === null || withoutRule(was) !== withoutRule(text))
+        return path === SCHEDULE
+          ? `\`${name}\` changed. The schedule is built from the session pages, so the easy-read job leaves it as it was. Reset this step to bring it back.`
+          : `\`${name}\` changed. The easy-read job leaves the original pages as they were. Reset this step to bring them back.`;
+      if (!RULE.test(text))
+        return `\`${name}\` doesn't have the new battery rule. The Worked example adds it in Step 3: lithium power tool batteries over 36 V.`;
     }
     return true;
   },
