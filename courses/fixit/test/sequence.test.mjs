@@ -1,5 +1,5 @@
-// The pilot's own sequence: b-1, b-6, then the capstone, in one Beginner
-// level. The guide's shared course rules run on it through
+// The Fix-It course's own sequence: three levels of core lessons, each with
+// its optional labs after its capstone. The guide's shared course rules run on it through
 // tools/course-rules.mjs; these are the checks the developer course's own
 // rules make of its sequence, made of this one.
 import { test } from 'node:test';
@@ -21,9 +21,23 @@ const text = (p) => readFileSync(join(COURSE, p), 'utf8');
 const contents = PATH.map((p) => parseLesson(text(`course/steps/${p.id}.md`), `${p.id}.md`, { manifest, checks, probes: { PROBES, probeError } }));
 const byId = Object.fromEntries(PATH.map((p, i) => [p.id, contents[i]]));
 
-test('the pilot is b-1, b-6 and the capstone, in that order, in one Beginner level', () => {
-  assert.deepEqual(PATH.map((p) => p.id), ['b-1', 'b-6', 'b-capstone']);
-  assert.deepEqual(manifest.levels.map((l) => l.id), ['beginner']);
+// The course map's order (docs/curriculum-redesign/02-course-map.md in
+// Questerm): each level's six core lessons, capstone last, then its optional
+// labs. A lane that builds part of the course has a subset of it, in order.
+const ORDER = {
+  beginner: ['b-1', 'b-2', 'b-6', 'b-4', 'b-5', 'b-capstone', 'b-3'],
+  intermediate: ['i-2', 'i-1', 'i-4', 'i-6', 'i-7', 'i-capstone', 'i-3', 'i-5', 'i-8'],
+  advanced: ['a-2', 'a-8', 'a-7', 'a-9', 'a-6', 'a-capstone', 'a-1', 'a-3', 'a-4', 'a-5'],
+};
+const LABS = ['b-3', 'i-3', 'i-5', 'i-8', 'a-1', 'a-3', 'a-4', 'a-5'];
+
+test("the lessons follow the course map's order, each in its own level, labs after the capstone", () => {
+  const all = Object.values(ORDER).flat();
+  const ids = PATH.map((p) => p.id);
+  assert.deepEqual(ids, all.filter((id) => ids.includes(id)));
+  for (const p of PATH) assert.ok(ORDER[p.level]?.includes(p.id), `${p.id} is in level ${p.level}`);
+  for (const l of manifest.levels) assert.ok(ORDER[l.id], `level ${l.id}`);
+  assert.ok(ids.includes('b-1') && ids.includes('b-capstone'));
 });
 
 test("each step's tier is the course rule's for this sequence, b-6 after b-1", () => {
@@ -37,19 +51,21 @@ test("each step's tier is the course rule's for this sequence, b-6 after b-1", (
   assert.deepEqual(off, []);
 });
 
-test('help fades across the pilot: b-1 opens GUIDED, b-6 never shows every command, the capstone is all CHALLENGE', () => {
+test('help fades: b-1 opens GUIDED, every capstone is all CHALLENGE', () => {
   const tiers = (id) => byId[id].steps.map((s) => s.tier);
   assert.equal(tiers('b-1')[0], 'guided');
-  assert.ok(!tiers('b-6').includes('guided'), tiers('b-6').join(' '));
-  assert.ok(tiers('b-6').includes('challenge'));
-  assert.ok(tiers('b-capstone').every((t) => t === 'challenge'));
+  for (const { id } of PATH) if (id.endsWith('capstone')) assert.ok(tiers(id).every((t) => t === 'challenge'), `${id}: ${tiers(id).join(' ')}`);
 });
 
-test('warm-ups recall only a lesson earlier in the pilot, and only b-6 has them', () => {
-  assert.equal(byId['b-1'].warmup.length, 0);
-  assert.equal(byId['b-capstone'].warmup.length, 0);
-  assert.ok(byId['b-6'].warmup.length > 0);
-  for (const w of byId['b-6'].warmup) assert.equal(w.from, 'b-1', `b-6 ${w.id} recalls ${w.from}`);
+test('warm-ups recall only a core lesson earlier in the course, and b-1 and the capstones have none', () => {
+  const at = Object.fromEntries(PATH.map((p, i) => [p.id, i]));
+  for (const { id } of PATH) {
+    if (id === 'b-1' || id.endsWith('capstone')) assert.equal(byId[id].warmup.length, 0, `${id} has warm-ups`);
+    for (const w of byId[id].warmup) {
+      assert.ok(at[w.from] < at[id], `${id} ${w.id} recalls ${w.from}, which is not earlier`);
+      assert.ok(!LABS.includes(w.from), `${id} ${w.id} recalls the optional lab ${w.from}`);
+    }
+  }
 });
 
 /** @param {string} dir */
