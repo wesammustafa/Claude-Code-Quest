@@ -3,11 +3,11 @@
 // makes the run's edits and prints its result, so the record the check
 // reads is the one the runner writes. The cases: the two-page rerun
 // (valid A), all three pages with a bigger budget (valid B), the
-// manuscript's near misses (a bypass, a hand edit), and the misses beyond
-// them: the 08:30 run alone, a run refused a call, a run that changed one
-// page, the bounds widened or changed after the run, an original page or
-// the runner changed, a run record written by hand, and notes that leave a
-// part out.
+// manuscript's near misses (a bypass, a hand edit), reruns that find the
+// pages already right, and the misses beyond them: the 08:30 run alone, a
+// run refused a call, a run that changed one page, the bounds widened or
+// changed after the run, an original page or the runner changed, a run
+// record written by hand, and notes that leave a part out.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -53,9 +53,10 @@ const REFRESHED = {
   ),
   [`${PUBLIC}/june.md`]: START[`${PUBLIC}/june.md`].replace('**Booking:** 32 places.', '**Booking:** 24 places.'),
   [`${PUBLIC}/schedule.md`]: START[`${PUBLIC}/schedule.md`]
-    .replace('| Room A | Step-free | 32 |', '| Room A | Step-free | 24 |')
-    .replace('| Room B | Step-free by lift | 32 |', '| Room B | Not step-free (lift out of service) | 32 |'),
+    .replace('Room A | Step-free | 32 |', 'Room A | Step-free | 24 |')
+    .replace('Room B | Step-free by lift | 32 |', 'Room B | Not step-free (lift out of service) | 32 |'),
 };
+for (const [path, page] of Object.entries(REFRESHED)) assert.notEqual(page, START[path], `the rerun changes ${path}`);
 
 /** A copy as the lesson starts it, committed, with `files` written over it. */
 function copy(files = REFRESHED) {
@@ -248,11 +249,26 @@ test('a hand edit, then a run that left July alone, fails on the hand edit', () 
   says(ran, r, /^No run changed `july-easy\.md` after the failed one\./);
 });
 
-test('one page per run fails: the last run must hold the whole recovery', () => {
+test('one page per run: July alone fails on August; July then August passes', () => {
   const r = copy();
   failedRun(r);
   runEasy(r, ['Refresh july-easy.md from its sources.'], result('success', 0.15), { 'july-easy.md': EASY.july });
-  says(ran, r, /^The last easy-read run didn't change `august-easy\.md`, which the 08:30 run left undone\./);
+  write(r.dir, { [NOTE]: SOLVED_NOTE });
+  says(ran, r, /^No run that ended in `success` with no denials changed `august-easy\.md`, which the 08:30 run left undone\./);
+  runEasy(r, ['Refresh august-easy.md from its sources.'], result('success', 0.15), { 'august-easy.md': EASY.august });
+  passes(r);
+});
+
+test('a rerun that finds the pages already right still passes, even after another failed run', () => {
+  const r = solved();
+  recovery(r);
+  assert.match(fileOf(r, `${RECORD}/report.txt`), /files changed:\n {2}none\n$/);
+  passes(r);
+  failedRun(r);
+  says(ran, r, /stopped at its spend limit/);
+  recovery(r);
+  passes(r);
+  assert.equal(fileOf(r, 'fixit/summer/run/easy-runs.txt').match(/^exit status: /gm).length, 5);
 });
 
 test('a run refused a call, one stopped at its turn limit, one ended in error, or one before the bounds changed, fails', () => {
@@ -287,8 +303,11 @@ test('a run record written by hand fails: no report, no bounds copy, a report fr
   says(ran, printed({ [`${RECORD}/result.json`]: ok }), /has no report of the files it changed/);
   says(ran, printed({ [`${RECORD}/result.json`]: 'the run went fine, $0.28\n' }), /isn't the result of a `claude -p` run/);
   const report = 'exit status: 0\nresult subtype: success\nestimated cost: $0.28 (limit $0.40)\nfiles changed:\n  summer/public/july-easy.md\n  summer/public/august-easy.md\n';
-  says(ran, printed({ [`${RECORD}/result.json`]: ok, [`${RECORD}/report.txt`]: report }), /no copy of the bounds it ran with/);
-  says(ran, printed({ [`${RECORD}/result.json`]: ok, [`${RECORD}/report.txt`]: report.replace('0.28', '0.33') }), /don't describe the same run/);
+  says(ran, printed({ [`${RECORD}/result.json`]: ok, [`${RECORD}/report.txt`]: report }), /has no report of the files it changed/);
+  const history = `${report}\n`;
+  says(ran, printed({ [`${RECORD}/result.json`]: ok, [`${RECORD}/report.txt`]: report, 'fixit/summer/run/easy-runs.txt': history }), /no copy of the bounds it ran with/);
+  says(ran, printed({ [`${RECORD}/result.json`]: ok, [`${RECORD}/report.txt`]: report.replace('0.28', '0.33'), 'fixit/summer/run/easy-runs.txt': history }), /don't describe the same last run/);
+  says(ran, printed({ [`${RECORD}/result.json`]: ok, [`${RECORD}/report.txt`]: report, 'fixit/summer/run/easy-runs.txt': 'exit status: 0\n' }), /don't describe the same last run/);
   says(ran, printed({ [`${RECORD}/result.json`]: ok.replace(/"session_id":"[^"]+"/, '"session_id":"00000000-0000-4000-8000-00000000c0de"') }), /holds the check's stand-in reply/);
 });
 

@@ -86,9 +86,9 @@ The failure changes: a loud one this time. The main pages changed, so the easy-r
 
 ## Check
 
-The Lesson's check reads four things: that `july-easy.md` says Room B isn't step-free on 10 July, and no longer says there is a lift; that the last easy-read run, with the bounds as they are now, ended in `success` with no denials, and it changed `july-easy.md` and `august-easy.md`; that the original pages, `easy-bounds.json` and the easy-read runner are as Your turn found them; and that `recovery.md` says what stopped the run, which two pages you reran, and how you checked them.
+The Lesson's check reads four things: that `july-easy.md` says Room B isn't step-free on 10 July, and no longer says there is a lift; that the last easy-read run ended in `success` with no denials, under the bounds as they are now, and runs like it changed `july-easy.md` and `august-easy.md`; that the original pages, `easy-bounds.json` and the easy-read runner are as Your turn found them; and that `recovery.md` says what stopped the run, which two pages you reran, and how you checked them.
 
-The check reads the run record the runner saved in `summer/run/easy-last-run/`. In this practice workspace you could write that record by hand, so on a real machine trust the run's own record over a file anyone can edit.
+The check reads the records the runner keeps of each run, in `summer/run/easy-last-run/` and `summer/run/easy-runs.txt`. In this practice workspace you could write those records by hand, so on a real machine trust the run's own record over a file anyone can edit.
 
 What only you can judge: if this happens to Sam in August, would your note be enough for him to recover the same way?
 

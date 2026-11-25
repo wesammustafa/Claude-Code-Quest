@@ -70,5 +70,7 @@ cp summer/run/bounds.json summer/run/last-run/bounds.json
   done
   [ "$changed" = yes ] || echo "  none"
 } | tee summer/run/last-run/report.txt
+# 4. Every run's report, one after the other, in summer/run/runs.txt.
+{ cat summer/run/last-run/report.txt; echo; } >> summer/run/runs.txt
 rm -rf "$before"
 exit "$status"

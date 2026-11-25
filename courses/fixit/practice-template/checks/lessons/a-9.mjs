@@ -1,11 +1,11 @@
 // @ts-check
 // Recover from a partial failure (Fix-It, Advanced lesson 4). The check
-// reads the July easy-read page, the record the easy-read runner saved of
-// its last run, the pages and files the recovery must leave alone, and the
-// Learner's recovery note. The run record is the runner's own files in
-// `summer/run/easy-last-run/`: the host keeps no record of its own runs
-// yet, so a Learner could write those files by hand, and the lesson says
-// so.
+// reads the July easy-read page, the records the easy-read runner keeps of
+// its runs, the pages and files the recovery must leave alone, and the
+// Learner's recovery note. The run records are the runner's own files,
+// `summer/run/easy-last-run/` and the history `summer/run/easy-runs.txt`:
+// the host keeps no record of its own runs yet, so a Learner could write
+// those files by hand, and the lesson says so.
 import { STUB_SESSION } from '../stub-claude.mjs';
 /** @import { Repo } from '../repo.mjs' */
 /** @import { Item } from './index.mjs' */
@@ -18,6 +18,7 @@ export const REPORT = 'fixit/summer/run/easy-last-run/report.txt';
 export const USED = 'fixit/summer/run/easy-last-run/bounds.json';
 export const BOUNDS = 'fixit/summer/run/easy-bounds.json';
 export const RUNNER = 'fixit/summer/run/easy-refresh.sh';
+export const HISTORY = 'fixit/summer/run/easy-runs.txt';
 export const NOTE = 'fixit/summer/a-9/recovery.md';
 
 const EASY = ['july-easy.md', 'august-easy.md'].map((n) => `summer/public/${n}`);
@@ -86,9 +87,22 @@ function changedIn(report) {
 const HAND =
   'No run changed `july-easy.md` after the failed one. The recovery should go through the bounded run, so the next refresh doesn\'t undo it.';
 
+// Each run's report, as the runner adds them to its history, with whether
+// the run ended in success with no denials, and the files it changed.
+/** @param {string} history */
+const runsIn = (history) =>
+  history
+    .split(/\n\s*\n/)
+    .filter((block) => block.trim())
+    .map((block) => ({
+      block: block.trim(),
+      clean: /^result subtype: success$/m.test(block) && /^permission denials: 0$/m.test(block),
+      changed: changedIn(block) ?? [],
+    }));
+
 /** @type {Item} */
 export const recoveryRan = {
-  text: 'the last easy-read run, with the bounds as they are now, ended in `success` with no denials, and it changed `july-easy.md` and `august-easy.md`',
+  text: 'the last easy-read run ended in `success` with no denials, under the bounds as they are now, and runs like it changed `july-easy.md` and `august-easy.md`',
   check(repo) {
     const text = repo.read(RESULT);
     if (text === null) return 'There\'s no easy-read run record yet. Run the easy-read refresh: `fixit/summer/run/easy-refresh.sh`.';
@@ -103,13 +117,20 @@ export const recoveryRan = {
       return '`summer/run/easy-last-run/result.json` isn\'t the result of a `claude -p` run. Run the recovery with the runner, `fixit/summer/run/easy-refresh.sh`.';
     if (result.session_id === STUB_SESSION) return '`summer/run/easy-last-run/result.json` holds the check\'s stand-in reply. Run the recovery again.';
     const report = repo.read(REPORT);
-    const changed = report === null ? null : changedIn(report);
-    if (report === null || changed === null)
-      return 'The run has no report of the files it changed, which the runner saves beside its result. Run the recovery with the runner as it was prepared.';
-    if (!report.includes(`result subtype: ${String(result.subtype)}\n`) || !report.includes(`estimated cost: $${String(result.total_cost_usd)} `))
-      return 'The report and the result in `summer/run/easy-last-run/` don\'t describe the same run. Run the recovery with the runner as it was prepared.';
-    const [july, august] = EASY;
-    const handEdited = !changed.includes(/** @type {string} */ (july)) && atStart(repo, JULY_EASY) !== repo.read(JULY_EASY);
+    const history = repo.read(HISTORY);
+    if (report === null || changedIn(report) === null || history === null)
+      return 'The run has no report of the files it changed, which the runner saves beside its result and adds to `summer/run/easy-runs.txt`. Run the recovery with the runner as it was prepared.';
+    const runs = runsIn(history);
+    if (
+      !report.includes(`result subtype: ${String(result.subtype)}\n`) ||
+      !report.includes(`estimated cost: $${String(result.total_cost_usd)} `) ||
+      runs[runs.length - 1]?.block !== report.trim()
+    )
+      return 'The report, the result and the history in `summer/run/` don\'t describe the same last run. Run the recovery with the runner as it was prepared.';
+    // The files runs that ended in success with no denials changed.
+    const fixed = new Set(runs.filter((r) => r.clean).flatMap((r) => r.changed));
+    // July changed, and no run did it: a hand edit.
+    const handEdited = !runs.some((r) => r.changed.includes(/** @type {string} */ (EASY[0]))) && atStart(repo, JULY_EASY) !== repo.read(JULY_EASY);
     if (result.subtype !== 'success' || result.is_error === true) {
       if (handEdited) return HAND;
       if (result.subtype === 'error_max_budget_usd')
@@ -126,8 +147,8 @@ export const recoveryRan = {
       return 'The last easy-read run ran before `summer/run/easy-bounds.json` last changed. Run the recovery again, so its record shows what these bounds do.';
     if (handEdited) return HAND;
     for (const page of EASY)
-      if (!changed.includes(page))
-        return `The last easy-read run didn't change \`${page.replace('summer/public/', '')}\`, which the 08:30 run left undone. Rerun both pages it left in one run, so its record shows the whole recovery.`;
+      if (!fixed.has(page))
+        return `No run that ended in \`success\` with no denials changed \`${page.replace('summer/public/', '')}\`, which the 08:30 run left undone. Rerun the pages it left.`;
     return true;
   },
 };
