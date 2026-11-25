@@ -1,0 +1,19 @@
+{
+  "name": "millbrook-fixers-site",
+  "version": "1.0.0",
+  "description": "The Millbrook Fixers' public pages, and the link checker that guards them",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "linkcheck": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "check": "node ../checks/run.mjs",
+    "linkcheck": "node src/cli.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

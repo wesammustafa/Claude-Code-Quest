@@ -66,6 +66,17 @@
       "folder": "copy",
       "slow": [2, 4, 7],
       "optional": true
+    },
+    {
+      "id": "i-8",
+      "level": "intermediate",
+      "order": 7,
+      "page": "docs/intermediate/lab-evaluate-and-share-a-plugin.md",
+      "steps": "course/steps/i-8.md",
+      "check": "i-8",
+      "folder": "copy",
+      "slow": [],
+      "optional": true
     }
   ]
 }
