@@ -156,20 +156,41 @@ const LOSES = /\b(?:lose|loses|lost|second|after|below|under|behind)\b/i;
 const EVERYTHING = /\b(?:always|everything|anything|whatever|every (?:fact|time|case)|all (?:facts|cases|sources)|in all cases)\b/i;
 const VENUE = /\b(?:venue|booking|confirmation|library|centre|center)\b/gi;
 const NOTES_G = new RegExp(NOTES.source, 'gi');
+// What only the venue can set, whatever our notes say.
+const ROOM = /\b(?:room['’]?s? (?:limits?|capacity)|room limits?|occupancy|capacity|fire (?:limits?|regulations?|safety)|access|lift|step-free|hours booked)\b/i;
+// A rule that says our notes don't decide is no rule that they do.
+const NEGATED = /\b(?:not|never|don['’]?t|doesn['’]?t|won['’]?t|without|ignores?)\b/i;
 
 // A clause where our notes win: the last of our notes or the venue named
-// before a word like "win" is our notes. It overreaches when it wins on
-// everything, or over the venue, with no word confining it to our own
-// arrangements and none that puts the notes second.
-/** @param {string} text */
+// before a word like "win" is our notes. It overreaches on everything when
+// it wins on everything, or over the venue, with no word confining it to our
+// own arrangements and none that puts the notes second; and on the room
+// when what follows the win names what only the venue sets, such as the
+// room's limit or the lift.
+/** @param {string} text @returns {'everything' | 'room' | null} */
 function overreaches(text) {
-  if (!NOTES.test(text) || OWN.test(text)) return false;
-  const win = [...text.matchAll(WINS)][0];
-  if (!win || win.index === undefined) return false;
-  const before = text.slice(0, win.index);
-  const last = (/** @type {RegExp} */ re) => Math.max(-1, ...[...before.matchAll(re)].map((m) => m.index ?? -1));
-  if (last(NOTES_G) <= last(VENUE)) return false;
-  return EVERYTHING.test(text) || (new RegExp(VENUE.source, 'i').test(text) && !LOSES.test(text));
+  if (!NOTES.test(text)) return null;
+  const notesWin = (/** @type {number} */ at) => {
+    const before = text.slice(0, at);
+    const last = (/** @type {RegExp} */ re) => Math.max(-1, ...[...before.matchAll(re)].map((m) => m.index ?? -1));
+    return last(NOTES_G) > last(VENUE);
+  };
+  const wins = [...text.matchAll(WINS)].map((m) => m.index ?? 0);
+  if (wins.length === 0) return null;
+  if (!OWN.test(text) && notesWin(wins[0]) && (EVERYTHING.test(text) || (new RegExp(VENUE.source, 'i').test(text) && !LOSES.test(text)))) return 'everything';
+  for (const at of wins) {
+    const tail = text.slice(at);
+    if (notesWin(at) && ROOM.test(tail) && !LOSES.test(tail)) return 'room';
+  }
+  return null;
+}
+
+// Our notes and our own arrangements in one clause, with nothing before the
+// arrangement that says the notes don't decide it.
+/** @param {string} text */
+function settlesOwn(text) {
+  const own = OWN.exec(text);
+  return NOTES.test(text) && own !== null && !NEGATED.test(text.slice(0, own.index));
 }
 
 // The skill's steps as clauses, each with the number of the step it is in.
@@ -200,8 +221,9 @@ export const settles = {
     if (!OPEN.test(body)) return "The skill's steps don't say what to do with a detail nobody has confirmed. Put that step back: publish it as being confirmed, with the venue's public number.";
     const clauses = stepClauses(body);
     const over = clauses.find((c) => overreaches(c.text));
+    if (over && overreaches(over.text) === 'room') return `${where(over.step)} now lets our notes beat the venue's confirmation on the room itself: "${quote(over.text.trim())}". The room's limits are the venue's to set. Limit our notes to our own arrangements (sign-up cap, what to bring).`;
     if (over) return `${where(over.step)} now lets our notes beat the venue's confirmation on everything: "${quote(over.text.trim())}". Limit it to our own arrangements (sign-up cap, what to bring).`;
-    if (!clauses.some((c) => NOTES.test(c.text) && OWN.test(c.text))) return "The skill's steps don't say whose word wins on our own arrangements, so Claude can't settle March's limit: the booking allows 40 people including volunteers, and our notes cap sign-ups at 30. Add the rule to step 3: our notes win on our own arrangements, such as the sign-up cap and what to bring.";
+    if (!clauses.some((c) => settlesOwn(c.text))) return "The skill's steps don't say whose word wins on our own arrangements, so Claude can't settle March's limit: the booking allows 40 people including volunteers, and our notes cap sign-ups at 30. Add the rule to step 3: our notes win on our own arrangements, such as the sign-up cap and what to bring.";
     return true;
   },
 };

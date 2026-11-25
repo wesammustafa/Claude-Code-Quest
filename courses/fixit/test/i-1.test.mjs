@@ -130,6 +130,13 @@ test('a rule that lets our notes win on everything fails with the manuscript\'s 
     "Apply the source order in CLAUDE.md. Our notes decide what we arrange ourselves: the sign-up cap and what to bring.",
   ])
     passes(copy({ ...DONE, [i1.SKILL]: step3(line) }), [settles]);
+  // Our notes may not win on what only the venue sets, even beside our own arrangements.
+  for (const line of ["Apply the source order in CLAUDE.md. Our notes win on our own arrangements and on the room's limit.", 'Apply the source order in CLAUDE.md. Our notes win on the sign-up cap and on step-free access.'])
+    says(settles, copy({ ...DONE, [i1.SKILL]: step3(line) }), /^Step 3 now lets our notes beat the venue's confirmation on the room itself: ".*"\. The room's limits are the venue's to set\./);
+  // A rule that says our notes don't decide the cap is no rule that they do.
+  for (const line of ['Apply the source order in CLAUDE.md. The notes never decide the sign-up cap.', "Apply the source order in CLAUDE.md. Don't let our notes set the sign-up cap."])
+    says(settles, copy({ ...DONE, [i1.SKILL]: step3(line) }), /don't say whose word wins/);
+  passes(copy({ ...DONE, [i1.SKILL]: step3("Apply the source order in CLAUDE.md. Our notes win on the sign-up cap, not the venue's booking.") }), [settles]);
   // Notes that lose to the venue settle nothing about our own arrangements.
   says(settles, copy({ ...DONE, [i1.SKILL]: step3("Apply the source order in CLAUDE.md. Our notes beat old flyers but lose to the venue's booking.") }), /don't say whose word wins/);
   // The standing notes' file name is no rule about our notes.
