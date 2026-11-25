@@ -41,7 +41,7 @@ So first, a question: next month's folder will have a roster with ten phone numb
 
    There are three kinds of rule. **Allow**: do it without asking. **Ask**: always ask me first. **Deny**: never, in any mode. Claude Code checks deny first, then ask, then allow, so a deny always wins.
 
-   They live in two places. `.claude/settings.json` is **shared**: anyone who opens this folder gets it, Sam included. `.claude/settings.local.json` is **yours**: it stays on your machine. Rules that protect the group go in the shared file.
+   They live in two places. `.claude/settings.json` is **shared**: it sits in `fixit/`, the folder you started Claude in, and anyone who opens that folder gets it, Sam included. `.claude/settings.local.json` is **yours alone**: Claude Code keeps it at the top of your practice copy, the folder above `project/`, and out of Git. Rules that protect the group go in the shared file.
 
    Ask Claude for a deny rule in the shared settings: `Add a deny rule to the shared .claude/settings.json so you can never read anything under a private/ folder, in any month.` Claude adds `Read(./**/private/**)` to `.claude/settings.json`. It matches a `private/` folder at any depth, so next month's is covered too. It's in the shared file, so Sam gets it.
 
@@ -96,8 +96,8 @@ What only you can judge: read each rule and the guard beside what it stops. Too 
 Real Claude Code reads the same files. Edit them in any editor, or ask Claude to.
 
 1. `/permissions` shows every rule and where it came from; you can add rules there too.
-2. Settings files: `.claude/settings.json` (shared, in the project), `.claude/settings.local.json` (yours, in the project), `~/.claude/settings.json` (yours, everywhere). A deny anywhere can't be overridden by an allow elsewhere.
-3. When you choose "Yes, and don't ask again" for a command, Claude Code saves an allow rule to `.claude/settings.local.json`. Read it from time to time.
+2. Settings files: `.claude/settings.json` (shared; read from the folder you start Claude in), `.claude/settings.local.json` (yours alone, for this one project), `~/.claude/settings.json` (yours, everywhere). A deny anywhere can't be overridden by an allow elsewhere.
+3. When you choose "Yes, and don't ask again" for a command, Claude Code saves an allow rule to `.claude/settings.local.json`. In a Git repository it reads and writes that file at the repository root, so a session you start in a subfolder saves the rule for the whole repository; a file an older version left in the subfolder is still read as well. Read it from time to time.
 4. Hooks are set in the same settings files, under `"hooks"`; `/hooks` shows them. A script must be executable on macOS and Linux (`chmod +x`). Claude Code normally picks up an edit to a settings file while it runs; if a change doesn't show, restart `claude`.
 5. The sandbox runs on macOS, Linux and WSL 2, not on native Windows.
 
@@ -108,12 +108,13 @@ See [Configure permissions](https://code.claude.com/docs/en/permissions), [Sandb
 | Item | What it does | How to verify | Failure case |
 |---|---|---|---|
 | `permissions.deny`, `ask`, `allow` | checked deny, then ask, then allow; a more specific rule doesn't change the order | `/permissions` lists them with their source | a deny in `settings.local.json` protects only you ([Permissions](https://code.claude.com/docs/en/permissions)) |
+| `.claude/settings.local.json` | your own rules for this one project, over the shared file | `/permissions` names the file each rule came from | for a session started in a subfolder of a Git repository, Claude Code reads and writes it at the repository root, so a rule you expect beside the shared file isn't there; a file a version before 2.1.211 left in the starting folder is still read too ([Settings](https://code.claude.com/docs/en/settings)) |
 | `Read(...)` and `Edit(...)` rules | `Edit` rules cover Claude's file-writing tools; `Read` rules also catch a shell read of that path as written | probe with a prompt that would cross it | a script that opens the file itself isn't matched; `@` mentions skip `PreToolUse` hooks, so protect reads with a `Read` deny, not a hook |
 | Sandbox | limits the operating system puts on shell commands and their children | a write outside the allowed folders fails | it covers shell commands only: file tools, outside connections and hooks run outside it ([Sandboxing](https://code.claude.com/docs/en/sandboxing)) |
 | `PreToolUse` command hook | runs before a tool call; exit 2 blocks it, with the message on stderr | run the script yourself with a JSON input | exit 0 doesn't approve, it only doesn't block; hooks run with your full permissions, outside the sandbox ([Hooks guide](https://code.claude.com/docs/en/hooks-guide)) |
 | `"onFailure": "block"` | treats a hook that errors as a block: it fails closed | break the script on purpose and probe | without it, a broken guard silently lets edits through |
 | Rules and hooks versus memory | rules and hooks are enforced by Claude Code; `CLAUDE.md` is guidance | compare a probe with and without the rule | a line you keep adding emphasis to in `CLAUDE.md` belongs in a hook ([Best practices](https://code.claude.com/docs/en/best-practices)) |
 
-In Questerm, hooks run as real scripts in the practice shell, and their exit codes count. The sandbox is simulated: it refuses a shell write outside the project, and it doesn't model the network. Claude's replies are written in advance; what blocks them is your settings and your script.
+In Questerm, hooks run as real scripts in the practice shell, and their exit codes count. The sandbox is simulated: it refuses a shell write outside the project, and it doesn't model the network. Claude's replies are written in advance; what blocks them is your settings and your script. The practice session reads the local settings at the top of the copy, as Claude Code does; the Lesson's check also reads one left in `fixit/`, and says which file your rule is in.
 
 The Desktop app's Code tab and the VS Code extension use the same settings files and hooks. Claude in claude.ai has no file permissions or hooks: what it can see is what you attach or connect, so the same decision there is what you put in a Project's files and which connectors you turn on.

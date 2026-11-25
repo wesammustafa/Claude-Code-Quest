@@ -114,6 +114,7 @@ badge: Intermediate
 - verify: check 1 2
 - watching: fixit/.claude/hooks/no-private-numbers.sh
 - goal: "The check runs your guard on test edits: Sam's, a volunteer's and a caretaker's numbers blocked on a public page, the venues' public numbers let through, private notes left alone, and a block when it can't read the edit. And the kit still keeps Claude out of `private/` folders."
+- note: "The second of those two passes before you touch anything: the kit's read rule for `private/` is one of the parts that works. It's here because widening the guard must not cost you a guard you already had."
 - note: "To change the guard yourself, edit it in the files tab, then check again."
 
 ### T5 | The task step 5 of 7 | Run it again as Sam, fresh
@@ -229,7 +230,7 @@ badge: Intermediate
 - bottom: "Change the no-private-numbers hook so it blocks every 555-01xx number on a public page except the venues' public numbers, 555-0100 and 555-0130, in any spacing."
 - back: T2 Find where each number on the guide came from.
 
-### `fixit/.claude/settings.json` still keeps Claude out of every `private/` folder
+### `fixit/.claude/settings.json` still keeps Claude out of every `private/` folder (it already does, so this item only watches that your fixes keep it)
 - narrow "There's no": Is the shared settings file still in `fixit/.claude/`?
 - narrow "isn't valid JSON": Does the settings file still open and close its braces where it should?
 - narrow "one month's": Will next month's private folder be covered?

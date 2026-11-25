@@ -189,9 +189,12 @@ export const numberGuard = {
 const ROSTER = 'april/private/roster.csv';
 const NEXT_ROSTER = 'may/private/roster.csv';
 
+// The one item that passes before you start: the kit's three faults are
+// elsewhere, and this reads the guard the kit already has, so a fix that
+// drops it is caught. The card and the page say so.
 /** @type {Item} */
 export const privateFolders = {
-  text: '`fixit/.claude/settings.json` still keeps Claude out of every `private/` folder',
+  text: '`fixit/.claude/settings.json` still keeps Claude out of every `private/` folder (it already does, so this item only watches that your fixes keep it)',
   check(repo) {
     const f = settings(repo);
     if ('error' in f) return f.error;

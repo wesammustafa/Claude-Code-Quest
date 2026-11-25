@@ -1,8 +1,13 @@
 // @ts-check
 // Decide what each part may touch (Fix-It, Intermediate lesson 3). The check
 // reads fixit/.claude/settings.json, the shared settings Sam's laptop gets,
-// and the Learner's own settings.local.json beside it only to say a rule is
-// in the wrong file. Rules are matched the way Claude Code matches them, on
+// and the Learner's own local settings only to say a rule is in the wrong
+// file. There are two places those can be: for a session started in a
+// subfolder of a git repository, Claude Code reads and writes
+// .claude/settings.local.json at the repository root, the folder above
+// project/, and it still reads a file a version before 2.1.211 left in the
+// folder the session starts in, fixit/ (Settings, "Where Claude Code keeps
+// the local file in a git repository"). Rules are matched the way Claude Code matches them, on
 // paths a month's folder holds; hooks are run, as Claude Code runs them
 // before an Edit or a Write, on test tool calls, and judged by what they do,
 // not how they're written. The March guide is read for Priya's number and
@@ -20,7 +25,10 @@ import { quote } from './fixit-claims.mjs';
 export const title = 'Decide what each part may touch';
 
 export const SHARED = 'fixit/.claude/settings.json';
+// The file a version before 2.1.211 left in the folder the session starts in.
 export const LOCAL = 'fixit/.claude/settings.local.json';
+// Where Claude Code reads and writes it now: the repository root above project/.
+export const ROOT_LOCAL = '.claude/settings.local.json';
 export const GUIDE = 'fixit/march/attendee-guide.md';
 
 const MOVE = "Sam won't have it: put it in the shared `.claude/settings.json`.";
@@ -232,14 +240,51 @@ export function unrunnable(repo, hooks) {
   return null;
 }
 
-/** @param {Repo} repo */
+/**
+ * The root local file's parsed value, by the path the Learner sees: null
+ * when there is none. It sits outside project/, so `readAny` finds it.
+ * @param {Repo} repo
+ * @returns {{ value: any } | { error: string }}
+ */
+function rootLocal(repo) {
+  let text = null;
+  try {
+    text = repo.readAny(ROOT_LOCAL);
+  } catch {
+    return { value: null };
+  }
+  if (text === null) return { value: null };
+  try {
+    return { value: JSON.parse(text) };
+  } catch (error) {
+    return { error: `\`${ROOT_LOCAL}\` isn't valid JSON (${/** @type {Error} */ (error).message}). Fix it in the files tab, or ask Claude to.` };
+  }
+}
+
+/**
+ * The shared settings, and every local settings file this session reads,
+ * each with its path for the message that names it.
+ * @param {Repo} repo
+ * @returns {{ error: string } | { shared: any, locals: { path: string, value: any }[] }}
+ */
 function files(repo) {
   const shared = settings(repo, SHARED);
   if ('error' in shared) return { error: shared.error };
+  const root = rootLocal(repo);
+  if ('error' in root) return { error: root.error };
   const local = settings(repo, LOCAL);
   if ('error' in local) return { error: local.error };
-  return { shared: shared.value, local: local.value };
+  const locals = [
+    { path: ROOT_LOCAL, value: root.value },
+    { path: LOCAL, value: local.value },
+  ].filter((l) => l.value !== null);
+  return { shared: shared.value, locals };
 }
+
+// The local settings file that holds a rule or a hook `has` recognises, or
+// null when none does.
+/** @param {{ path: string, value: any }[]} locals @param {(value: any) => boolean} has */
+const localWith = (locals, has) => locals.find((l) => has(l.value)) ?? null;
 const NONE = (/** @type {string} */ what) => `There's no \`${SHARED}\` yet. ${what}`;
 
 // Paths Claude must never read, and one it must, below fixit/.
@@ -262,7 +307,8 @@ export const privateFolders = {
       if (wide) return `\`${wide}\` denies more than \`private/\`: Claude can't read \`${NOTES}\` either, and the guide needs it. Deny only the \`private/\` folders.`;
       return true;
     }
-    if (ruleFor(rules(f.local, 'deny'), 'Read', ROSTER)) return `The rule for \`private/\` is in your local settings, \`.claude/settings.local.json\`. ${MOVE}`;
+    const mine = localWith(f.locals, (v) => ruleFor(rules(v, 'deny'), 'Read', ROSTER) !== undefined);
+    if (mine) return `The rule for \`private/\` is in your own local settings, \`${mine.path}\`. ${MOVE}`;
     if (f.shared === null) return NONE('Ask Claude for a deny rule that keeps it out of every `private/` folder.');
     return `Nothing stops Claude reading \`${ROSTER}\` yet. Add a deny rule for \`Read\` that matches \`private/\` in any folder, such as \`Read(./**/private/**)\`.`;
   },
@@ -292,8 +338,8 @@ export const sources = {
     const hooked = (path) => (denied(path) ? [] : blockedBy(repo, both, call(repo, 'Write', path, PLAIN)));
     const open = PROTECTED.find((p) => !denied(p) && hooked(p).length === 0);
     if (open) {
-      const localDeny = rules(f.local, 'deny');
-      if (ruleFor(localDeny, EDIT, open) || blockedBy(repo, hooksOf(f.local), call(repo, 'Write', open, PLAIN)).length) return `The sources rule is in your local settings, \`.claude/settings.local.json\`. ${MOVE}`;
+      const mine = localWith(f.locals, (v) => ruleFor(rules(v, 'deny'), EDIT, open) !== undefined || blockedBy(repo, hooksOf(v), call(repo, 'Write', open, PLAIN)).length > 0);
+      if (mine) return `The sources rule is in your own local settings, \`${mine.path}\`. ${MOVE}`;
       const editOnly = all.filter((h) => h.edit && !h.write);
       if (blockedBy(repo, editOnly, call(repo, 'Write', open, PLAIN)).length) return `A Write to \`${open}\` wasn't blocked: your hook runs for Edit only. Match \`Edit|Write\`.`;
       if (f.shared === null) return NONE('Ask Claude for a deny rule or a hook that keeps `sources/` and the venue confirmations unchanged.');
@@ -330,8 +376,9 @@ export const numberGuard = {
     const guards = blockedBy(repo, both, guide('Write', PRIYA));
     if (guards.length === 0) {
       if (blockedBy(repo, all.filter((h) => h.edit && !h.write), guide('Write', PRIYA)).length) return "A Write of 555-0187 to the guide wasn't blocked: match `Edit|Write`.";
-      if (blockedBy(repo, hooksOf(f.local), guide('Write', PRIYA)).length) return `The guard is in your local settings, \`.claude/settings.local.json\`. ${MOVE}`;
-      if (ruleFor([...rules(f.shared, 'deny'), ...rules(f.local, 'deny')], 'Read', 'sources/flyer-2026-10.md')) return "No guard checks what's written. Denying the flyer hides it, but a number in any other file still gets through.";
+      const mine = localWith(f.locals, (v) => blockedBy(repo, hooksOf(v), guide('Write', PRIYA)).length > 0);
+      if (mine) return `The guard is in your own local settings, \`${mine.path}\`. ${MOVE}`;
+      if (ruleFor([f.shared, ...f.locals.map((l) => l.value)].flatMap((v) => rules(v, 'deny')), 'Read', 'sources/flyer-2026-10.md')) return "No guard checks what's written. Denying the flyer hides it, but a number in any other file still gets through.";
       if (f.shared === null) return NONE('Ask Claude for a guard that blocks 555-0187 on a public page.');
       return "No guard checks what's written to a public page yet. Ask Claude for a PreToolUse hook on Edit and Write that blocks 555-0187 there, and blocks if it can't check.";
     }
@@ -364,21 +411,9 @@ export const askFirst = {
     if ('error' in f) return /** @type {string} */ (f.error);
     if (f.shared === null) return NONE('Ask Claude to add `Bash` to its `ask` list.');
     if (!rules(f.shared, 'ask').some(ASKS)) return "The shared settings don't ask before commands. Add `Bash` to the `ask` list in `fixit/.claude/settings.json`.";
-    const root = (() => {
-      try {
-        return repo.readAny('.claude/settings.local.json');
-      } catch {
-        return null;
-      }
-    })();
-    const parsed = (() => {
-      try {
-        return root === null ? null : JSON.parse(root);
-      } catch {
-        return null;
-      }
-    })();
-    const wide = [f.shared, f.local, parsed].flatMap((v) => rules(v, 'allow')).find(broad);
+    // Every file this session reads, so a "don't ask again" the Learner
+    // chose, which Claude Code saves at the repository root, counts too.
+    const wide = [f.shared, ...f.locals.map((l) => l.value)].flatMap((v) => rules(v, 'allow')).find(broad);
     if (wide) return `\`${wide}\` lets every matching command run without asking. Allow one exact command, or none.`;
     return true;
   },
