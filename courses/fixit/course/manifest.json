@@ -1,7 +1,8 @@
 {
   "levels": [
     { "id": "beginner", "index": "docs/beginner/README.md" },
-    { "id": "intermediate", "index": "docs/intermediate/README.md" }
+    { "id": "intermediate", "index": "docs/intermediate/README.md" },
+    { "id": "advanced", "index": "docs/advanced/README.md" }
   ],
   "lessons": [
     {
@@ -65,6 +66,17 @@
       "check": "i-5",
       "folder": "copy",
       "slow": [2, 4, 7],
+      "optional": true
+    },
+    {
+      "id": "a-3",
+      "level": "advanced",
+      "order": 7,
+      "page": "docs/advanced/lab-goals-and-workflows.md",
+      "steps": "course/steps/a-3.md",
+      "check": "a-3",
+      "folder": "copy",
+      "slow": [1, 2],
       "optional": true
     }
   ]
