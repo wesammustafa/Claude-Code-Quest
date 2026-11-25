@@ -43,7 +43,7 @@ export const pageRight = {
   text: "`august-sam-2027-06-09.md` gives the Northside office's number and no private one, and claims no parking",
   check(repo) {
     const text = repo.read(PAGE);
-    if (text === null) return `\`${PAGE}\` is missing. Reset this step to bring Sam's version back.`;
+    if (text === null) return `\`${PAGE}\` is missing. Reset this step to bring it back.`;
     const numbers = [...shown(text).matchAll(NUMBER)].map(([n]) => n.replace(/^555[ .-]?/, '555-'));
     const other = numbers.filter((n) => !PUBLIC_NUMBERS.has(n));
     if (other.includes('555-0162'))
@@ -67,7 +67,7 @@ export const toiletKept = {
   text: "the page still says the accessible toilet is available, as Kofi's email of 25 May does",
   check(repo) {
     const text = repo.read(PAGE);
-    if (text === null) return `\`${PAGE}\` is missing. Reset this step to bring Sam's version back.`;
+    if (text === null) return `\`${PAGE}\` is missing. Reset this step to bring it back.`;
     if (/refurbish/i.test(shown(text)))
       return "The page now says the toilet is being refurbished. Kofi's email of 25 May says it's back in use. Which source is newer?";
     const line = sentences(text).find((s) => TOILET.test(s));
