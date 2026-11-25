@@ -212,6 +212,9 @@ export interface LessonContent {
   title?: string;
   next?: string | null;
   page?: string;
+  // A lab: its manifest entry's "optional": true, which a parse given the
+  // manifest copies here for the tier rule (tiers.ts).
+  optional?: true;
 }
 // The lesson as parseLesson builds it, line by line: a beat's verify is its
 // line's text until parseVerify reads it, a card entry gets its lines one
@@ -681,6 +684,9 @@ export function parseLesson(
       LessonContent,
       "lesson" | "stamp" | "badge" | "folder" | "worked"
     >),
+    ...(manifest.lessons.find((l) => l.id === fm.fields.lesson)?.optional
+      ? { optional: true as const }
+      : {}),
     intro: { can: [] },
     warmup: [],
     steps: [],

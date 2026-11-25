@@ -1,6 +1,6 @@
 # Turn a repeated job into a skill
 
-<sub>**Intermediate** · Lesson 2 of 5 · about 25 minutes · Needs: [Decide what Claude should remember](01-decide-what-to-remember.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Lesson 2 of 6 · about 25 minutes · Needs: [Decide what Claude should remember](01-decide-what-to-remember.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 

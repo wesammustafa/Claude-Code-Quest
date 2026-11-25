@@ -32,8 +32,10 @@ const verifiable = (step: Step) =>
 // content (or null), in course order. An earlier lesson k counts toward a
 // skill only when `counted(k, skill)`: by default the course plan counts
 // them all. An optional step, which a learner may skip, counts toward no
-// skill (ticket 102). A Tear down step after the Check gets the help a Your
-// turn step does, and CHALLENGE in a capstone.
+// skill (ticket 102), and a lab, which a learner may skip too, counts
+// toward no core lesson's skills; a lab counts every lesson before it. A
+// Tear down step after the Check gets the help a Your turn step does, and
+// CHALLENGE in a capstone.
 export function ruleTiers(
   contents: readonly (LessonContent | null | undefined)[],
   lessonIndex: number,
@@ -45,6 +47,7 @@ export function ruleTiers(
   );
   const before = new Map<string, number>();
   contents.slice(0, lessonIndex).forEach((c, k) => {
+    if (c?.optional && !lesson.optional) return;
     for (const skill of new Set(
       (c?.steps ?? []).filter((s) => !s.optional).map((s) => s.skill),
     ))

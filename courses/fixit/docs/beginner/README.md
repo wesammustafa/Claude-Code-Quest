@@ -23,4 +23,4 @@ Six lessons, the capstone last, built around the Millbrook Fixers, a volunteer r
 
 ## Optional labs
 
-[From request to commit in code](lab-request-to-commit.md): the code version of lesson 2, on the Fix-It group's website repository. Check that Ade's patch to the link checker does only what it says, fix it with a test that fails on his version, read the diff and commit; then fix a silent missing folder test first. No core lesson or capstone depends on it.
+[From request to commit in code](lab-request-to-commit.md): the code version of lesson 3, Check every claim before anyone relies on it, on the Fix-It group's website repository. Check that Ade's patch to the link checker does only what it says, fix it with a test that fails on his version, read the diff and commit; then fix a silent missing folder test first. No core lesson or capstone depends on it.

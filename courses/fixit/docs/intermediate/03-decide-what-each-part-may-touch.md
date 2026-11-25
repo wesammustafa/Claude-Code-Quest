@@ -1,6 +1,6 @@
 # Decide what each part may touch
 
-<sub>**Intermediate** · Lesson 3 of 5 · about 30 minutes · Needs: [Turn a repeated job into a skill](02-turn-a-repeated-job-into-a-skill.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Lesson 3 of 6 · about 30 minutes · Needs: [Turn a repeated job into a skill](02-turn-a-repeated-job-into-a-skill.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 

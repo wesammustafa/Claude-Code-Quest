@@ -43,6 +43,7 @@ import {
   whileRunsOpen,
 } from "./drive.mjs";
 import { project } from "../src/index.ts";
+import { parseLesson as parseContent } from "../src/content.ts";
 // The app's words a beat's fail hint or evidence is built from (status.ts
 // and holds.ts pick them), and the text measures E2 and E14 test.
 import { at, atStep, b1Done, missing, reopen } from "./flow-places.mjs";
@@ -686,6 +687,53 @@ test("optional steps: ruleTiers never counts an optional step's skill (102)", ()
     ruleTiers(counted, at)[0],
     "hinted",
     "a step that is not optional counts",
+  );
+});
+
+test("labs: a core lesson's tiers never count a lab's skills, and a lab counts every lesson before it", () => {
+  const entry = (id, order, optional = false) => ({
+    id,
+    level: "beginner",
+    order,
+    page: `docs/beginner/${id}.md`,
+    steps: `course/steps/${id}.md`,
+    check: id,
+    folder: "copy",
+    slow: [],
+    ...(optional ? { optional: true } : {}),
+  });
+  const manifest = {
+    levels: [{ id: "beginner", index: "docs/beginner/README.md" }],
+    lessons: [
+      entry("b-1", 1),
+      entry("b-2", 2, true),
+      entry("b-3", 3),
+      entry("b-4", 4, true),
+    ],
+  };
+  // Each one's W1 asks for snapshot, as DEMO_B2's does.
+  const [lab, core, laterLab] = ["b-2", "b-3", "b-4"].map((id) =>
+    parseContent(DEMO_B2.replace("lesson: b-2", `lesson: ${id}`), `${id}.md`, {
+      manifest,
+    }),
+  );
+  assert.equal(lab.optional, true, "the manifest's optional reaches the parse");
+  assert.equal(core.optional, undefined);
+  const contents = [null, lab, core, laterLab];
+  assert.equal(
+    ruleTiers(contents, 2)[0],
+    "guided",
+    "the lab b-2 before it does not count toward the core b-3's snapshot",
+  );
+  assert.equal(
+    ruleTiers([null, { ...lab, optional: undefined }, core], 2)[0],
+    "hinted",
+    "a core lesson before it counts",
+  );
+  assert.equal(
+    ruleTiers(contents, 3)[0],
+    "challenge",
+    "the lab b-4 counts the lab and the core lesson before it",
   );
 });
 

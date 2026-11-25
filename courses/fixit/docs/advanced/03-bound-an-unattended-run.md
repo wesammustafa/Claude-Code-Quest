@@ -1,6 +1,6 @@
 # Bound an unattended run
 
-<sub>**Advanced** · Lesson 3 of 5 · about 30 minutes · Needs: [lesson 2](02-reconcile-findings.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Lesson 3 of 6 · about 30 minutes · Needs: [lesson 2](02-reconcile-findings.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 

@@ -1,6 +1,6 @@
 # Connect an outside tool when it earns its place
 
-<sub>**Intermediate** · Lesson 5 of 5 · about 25 minutes · Needs: [Bring in a second reviewer](04-bring-in-a-second-reviewer.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Lesson 5 of 6 · about 25 minutes · Needs: [Bring in a second reviewer](04-bring-in-a-second-reviewer.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 

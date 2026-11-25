@@ -1164,40 +1164,35 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
       "limit-run":
         "ticket 27 cut a-4's Your turn question, which tested a flag's definition, so a-7's questions are the first that can mark limit-run, and no lesson after a-7 has warm-ups",
     }
-  : // courses/fixit: b-5's pool recalls b-4's clear, the last skill a
-    // Beginner question marks missed before the capstone, which has no
-    // warm-ups by the rework's rule. The labs come after it.
+  : // courses/fixit, the assembled course: each level's core lessons, the
+    // capstone last with no warm-ups by the rework's rule, then its labs. A
+    // core lesson's pool never recalls a lab (the sequence test), so a skill
+    // a lab's question marks first comes back only in a later lab's pool.
     {
-      "pick-pattern":
-        "the optional lab a-1 is the first lesson whose questions can mark pick-pattern missed, and no lesson after it is built yet; in the full course a-2 asks it first and a later pool recalls it",
       "review-diff":
-        "the optional lab a-1 is the first lesson whose questions ask about a diff, and no lesson after it is built yet; in the full course the lab b-3 asks it first",
+        "the optional lab b-3 is the first lesson whose questions ask about a diff, and no later pool recalls it: a core lesson's warm-ups never recall a lab",
       "share-mcp":
-        "i-7's Y2 question is the first that can mark share-mcp missed, and the lessons after it, whose pools recall it, are still to land",
+        "i-7's Y2 question is the first that can mark share-mcp missed; the Intermediate capstone after it has no warm-ups, and no Advanced pool recalls it",
       "use-mcp":
-        "i-7's Y3 question is the first that can mark use-mcp missed, and the lessons after it, whose pools recall it, are still to land",
-      // courses/fixit: b-1, b-6, then the capstone, which has
-      // no warm-ups by the rework's rule, so b-6's are the last pool.
-      start:
-        "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
+        "i-7's Y3 question is the first that can mark use-mcp missed; the Intermediate capstone after it has no warm-ups, and no Advanced pool recalls it",
+      status:
+        "the optional lab i-3's warm-up is the first question that can mark status missed, and no later lab's pool recalls it",
+      "probe-guard":
+        "the optional lab i-5's questions are the first that can mark probe-guard missed (i-4 asks it with no question that marks it), and no later lab's pool recalls it",
+      install:
+        "the optional lab i-8's warm-up is the first question that can mark install missed, and no later lab's pool recalls it",
+      "install-plugin":
+        "the optional lab i-8's question about the plugin panel is the first that can mark install-plugin missed, and no later lab's pool recalls it",
+      "code-intel":
+        "the optional lab i-8's question about the references the language server found is the first that can mark code-intel missed, and no later lab's pool recalls it",
       // a-6, Advanced lesson 5, is the last core lesson before the
       // capstone, which has no warm-ups: its warm-ups recall a-9's
       // headless-run, stop-run and watch-run, and no later pool can recall
       // what a-6's own questions mark.
       "share-setup":
         "a-6's Decide first can mark share-setup missed, and the Advanced capstone, the only core lesson after it, has no warm-ups",
-      status:
-        "the optional lab i-3's warm-up is the first question that can mark status missed, and no lesson after it is built yet; a later Intermediate or Advanced pool recalls it",
-      "probe-guard":
-        "the optional lab i-5's questions are the first that can mark probe-guard missed, and no lesson after it is built yet; in the full course i-4 asks it first and a later pool recalls it",
       "run-workflow":
-        "the optional lab a-3's question on its workflow script is the first that can mark run-workflow missed, and no lesson after it is built yet; a later Advanced lab's pool can recall it",
-      install:
-        "the optional lab i-8's warm-up is the first question that can mark install missed, and no lesson after it is built yet; a later pool recalls it",
-      "install-plugin":
-        "the optional lab i-8's question about the plugin panel is the first that can mark install-plugin missed, and no lesson after it is built yet; a later Advanced pool recalls it",
-      "code-intel":
-        "the optional lab i-8's question about the references the language server found is the first that can mark code-intel missed, and no lesson after it is built yet; a later Advanced pool recalls it",
+        "the optional lab a-3's question on its workflow script is the first that can mark run-workflow missed, and neither later lab's pool recalls it",
       "gh-secret":
         "the optional lab a-5's credential question is the first that can mark gh-secret missed, and a-5 is the course's last lesson, so no later pool can recall it",
       "ci-workflow":

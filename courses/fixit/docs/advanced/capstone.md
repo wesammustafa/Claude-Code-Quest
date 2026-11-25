@@ -1,6 +1,6 @@
 # Capstone: release day for the summer series
 
-<sub>**Advanced** · Capstone · 60 to 90 minutes · Needs: [lesson 5](05-share-the-workflow.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Capstone, Lesson 6 of 6 · 60 to 90 minutes · Needs: [lesson 5](05-share-the-workflow.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 

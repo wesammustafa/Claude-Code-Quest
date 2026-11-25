@@ -89,9 +89,10 @@ const filesUnder = (dir) => {
   return out;
 };
 
-// A lesson may start from an earlier lesson's Canonical end, as the
-// Intermediate kit does (the course map's starting states), but never from
-// its own answer or a later lesson's; the shared template holds no answer.
+// A lesson may start from an earlier lesson's Canonical end, as b-4 starts
+// from b-6's corrected guide and the Intermediate kit from the lessons before
+// it (the course map's starting states), but never from its own answer or a
+// later lesson's; the shared template holds no answer.
 test("each lesson opens from its own prepared files, and no starting file is its own or a later lesson's solution", () => {
   const answersOf = (ids) => {
     const files = ids.flatMap((id) => filesUnder(join(COURSE, 'solutions', id))).filter((p) => !p.endsWith('steps.sh'));
@@ -120,4 +121,21 @@ test("each stamp is truthful: checked against the documentation, not yet re-run,
     assert.match(stamp, /^Verified against Claude Code v\d+\.\d+\.\d+ \(stable\) documentation on \d{4}-\d{2}-\d{2}, pilot not yet re-run in a real session$/);
     assert.ok(text(page).split('\n')[2].includes(stamp), `${page} gives another stamp`);
   }
+});
+
+test("each core lesson's page gives its place in its level, Lesson N of 6, a numbered page's file name starts with N, and a lab's page says Optional lab", () => {
+  const off = [];
+  for (const { id, level, page } of PATH) {
+    if (LABS.includes(id)) {
+      if (!text(page).split('\n')[2].includes(' · Optional lab · ')) off.push(`${page}'s sub line doesn't say Optional lab`);
+      continue;
+    }
+    const core = ORDER[level].filter((l) => !LABS.includes(l));
+    const n = core.indexOf(id) + 1;
+    const place = `Lesson ${n} of ${core.length}`;
+    if (!text(page).split('\n')[2].includes(place)) off.push(`${page}'s sub line doesn't say ${place}`);
+    const prefix = /^(\d+)-/.exec(page.split('/').at(-1) ?? '')?.[1];
+    if (prefix !== undefined && Number(prefix) !== n) off.push(`${page} is numbered ${prefix}, but ${id} is lesson ${n}`);
+  }
+  assert.deepEqual(off, []);
 });

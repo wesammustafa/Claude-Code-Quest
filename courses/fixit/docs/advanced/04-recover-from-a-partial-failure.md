@@ -1,6 +1,6 @@
 # Recover from a partial failure
 
-<sub>**Advanced** · Lesson 4 of 5 · about 25 minutes · Needs: [lesson 3](03-bound-an-unattended-run.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Lesson 4 of 6 · about 25 minutes · Needs: [lesson 3](03-bound-an-unattended-run.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
 
 ## Goal
 
