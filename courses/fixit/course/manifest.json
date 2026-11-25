@@ -187,9 +187,19 @@
       "slow": []
     },
     {
-      "id": "a-1",
+      "id": "a-capstone",
       "level": "advanced",
       "order": 18,
+      "page": "docs/advanced/capstone.md",
+      "steps": "course/steps/a-capstone.md",
+      "check": "a-capstone",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "a-1",
+      "level": "advanced",
+      "order": 19,
       "page": "docs/advanced/lab-parallel-worktrees.md",
       "steps": "course/steps/a-1.md",
       "check": "a-1",
@@ -202,7 +212,7 @@
     {
       "id": "a-4",
       "level": "advanced",
-      "order": 19,
+      "order": 20,
       "page": "docs/advanced/lab-script-claude-code.md",
       "steps": "course/steps/a-4.md",
       "check": "a-4",
