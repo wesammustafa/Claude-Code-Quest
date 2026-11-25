@@ -1161,14 +1161,15 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "ticket 27 cut a-4's Your turn question, which tested a flag's definition, so a-7's questions are the first that can mark limit-run, and no lesson after a-7 has warm-ups",
     }
   : {
-      // courses/fixit: b-1, b-6, then the capstone, which has
-      // no warm-ups by the rework's rule, so b-6's are the last pool.
-      start:
-        "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
+      // courses/fixit: b-1, b-6, then the capstone, which has no warm-ups
+      // by the rework's rule; the labs come after it. i-5's pool recalls
+      // start, which b-6's questions can mark missed.
       "review-diff":
         "the optional lab b-3 is the first lesson whose questions ask about a diff, and it comes after the capstone, so no later Beginner pool can recall it",
       status:
         "the optional lab i-3's warm-up is the first question that can mark status missed, and no lesson after it is built yet; a later Intermediate or Advanced pool recalls it",
+      "probe-guard":
+        "the optional lab i-5's questions are the first that can mark probe-guard missed, and no lesson after it is built yet; in the full course i-4 asks it first and a later pool recalls it",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

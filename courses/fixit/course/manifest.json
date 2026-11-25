@@ -55,6 +55,17 @@
       "folder": "copy",
       "slow": [2, 3, 4],
       "optional": true
+    },
+    {
+      "id": "i-5",
+      "level": "intermediate",
+      "order": 6,
+      "page": "docs/intermediate/lab-hooks-fail-closed.md",
+      "steps": "course/steps/i-5.md",
+      "check": "i-5",
+      "folder": "copy",
+      "slow": [2, 4, 7],
+      "optional": true
     }
   ]
 }
