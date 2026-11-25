@@ -43,7 +43,7 @@ Claude remembers yesterday's conversation, not today's folder: it knows which fi
    | Choice | What it does |
    |---|---|
    | **Restore code and conversation** | puts both back |
-   | **Restore conversation** | keeps the files as they are now and forgets the conversation after that point |
+   | **Restore conversation** | keeps the files as they are now and forgets the conversation from that request on, so the request leaves the rewind list |
    | **Restore code** | puts the files back and keeps the conversation |
    | **Summarize from here**, **Summarize up to here** | shrink the conversation instead of undoing it |
 
