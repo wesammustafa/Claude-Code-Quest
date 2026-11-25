@@ -51,7 +51,7 @@ So first, a question: when does connecting Claude to the library's booking syste
    Start Claude in `fixit/` with `claude`. Because the server came from a project file, Claude Code asks before using it. You've read what it runs, so choose to use it. Then type `/mcp`: `bookings` is connected, with two tools, `get_booking` and `list_bookings`.
 3. **Use it, and compare with what you had.** Ask: `Look up the March booking with the bookings server and compare it with the signed booking in march/.`
 
-   The first time Claude uses one of the server's tools, it asks: read the call, then say yes. `get_booking` returns Room B, Saturday 13 March 2027, 10:00 to 13:30, a limit of 40 including organisers, and an access status updated on 2 March: the lift is not yet confirmed. It matches the signed booking on room, date, hours and limit, and adds one thing the PDF doesn't have: the library's own current status, which supports the guide's "being confirmed" line.
+   Claude calls the server's tools like its own. This session is in auto mode, so a lookup like this runs without asking you: read the call in the transcript, the tool and the reference it sends. `get_booking` returns Room B, Saturday 13 March 2027, 10:00 to 13:30, a limit of 40 including organisers, and an access status updated on 2 March: the lift is not yet confirmed. It matches the signed booking on room, date, hours and limit, and adds one thing the PDF doesn't have: the library's own current status, which supports the guide's "being confirmed" line.
 
 ## Your turn
 
