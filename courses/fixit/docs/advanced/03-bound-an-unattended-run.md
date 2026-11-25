@@ -54,7 +54,7 @@ Then bound it. Rules name exactly what it may edit, deny rules keep it out of wh
    - `allowUnsandboxedCommands: false`: a command can't ask to step outside the fence. There's nobody to ask anyway.
    - `autoAllowBashIfSandboxed: false`: a command inside the fence still needs a rule that allows it. This run has none, so it runs no commands.
 
-   Sam might add `july.md` next week. The rules name files, not the folder, so the run is refused when it tries to edit `july.md`, and its result lists the refusal. The run itself can still report success. Narrow rules fail safe: a page they don't name is refused, not edited. That only helps if someone reads the refusals, and a new page needs a new line.
+   Sam adds `july.md` this afternoon. The rules name files, not the folder, so the run is refused when it tries to edit `july.md`, and its result lists the refusal. The run itself can still report success. Narrow rules fail safe: a page they don't name is refused, not edited. That only helps if someone reads the refusals, and a new page needs a new line.
 3. **Read the runner's flags.** Open `fixit/summer/run/refresh.sh` in the files tab. It was prepared for you, and it comes down to one `claude -p` command: you don't need to write shell, only to know what each flag bounds.
 
    | Flag | What it bounds |
@@ -76,7 +76,7 @@ Then bound it. Rules name exactly what it may edit, deny rules keep it out of wh
 
    The report shows `result subtype: success`, the turns and the cost against their limits, and one permission denial: a `git commit`. A `git commit` saves the change into the folder's history. Here a person does that, after reading the change. Is the slice good? A denial doesn't mean the run failed. Read which call was denied: a commit. Your bounds forbid commits on purpose, so a person commits after reading. And success means only that the run ended normally. So the slice is good once you've read the change. A denial is information. Here it's the one you expected.
 
-   Open `fixit/summer/public/june.md`. The run changed one line. The group's standing notes say "mains rewiring inside the casing", and the page said "rewiring inside the casing". The battery rule was already right, and nothing else changed. One page cost about $0.12, so four pages about $0.50: inside the $1.00 limit, with room.
+   Open `fixit/summer/public/june.md`. The run changed one line. The group's standing notes say "mains rewiring inside the casing", and the page said "rewiring inside the casing". The battery rule was already right, and nothing else changed. One page cost about $0.12, so three pages about $0.36: inside the $1.00 limit, with room.
 
 ## Your turn
 
