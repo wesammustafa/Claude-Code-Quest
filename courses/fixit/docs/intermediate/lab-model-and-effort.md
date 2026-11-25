@@ -67,6 +67,8 @@ The lab's check reads five things:
 - the entry says what that change does for someone running the checker, and claims no speed-up the diff doesn't make
 - the tests pass
 
+If the check names a skill, correct it, then ask Claude to commit it.
+
 What the check can't see: whether a smaller model wrote a worse entry. In Questerm every setting gets the same words; on your own computer, compare them.
 
 What only you can judge: would the entry make sense to Maya?
