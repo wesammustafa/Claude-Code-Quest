@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./**/private/**)",
+      "Edit(./sources/**)",
+      "Edit(./**/booking-*)",
+      "Edit(./**/venue-email-*)"
+    ],
+    "ask": [
+      "Bash"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/no-private-numbers.sh",
+            "onFailure": "block"
+          }
+        ]
+      }
+    ]
+  }
+}

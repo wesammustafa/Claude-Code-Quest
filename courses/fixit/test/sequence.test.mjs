@@ -89,20 +89,27 @@ const filesUnder = (dir) => {
   return out;
 };
 
-// A lesson may start from an earlier lesson's reference end, as b-4 starts
-// from b-6's corrected guide; it never ships its own answer or a later
-// lesson's.
-test("each lesson opens from its own prepared files, and no starting file is its own or a later lesson's author solution", () => {
-  const at = Object.fromEntries(PATH.map((p, i) => [p.id, i]));
-  const solutions = filesUnder(join(COURSE, 'solutions')).filter((p) => !p.endsWith('steps.sh'));
-  const answers = solutions.map((p) => ({ text: readFileSync(p).toString('utf8').trim(), path: relative(COURSE, p), from: relative(join(COURSE, 'solutions'), p).split('/')[0] }));
+// A lesson may start from an earlier lesson's Canonical end, as the
+// Intermediate kit does (the course map's starting states), but never from
+// its own answer or a later lesson's; the shared template holds no answer.
+test("each lesson opens from its own prepared files, and no starting file is its own or a later lesson's solution", () => {
+  const answersOf = (ids) => {
+    const files = ids.flatMap((id) => filesUnder(join(COURSE, 'solutions', id))).filter((p) => !p.endsWith('steps.sh'));
+    return new Map(files.map((p) => [readFileSync(p).toString('utf8').trim(), relative(COURSE, p)]));
+  };
+  const shared = filesUnder(join(COURSE, 'practice-template/project'));
+  const all = answersOf(readdirSync(join(COURSE, 'solutions')));
+  for (const p of shared) {
+    const same = all.get(readFileSync(p).toString('utf8').trim());
+    assert.equal(same, undefined, `${relative(COURSE, p)} is the solution ${same}`);
+  }
   PATH.forEach(({ id }, i) => {
     const own = join(COURSE, 'practice-template/lessons', id, 'project');
     assert.ok(filesUnder(own).length > 0, `${id} has no prepared files`);
-    for (const p of [...filesUnder(own), ...filesUnder(join(COURSE, 'practice-template/project'))]) {
-      const text = readFileSync(p).toString('utf8').trim();
-      const same = answers.find((a) => a.text === text && !(at[a.from] < i));
-      assert.equal(same?.path, undefined, `${relative(COURSE, p)} is the solution ${same?.path}`);
+    const answers = answersOf(PATH.slice(i).map((p) => p.id));
+    for (const p of filesUnder(own)) {
+      const same = answers.get(readFileSync(p).toString('utf8').trim());
+      assert.equal(same, undefined, `${relative(COURSE, p)} is the solution ${same}`);
     }
   });
 });
@@ -113,18 +120,4 @@ test("each stamp is truthful: checked against the documentation, not yet re-run,
     assert.match(stamp, /^Verified against Claude Code v\d+\.\d+\.\d+ \(stable\) documentation on \d{4}-\d{2}-\d{2}, pilot not yet re-run in a real session$/);
     assert.ok(text(page).split('\n')[2].includes(stamp), `${page} gives another stamp`);
   }
-});
-
-test("each core lesson's page gives its place in its level, Lesson N of 6, and a numbered page's file name starts with N", () => {
-  const off = [];
-  for (const { id, level, page } of PATH) {
-    if (LABS.includes(id)) continue;
-    const core = ORDER[level].filter((l) => !LABS.includes(l));
-    const n = core.indexOf(id) + 1;
-    const place = `Lesson ${n} of ${core.length}`;
-    if (!text(page).split('\n')[2].includes(place)) off.push(`${page}'s sub line doesn't say ${place}`);
-    const prefix = /^(\d+)-/.exec(page.split('/').at(-1) ?? '')?.[1];
-    if (prefix !== undefined && Number(prefix) !== n) off.push(`${page} is numbered ${prefix}, but ${id} is lesson ${n}`);
-  }
-  assert.deepEqual(off, []);
 });

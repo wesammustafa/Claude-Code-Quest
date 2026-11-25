@@ -1172,6 +1172,10 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "the optional lab a-1 is the first lesson whose questions can mark pick-pattern missed, and no lesson after it is built yet; in the full course a-2 asks it first and a later pool recalls it",
       "review-diff":
         "the optional lab a-1 is the first lesson whose questions ask about a diff, and no lesson after it is built yet; in the full course the lab b-3 asks it first",
+      "share-mcp":
+        "i-7's Y2 question is the first that can mark share-mcp missed, and the lessons after it, whose pools recall it, are still to land",
+      "use-mcp":
+        "i-7's Y3 question is the first that can mark use-mcp missed, and the lessons after it, whose pools recall it, are still to land",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

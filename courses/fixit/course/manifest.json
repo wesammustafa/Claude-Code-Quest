@@ -1,7 +1,17 @@
 {
   "levels": [
-    { "id": "beginner", "index": "docs/beginner/README.md" },
-    { "id": "advanced", "index": "docs/advanced/README.md" }
+    {
+      "id": "beginner",
+      "index": "docs/beginner/README.md"
+    },
+    {
+      "id": "intermediate",
+      "index": "docs/intermediate/README.md"
+    },
+    {
+      "id": "advanced",
+      "index": "docs/advanced/README.md"
+    }
   ],
   "lessons": [
     {
@@ -12,7 +22,9 @@
       "steps": "course/steps/b-1.md",
       "check": "b-1",
       "folder": "copy",
-      "slow": [0]
+      "slow": [
+        0
+      ]
     },
     {
       "id": "b-2",
@@ -65,26 +77,92 @@
       "slow": []
     },
     {
+      "id": "i-2",
+      "level": "intermediate",
+      "order": 7,
+      "page": "docs/intermediate/01-decide-what-to-remember.md",
+      "steps": "course/steps/i-2.md",
+      "check": "i-2",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "i-1",
+      "level": "intermediate",
+      "order": 8,
+      "page": "docs/intermediate/02-turn-a-repeated-job-into-a-skill.md",
+      "steps": "course/steps/i-1.md",
+      "check": "i-1",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "i-4",
+      "level": "intermediate",
+      "order": 9,
+      "page": "docs/intermediate/03-decide-what-each-part-may-touch.md",
+      "steps": "course/steps/i-4.md",
+      "check": "i-4",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "i-6",
+      "level": "intermediate",
+      "order": 10,
+      "page": "docs/intermediate/04-bring-in-a-second-reviewer.md",
+      "steps": "course/steps/i-6.md",
+      "check": "i-6",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "i-7",
+      "level": "intermediate",
+      "order": 11,
+      "page": "docs/intermediate/05-connect-an-outside-tool.md",
+      "steps": "course/steps/i-7.md",
+      "check": "i-7",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "i-capstone",
+      "level": "intermediate",
+      "order": 12,
+      "page": "docs/intermediate/capstone.md",
+      "steps": "course/steps/i-capstone.md",
+      "check": "i-capstone",
+      "folder": "copy",
+      "slow": []
+    },
+    {
       "id": "a-1",
       "level": "advanced",
-      "order": 7,
+      "order": 13,
       "page": "docs/advanced/lab-parallel-worktrees.md",
       "steps": "course/steps/a-1.md",
       "check": "a-1",
       "folder": "copy",
-      "optional": true,
-      "slow": [2]
+      "slow": [
+        2
+      ],
+      "optional": true
     },
     {
       "id": "a-4",
       "level": "advanced",
-      "order": 8,
+      "order": 14,
       "page": "docs/advanced/lab-script-claude-code.md",
       "steps": "course/steps/a-4.md",
       "check": "a-4",
       "folder": "copy",
-      "optional": true,
-      "slow": [1, 2, 4]
+      "slow": [
+        1,
+        2,
+        4
+      ],
+      "optional": true
     }
   ]
 }

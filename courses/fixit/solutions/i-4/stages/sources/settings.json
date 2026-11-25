@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./**/private/**)",
+      "Edit(./sources/**)",
+      "Edit(./**/booking-*)",
+      "Edit(./**/venue-email-*)"
+    ],
+    "ask": [
+      "Bash"
+    ]
+  }
+}
