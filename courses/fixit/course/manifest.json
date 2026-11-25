@@ -1,7 +1,13 @@
 {
   "levels": [
-    { "id": "beginner", "index": "docs/beginner/README.md" },
-    { "id": "advanced", "index": "docs/advanced/README.md" }
+    {
+      "id": "beginner",
+      "index": "docs/beginner/README.md"
+    },
+    {
+      "id": "advanced",
+      "index": "docs/advanced/README.md"
+    }
   ],
   "lessons": [
     {
@@ -12,7 +18,9 @@
       "steps": "course/steps/b-1.md",
       "check": "b-1",
       "folder": "copy",
-      "slow": [0]
+      "slow": [
+        0
+      ]
     },
     {
       "id": "b-6",
@@ -41,6 +49,16 @@
       "page": "docs/advanced/01-split-the-work.md",
       "steps": "course/steps/a-2.md",
       "check": "a-2",
+      "folder": "copy",
+      "slow": []
+    },
+    {
+      "id": "a-8",
+      "level": "advanced",
+      "order": 5,
+      "page": "docs/advanced/02-reconcile-findings.md",
+      "steps": "course/steps/a-8.md",
+      "check": "a-8",
       "folder": "copy",
       "slow": []
     }

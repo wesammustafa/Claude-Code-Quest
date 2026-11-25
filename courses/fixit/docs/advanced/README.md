@@ -13,7 +13,7 @@ It's the summer series for the Millbrook Fixers: three session pages and a sched
 ## Lessons
 
 1. [Choose how to split the work](01-split-the-work.md)
-2. Reconcile conflicting findings
+2. [Reconcile conflicting findings](02-reconcile-findings.md)
 3. Bound an unattended run
 4. Recover from a partial failure
 5. Share the workflow with its limits
