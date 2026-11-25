@@ -32,7 +32,13 @@ import { PageTitle } from "../shell/PageTitle";
 import { EYEBROW, WIDE } from "./layout";
 import { OpenLessonButton } from "./OpenLessonButton";
 import { pathOf, useCourseSnapshot } from "./lesson";
-import { journeyPlace, levelOf, nodeState, type JourneyPlace } from "./place";
+import {
+  journeyPlace,
+  levelOf,
+  nodeState,
+  splitLabs,
+  type JourneyPlace,
+} from "./place";
 
 type ElectiveList =
   | { state: "closed" | "loading" | "failed" }
@@ -215,7 +221,7 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
   const home = current?.id ?? null;
   useEffect(() => {
     if (!onPath || !level) return;
-    const ids = level.lessons.map((l) => l.id);
+    const ids = splitLabs(level.lessons).core.map((l) => l.id);
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
       if (
@@ -239,7 +245,9 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
   }, [onPath, level, path, home, link]);
 
   if (!level) return null;
-  const stations = level.lessons.map((l) => l.id);
+  // The path is the Level's core Lessons; its labs sit beside it.
+  const { core, labs } = splitLabs(level.lessons);
+  const stations = core.map((l) => l.id);
   return (
     <main className={WIDE}>
       <JourneyHeader levels={levels} />
@@ -255,7 +263,8 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
           className="contents"
         >
           {levels.map((l, i) => {
-            const done = l.lessons.filter((s) => s.complete).length;
+            const path = splitLabs(l.lessons).core;
+            const done = path.filter((s) => s.complete).length;
             const name = LEVEL_NAMES[l.id];
             return (
               <button
@@ -294,13 +303,13 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
                       Complete
                     </span>
                   )}
-                  <span className="ml-auto text-sm text-muted">{`${String(done)} of ${String(l.lessons.length)}`}</span>
+                  <span className="ml-auto text-sm text-muted">{`${String(done)} of ${String(path.length)}`}</span>
                 </span>
                 {/* The words above already say how far: the tab's name stays theirs. */}
                 <span aria-hidden="true" className="grid">
                   <ProgressBar
                     value={done}
-                    max={l.lessons.length}
+                    max={path.length}
                     label={`${name} progress`}
                   />
                 </span>
@@ -345,7 +354,7 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
             "max-lg:gap-3 max-lg:before:inset-y-4 max-lg:before:left-4 max-lg:before:w-0.5",
           )}
         >
-          {level.lessons.map((lesson) => (
+          {core.map((lesson) => (
             <Node
               key={lesson.id}
               lesson={lesson}
@@ -365,6 +374,7 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
             />
           ))}
         </ol>
+        {labs.length > 0 && <Labs labs={labs} current={current} />}
       </section>
 
       <NextBand snapshot={snapshot} place={place} />
@@ -431,7 +441,7 @@ function Node({
 }) {
   const state = nodeState(lesson, current);
   const path = useJourneyPath();
-  const label = lessonLabel(lesson.number, lesson.capstone);
+  const label = lessonLabel(lesson.number, lesson.capstone, lesson.optional);
   return (
     <li className="relative grid gap-1.5 text-sm max-lg:grid-cols-[auto_minmax(0,1fr)] max-lg:items-center max-lg:gap-3.5 lg:content-start lg:justify-items-center lg:px-1.5 lg:text-center">
       <Link
@@ -503,6 +513,45 @@ function Node({
   );
 }
 
+/**
+ * A Level's optional Lessons (labs), after its path and off it: no track
+ * joins them and none is a Station, so the path never leads to one.
+ */
+function Labs({
+  labs,
+  current,
+}: {
+  labs: readonly LessonSummary[];
+  current: LessonSummary | null;
+}) {
+  return (
+    <section
+      aria-labelledby="level-labs"
+      data-labs=""
+      className="mt-5 grid gap-3 border-t border-line pt-4"
+    >
+      <div className="grid gap-0.5">
+        <h2 id="level-labs" className="text-base">
+          Optional labs
+        </h2>
+        <p className="text-sm text-muted">
+          Extra practice. The level is complete without them.
+        </p>
+      </div>
+      <ul className="flex flex-wrap gap-x-6 gap-y-3 max-lg:flex-col">
+        {labs.map((lesson) => (
+          <Node
+            key={lesson.id}
+            lesson={lesson}
+            current={current}
+            station={null}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** The one Next band: the Learner's place, or the word that none is left. */
 function NextBand({
   snapshot,
@@ -521,7 +570,7 @@ function NextBand({
             <div className="grid gap-0.5">
               <span className={EYEBROW}>Next</span>
               <b className="text-lg">
-                {`${LEVEL_NAMES[levelOf(snapshot, current)]}, ${lessonLabel(current.number, current.capstone)}: `}
+                {`${LEVEL_NAMES[levelOf(snapshot, current)]}, ${lessonLabel(current.number, current.capstone, current.optional)}: `}
                 <InlineText text={current.title} />
               </b>
             </div>

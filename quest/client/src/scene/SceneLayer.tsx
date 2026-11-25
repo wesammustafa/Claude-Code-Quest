@@ -143,15 +143,17 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
 const NO_STATIONS: readonly SceneStation[] = [];
 
 /**
- * Every Lesson of the course as its Station, from the snapshot's
+ * Every core Lesson of the course as its Station, from the snapshot's
  * `LessonSummary.complete` alone; the same array until a Lesson's complete
- * changes, so a new snapshot draws nothing new.
+ * changes, so a new snapshot draws nothing new. An optional Lesson (a lab)
+ * sits beside the path, so it has no Station.
  */
 function useStations(snapshot: Snapshot | null): readonly SceneStation[] {
   const key =
     snapshot?.course.levels
       .map((level) =>
         level.lessons
+          .filter((l) => !l.optional)
           .map((l) => `${level.id}:${l.id}:${l.complete ? "1" : "0"}`)
           .join(","),
       )

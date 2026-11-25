@@ -32,6 +32,7 @@ export const PATH: PathEntry[] = coursePath(manifest).map((entry) => ({
   // A lesson of a level that practises in a work folder (the engine's
   // levelKey reads it, so engine.ts imports no file-reading module).
   ...(entry.folder === "work" ? { work: true as const } : {}),
+  ...(entry.optional ? { optional: true as const } : {}),
 }));
 export const LEVELS = manifest.levels.map((level) => level.id);
 export const WORK_LEVELS = workLevels(manifest);

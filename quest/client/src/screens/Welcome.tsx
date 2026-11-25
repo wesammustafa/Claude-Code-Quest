@@ -180,6 +180,7 @@ function Resume({
             lesson.level,
             summary?.number ?? null,
             lesson.capstone,
+            summary?.optional ?? false,
           )}
         </span>
         <h2 className="text-xl">

@@ -167,21 +167,25 @@ export function Workspace() {
   const Offer = useSlots().lessonAccess?.Offer;
   if (!active) return <LessonGate />;
   const { lesson } = active;
-  const number = active.summary?.number ?? null;
+  // The eyebrow's "Beginner · Lesson 2", "Capstone" or "Lab".
+  const place = lessonEyebrow(
+    lesson.level,
+    active.summary?.number ?? null,
+    lesson.capstone,
+    active.summary?.optional ?? false,
+  );
   // The step route is gated as Start is: a resume from Welcome or a deep
   // link to a Lesson the mount keeps closed meets the same offer.
   if (access !== "open" && Offer)
     return (
       <main className={MOMENT} data-lesson-closed={access}>
-        <span className={EYEBROW}>
-          {lessonEyebrow(lesson.level, number, lesson.capstone)}
-        </span>
+        <span className={EYEBROW}>{place}</span>
         <PageTitle title={lesson.title} className="text-3xl max-sm:text-2xl" />
         <Offer lesson={lesson.id} offer={access} />
       </main>
     );
   if (lesson.phase === "step-down")
-    return <StepDown lesson={lesson} number={number} />;
+    return <StepDown lesson={lesson} place={place} />;
   if (lesson.step === null || lesson.beat === null)
     // A resume with no beat open: the shell sends lesson.open for it.
     return <LessonGate />;
@@ -190,7 +194,7 @@ export function Workspace() {
       lesson={lesson}
       step={lesson.step}
       beat={lesson.beat}
-      number={number}
+      place={place}
       tearDownLeft={active.summary?.tearDownLeft ?? false}
       snapshot={active.snapshot}
     />
@@ -201,14 +205,15 @@ function Play({
   lesson,
   step,
   beat,
-  number,
+  place,
   tearDownLeft,
   snapshot,
 }: {
   lesson: PlayingLesson;
   step: StepView;
   beat: BeatView;
-  number: number | null;
+  /** The Lesson's place in its Level, as the eyebrow says it. */
+  place: string;
   tearDownLeft: boolean;
   snapshot: Snapshot;
 }) {
@@ -357,9 +362,7 @@ function Play({
           className="grid gap-5 rounded-xl border border-line bg-surface p-6.5 shadow-md max-sm:p-5 [&>*]:min-w-0"
         >
           <header className="grid gap-1.5">
-            <span className={EYEBROW}>
-              {`${lessonEyebrow(lesson.level, number, lesson.capstone)} · ${eyebrow}`}
-            </span>
+            <span className={EYEBROW}>{`${place} · ${eyebrow}`}</span>
             <PageTitle
               title={`${step.title}: ${lesson.title}`}
               className="text-2xl"
@@ -1117,10 +1120,10 @@ const MORE_HELP: Record<StepDownLesson["from"], string> = {
 /** A Step-down: the next steps give less help. Calm, one choice. */
 function StepDown({
   lesson,
-  number,
+  place,
 }: {
   lesson: StepDownLesson;
-  number: number | null;
+  place: string;
 }) {
   const accept = useActionProps("stepDown.accept", { type: "stepDown.accept" });
   const moreHelp = useActionProps("stepDown.moreHelp", {
@@ -1130,9 +1133,7 @@ function StepDown({
   return (
     <main className={MOMENT}>
       <Pip size="hero" className="mb-2" />
-      <span className={EYEBROW}>
-        {lessonEyebrow(lesson.level, number, lesson.capstone)}
-      </span>
+      <span className={EYEBROW}>{place}</span>
       <PageTitle
         title={`Less help from here: ${lesson.title}`}
         className="text-3xl max-sm:text-2xl"
