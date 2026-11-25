@@ -73,6 +73,16 @@
       "check": "i-6",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "i-7",
+      "level": "intermediate",
+      "order": 8,
+      "page": "docs/intermediate/05-connect-an-outside-tool.md",
+      "steps": "course/steps/i-7.md",
+      "check": "i-7",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }
