@@ -7,13 +7,14 @@
 // .claude/settings.local.json at the repository root, the folder above
 // project/, and it still reads a file a version before 2.1.211 left in the
 // folder the session starts in, fixit/ (Settings, "Where Claude Code keeps
-// the local file in a git repository"). Rules are matched the way Claude Code matches them, on
-// paths a month's folder holds; hooks are run, as Claude Code runs them
-// before an Edit or a Write, on test tool calls, and judged by what they do,
-// not how they're written. The March guide is read for Priya's number and
-// the line the guard let through. Which edits the guard blocked during the
-// session is the host's to record (a record no Check reads yet), so the
-// guide's content is all this check reads of the probes.
+// the local file in a git repository"). Rules are matched the way Claude
+// Code matches them, on paths a month's folder holds; hooks are run, as
+// Claude Code runs them before an Edit or a Write, on test tool calls, and
+// judged by what they do, not how they're written. The March guide is read
+// for Priya's number and the line the guard let through. Which edits the
+// guard blocked during the session is the host's to record (a record no
+// Check reads yet), so the guide's content is all this check reads of the
+// probes.
 import { spawnSync } from 'node:child_process';
 import { statSync } from 'node:fs';
 import { join } from 'node:path';
