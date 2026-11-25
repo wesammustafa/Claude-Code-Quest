@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { COURSE, layChecks } from '../tools/lay.mjs';
+import { COURSE, GUIDE, layChecks } from '../tools/lay.mjs';
 
 // NODE_TEST_CONTEXT would make the check's own `npm test` runs skip their tests.
 delete process.env.NODE_TEST_CONTEXT;
@@ -19,13 +19,18 @@ const { openRepo } = await import(pathToFileURL(join(checks, 'repo.mjs')).href);
 const i3 = await import(pathToFileURL(join(checks, 'lessons/i-3.mjs')).href);
 const [settings, depth, together, entry, testsPass] = i3.items;
 
+// The lab's starting files, with the guide's inert names made live
+// (`dot-claude` is `.claude`), as Questerm lays them in the copy.
+const { RESTORE } = await import(pathToFileURL(join(GUIDE, 'quest/release/src/replay.mjs')).href);
 const START = {};
 const OWN = 'practice-template/lessons/i-3/project';
-const walk = (rel = '') => {
+const walk = (rel = '', to = '') => {
   for (const e of readdirSync(join(COURSE, OWN, rel), { withFileTypes: true })) {
     const r = rel ? `${rel}/${e.name}` : e.name;
-    if (e.isDirectory()) walk(r);
-    else START[r] = readFileSync(join(COURSE, OWN, r), 'utf8');
+    const live = RESTORE[e.name] ?? e.name;
+    const t = to ? `${to}/${live}` : live;
+    if (e.isDirectory()) walk(r, t);
+    else START[t] = readFileSync(join(COURSE, OWN, r), 'utf8');
   }
 };
 walk();
