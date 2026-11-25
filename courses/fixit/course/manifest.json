@@ -39,6 +39,7 @@
       "steps": "course/steps/b-3.md",
       "check": "b-3",
       "folder": "copy",
+      "optional": true,
       "slow": [0, 1, 2, 5, 6, 7, 8]
     }
   ]
