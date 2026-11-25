@@ -10,7 +10,7 @@ By the end of this lesson you can write down what ready means, as criteria with 
 
 > **Maya:** Thursday's fine. Before I post it, how do I know it's right? In November we posted the wrong time and the front desk took thirty calls. I'll print the door sign with it.
 
-You can see what Maya will publish: `fixit/feb/attendee-guide.md`, the one-page guide from Lesson 4, and `fixit/feb/door-sign.md`, the sign Jordan made for Room B's door. Nobody has checked the sign. The sources are beside them: the library's two emails, the January meeting notes, and, in `fixit/sources/`, the group's standing notes and last October's flyer.
+You can see what Maya will publish: `fixit/feb/attendee-guide.md`, the one-page guide from Lesson 4, and `fixit/feb/door-sign.md`, the Room B sign from Lesson 2. Jordan printed it again from last October's flyer, so it says 10am to 1pm, and nobody has checked it since. The sources are beside them: the library's two emails, the January meeting notes, and, in `fixit/sources/`, the group's standing notes and last October's flyer.
 
 ## You need
 

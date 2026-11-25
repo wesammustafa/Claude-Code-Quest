@@ -74,7 +74,7 @@ The evidence changes: time passes, the conversation grows, and a source changes 
 The Lesson's check reads four things:
 
 - `fixit/feb/venue-email-feb.md` is the email the library sent
-- the guide still says what we can't take, and fits on one printed page
+- the guide still says what we can't take
 - the guide sends people to park on Park Lane, not Station Road
 - the guide is shorter than the one you started with
 

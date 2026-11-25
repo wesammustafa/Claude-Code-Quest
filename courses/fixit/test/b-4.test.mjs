@@ -123,9 +123,11 @@ test("what we can't take: other wordings pass; a list that takes them in, or dro
   says(list, done(can("**What we can't take:** microwaves or gas appliances.")), /doesn't turn away batteries that are swollen or cracked\./);
 });
 
-test('a guide over one printed page fails, however short each line', () => {
-  const long = `${VALID_A}\n${Array.from({ length: 12 }, (_, i) => `Line ${String(i + 1)}.`).join('\n')}\n`;
-  says(list, done(long), /has 21 lines of text, and one printed page in the library's template holds 18/);
+test("a long guide still says what we can't take: its length is the shorter item's job", () => {
+  const long = `${START[b4.GUIDE]}\n${Array.from({ length: 12 }, (_, i) => `Line ${String(i + 1)}.`).join('\n')}\n`;
+  const r = done(long);
+  passes(list, r);
+  says(shorter, r, /ask Claude to shorten it/);
 });
 
 test('an email with only its line ends changed is the same email; one with a line added is not', () => {

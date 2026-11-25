@@ -15,9 +15,6 @@ export const GUIDE = 'fixit/feb/attendee-guide.md';
 export const EMAIL = 'fixit/feb/venue-email-feb.md';
 const UPDATE = 'fixit/feb/venue-email-feb-update.md';
 
-// One printed page in the library's template, which has a big header.
-const PAGE_LINES = 18;
-
 const plain = (/** @type {string} */ s) => s.replace(/<!--[\s\S]*?-->/g, ' ');
 const textLines = (/** @type {string} */ s) => plain(s).split(/\r?\n/).filter((l) => /\S/.test(l));
 const words = (/** @type {string} */ s) => plain(s).split(/\s+/).filter((w) => /\w/.test(w)).length;
@@ -61,7 +58,9 @@ export const emailKept = {
 // What the group can't take, as the standing notes name it. A claim names
 // an item as not accepted when it turns something away itself, or when it
 // sits under a heading or lead-in that does ("What we can't take:" and a
-// list).
+// list). The length is `guideShorter`'s job: step W2 verifies this item the
+// moment the rewind restores the guide Maya asked to shorten, so it reads
+// only what the drift cut.
 const NOT_TAKEN = [
   { name: 'microwaves', re: /\bmicrowaves?\b/i },
   { name: 'gas appliances', re: /\bgas\b/i },
@@ -84,15 +83,13 @@ function underLeads(text) {
 
 /** @type {Item} */
 export const listKept = {
-  text: "the guide still says what we can't take, and fits on one printed page",
+  text: "the guide still says what we can't take",
   check(repo) {
     const guide = readGuide(repo);
     if (guide.error !== undefined) return guide.error;
     const said = underLeads(guide.text);
     const missing = NOT_TAKEN.filter(({ re }) => !said.some(({ claim, lead }) => re.test(claim) && (REFUSES.test(claim) || REFUSES.test(lead)))).map((n) => n.name);
     if (missing.length) return `The guide no longer says what we can't take: it doesn't turn away ${missing.join(', ').replace(/, ([^,]*)$/, ' or $1')}. Someone will carry one up the stairs. Rewind to before the request that cut the list, then ask again and say the list stays.`;
-    const n = textLines(guide.text).length;
-    if (n > PAGE_LINES) return `The guide has ${String(n)} lines of text, and one printed page in the library's template holds ${String(PAGE_LINES)}. Merge short sections, and keep the list of what we can't take.`;
     return true;
   },
 };
