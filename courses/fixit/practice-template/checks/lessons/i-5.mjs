@@ -20,7 +20,7 @@
 // check, whose only importer is the Check index, so it keeps its exports:
 // title and items.
 import { spawnSync } from 'node:child_process';
-import { chmodSync, cpSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, posix } from 'node:path';
 import { committedMode, editWriteScripts, hookWords, listMatcher, matchesEditWrite, missingJq } from '../hooks.mjs';
@@ -163,6 +163,7 @@ function runGate(repo, { failing, retried }) {
   const dir = mkdtempSync(join(tmpdir(), 'gate-'));
   try {
     const copy = join(dir, 'repo');
+    mkdirSync(copy);
     for (const path of ['package.json', 'src', 'test']) if (repo.exists(path)) cpSync(join(repo.dir, path), join(copy, path), { recursive: true });
     const mark = join(dir, 'ran').replace(/\\/g, '/');
     writeFileSync(join(copy, 'test', 'zz-check-gate.test.js'), probeTest(mark, failing));
