@@ -67,7 +67,7 @@ The evidence changes: time passes, the conversation grows, and a source changes 
 
    `-c` is short for continue: the most recent conversation in this folder. The conversation is back, Claude's message about the Station Road car park included. And the folder has changed overnight: there's a new file, `fixit/feb/venue-email-feb-update.md`.
 3. **Ask what changed, in your own words.** Ask Claude whether anything in `fixit/feb/` has changed since yesterday that makes the guide wrong, citing the file and line. Claude remembers yesterday's conversation, not today's folder: it knows which files changed only if it looks. For example: `Before we go on: has anything in fixit/feb changed since yesterday that affects the attendee guide? Check the files again, don't rely on what you remember, and cite file and line.` Then open `fixit/feb/venue-email-feb-update.md` and read line 6: Claude's answer comes from there. This time Claude is right, because it looked.
-4. **Fix the parking line.** Update the parking line in `fixit/feb/attendee-guide.md`, with Claude or in the files tab. You decide how much to say: the update also says Park Lane is free on Saturdays and eight minutes' walk. Stuck? Ask yourself which car park, and why not Station Road.
+4. **Fix the parking line.** Ask Claude to update the parking line in `fixit/feb/attendee-guide.md`, or skip the step and fix the line yourself in the files tab. You decide how much to say: the update also says Park Lane is free on Saturdays and eight minutes' walk. Stuck? Ask yourself which car park, and why not Station Road.
 
 ## Check
 
