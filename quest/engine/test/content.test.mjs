@@ -1167,6 +1167,8 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
       "review-diff":
         "the optional lab b-3 is the first lesson whose questions ask about a diff, and it comes after the capstone, so no later Beginner pool can recall it",
+      status:
+        "the optional lab i-3's warm-up is the first question that can mark status missed, and no lesson after it is built yet; a later Intermediate or Advanced pool recalls it",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

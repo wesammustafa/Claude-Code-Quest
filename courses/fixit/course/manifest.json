@@ -1,5 +1,8 @@
 {
-  "levels": [{ "id": "beginner", "index": "docs/beginner/README.md" }],
+  "levels": [
+    { "id": "beginner", "index": "docs/beginner/README.md" },
+    { "id": "intermediate", "index": "docs/intermediate/README.md" }
+  ],
   "lessons": [
     {
       "id": "b-1",
@@ -41,6 +44,17 @@
       "folder": "copy",
       "optional": true,
       "slow": [0, 1, 2, 5, 6, 7, 8]
+    },
+    {
+      "id": "i-3",
+      "level": "intermediate",
+      "order": 5,
+      "page": "docs/intermediate/lab-model-and-effort.md",
+      "steps": "course/steps/i-3.md",
+      "check": "i-3",
+      "folder": "copy",
+      "slow": [2, 3, 4],
+      "optional": true
     }
   ]
 }
