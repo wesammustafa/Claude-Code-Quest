@@ -74,7 +74,7 @@ Then bound it. Rules name exactly what it may edit, deny rules keep it out of wh
    fixit/summer/run/refresh.sh june
    ```
 
-   The report shows `result subtype: success`, the turns and the cost against their limits, and one permission denial: a `git commit`. Is the slice good? A denial doesn't mean the run failed. Read which call was denied: a commit. Your bounds forbid commits on purpose, so a person commits after reading. And success means only that the run ended normally. So the slice is good once you've read the change. A denial is information. Here it's the one you expected.
+   The report shows `result subtype: success`, the turns and the cost against their limits, and one permission denial: a `git commit`. A `git commit` saves the change into the folder's history. Here a person does that, after reading the change. Is the slice good? A denial doesn't mean the run failed. Read which call was denied: a commit. Your bounds forbid commits on purpose, so a person commits after reading. And success means only that the run ended normally. So the slice is good once you've read the change. A denial is information. Here it's the one you expected.
 
    Open `fixit/summer/public/june.md`. The run changed one line. The group's standing notes say "mains rewiring inside the casing", and the page said "rewiring inside the casing". The battery rule was already right, and nothing else changed. One page cost about $0.12, so four pages about $0.50: inside the $1.00 limit, with room.
 

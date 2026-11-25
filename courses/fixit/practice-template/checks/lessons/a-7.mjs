@@ -150,7 +150,8 @@ export const boundsNarrow = {
       if (!['Edit', 'Write'].includes(tool)) continue;
       if (spec !== null && /^(\/|~)/.test(spec))
         return `${code(String(rule))} names a path from outside \`fixit/\`. Name each page from \`fixit/\`, as in \`Edit(./summer/public/june-easy.md)\`.`;
-      const other = OTHERS.find((path) => covers(rule, ['Edit', 'Write'], path));
+      // A deny rule wins, so a file it covers is no file this rule lets through.
+      const other = OTHERS.find((path) => covers(rule, ['Edit', 'Write'], path) && !deny.some((d) => covers(d, ['Edit', 'Write'], path)));
       if (other?.startsWith('summer/public/'))
         return `${code(String(rule))} lets the run change ${code(other)} too, not just the easy-read pages. Name the three easy-read pages, or the \`*-easy.md\` pattern.`;
       if (other) return `${code(String(rule))} lets the run change ${code(other)}. This run edits only the three easy-read pages.`;

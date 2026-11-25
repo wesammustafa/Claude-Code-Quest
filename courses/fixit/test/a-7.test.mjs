@@ -142,11 +142,21 @@ test('wide or misplaced edit rules fail, each naming the file they would let the
     ['Write(./summer/**)', /^`Write\(\.\/summer\/\*\*\)` lets the run change `summer\/public\/june\.md` too/],
     ['Edit(./summer/public)', /lets the run change `summer\/public\/june\.md` too/],
     ['Edit(*.md)', /lets the run change `summer\/public\/june\.md` too/],
-    ['Edit(./sources/**)', /^`Edit\(\.\/sources\/\*\*\)` lets the run change `sources\/group-notes\.md`\. This run edits only the three easy-read pages\.$/],
+    ['Edit(./summer/*.md)', /^`Edit\(\.\/summer\/\*\.md\)` lets the run change `summer\/meeting-notes-2027-05-27\.md`\. This run edits only the three easy-read pages\.$/],
     ['Edit(CLAUDE.md)', /lets the run change `CLAUDE\.md`/],
     ['Edit(//home/learner/**)', /names a path from outside `fixit\/`/],
   ];
   for (const [rule, re] of cases) says(bounds, copy(ran(allowing((a) => [...a, rule]))), re);
+  // A deny rule wins: an allow rule for the sources the deny list covers lets nothing through.
+  passes(copy(ran(allowing((a) => [...a, 'Edit(./sources/**)']))), [bounds]);
+});
+
+test('a wide rule whose originals a deny rule covers still fails on the next page it would let through', () => {
+  const r = copy(ran(withJson((b) => {
+    b.permissions.allow.push('Edit(./summer/public/*.md)');
+    b.permissions.deny.push('Edit(./summer/public/june.md)', 'Edit(./summer/public/july.md)', 'Edit(./summer/public/august.md)', 'Edit(./summer/public/schedule.md)');
+  })));
+  says(bounds, r, /^`Edit\(\.\/summer\/public\/\*\.md\)` lets the run change `summer\/public\/index\.md` too/);
 });
 
 test('an easy-read page no rule allows fails; any spelling that covers all three passes', () => {
