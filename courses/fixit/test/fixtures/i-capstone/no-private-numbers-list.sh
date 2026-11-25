@@ -1,8 +1,9 @@
 #!/bin/sh
 # PreToolUse guard for Edit and Write: a public page may carry only the
-# public numbers listed in public-contacts.txt, one a line. Any other phone
+# public numbers listed in public-contacts.txt, one a line. Any other 555
 # number blocks the edit (exit 2), in any spacing, and so does a missing list
-# or a tool input it can't read. A public page is anything under public/, a
+# or a tool input it can't read. Only 555 numbers are read, so the session's
+# id and paths in the input never count as a number. A public page is anything under public/, a
 # month's attendee-guide.md or a schedule.md.
 list="$CLAUDE_PROJECT_DIR/public-contacts.txt"
 input=$(cat) || { echo "no-private-numbers: could not read the tool input" >&2; exit 2; }
@@ -20,7 +21,7 @@ printf '%s' "$input" \
 public=" $(sed -E 's/^[^0-9]*([0-9][0-9 .-]*[0-9]).*$/\1/' "$list" | sed -E 's/[^0-9]//g' | tr '\n' ' ') "
 
 found=""
-for d in $(printf '%s' "$input" | grep -Eo '[0-9]{3}[ .-]?[0-9]{4}' | sed -E 's/[^0-9]//g' | sort -u); do
+for d in $(printf '%s' "$input" | grep -Eo '555[ .-]?[0-9]{4}' | sed -E 's/[^0-9]//g' | sort -u); do
   case "$public" in
     *" $d "*) ;;
     *) found="$found ${d%????}-${d#???}" ;;
