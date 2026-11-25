@@ -53,7 +53,7 @@ A workflow is a script Claude writes for a task too big for one conversation: it
 
 ## Your turn
 
-1. **Ask for the audit, and read the script before you approve it.** Leave this session and start one in Manual mode, so Claude Code asks before each workflow run. Set the size guideline, so Claude aims for few agents: it is advice, not a cap, and it applies from your next prompt. Ask for a workflow that audits each file in one small folder, such as `src/`, for errors that are caught and then dropped, with a second agent checking each finding. The audit only reads: it changes no file. Claude Code asks whether to run the script Claude wrote. Choose **View raw script** and read it before you decide:
+1. **Ask for the audit, and read the script before you approve it.** Leave this session and start one in Manual mode, so Claude Code asks before each workflow run. Set the size guideline, so Claude aims for few agents: it is advice, not a cap, and it applies from your next prompt. Ask for a workflow that audits each file in one small folder, such as `src/`, for errors that are caught and then dropped, with a second agent checking each finding. The audit only reads: it changes no file. Claude Code asks whether to run the script Claude wrote. Choose **View raw script** and read it before you decide; if it shows only the first lines, `Ctrl+O` shows all of it:
 
    ```js
    // Audits src/ for errors that are caught and then dropped.
