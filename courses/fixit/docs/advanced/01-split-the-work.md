@@ -27,7 +27,7 @@ Splitting always costs something. Subagents give you "parallelism or a fresh pai
 
 ## Worked example
 
-1. **Map what each output reads.** First, decide: three session pages each need the new rule, checked against their own booking, and the schedule page is built from the three pages. What can run at the same time? The pages don't depend on each other; the schedule depends on all three. Then go into the kit folder and start Claude there:
+1. **Map what each output reads.** First, decide: three session pages each need the new rule, checked against their own booking, and the schedule page is built from the three pages. What can run at the same time? The pages don't depend on each other; the schedule depends on all three. Then go into the kit folder and start Claude there. Claude Code asks whether you trust this folder: it's your practice copy of the kit, so read the dialog and accept it.
 
    ```bash
    cd fixit
@@ -37,13 +37,13 @@ Splitting always costs something. Subagents give you "parallelism or a fresh pai
    The kit's own settings, guard and reviewer load from `fixit/`, so that is where Claude starts from now on. Press `Shift+Tab` until the status bar reads `⏸ plan mode on`, so nothing is edited while you look, and ask: `For the new lithium battery rule: list each file in summer/public/ that has to change, which source files it must be checked against, and which outputs depend on other outputs. Don't change anything yet.`
 2. **Compare the ways to run it.** Five ways Claude Code can run work, compared for this job:
 
-   | Way | Cost here | For this job |
+   | Way | What it costs here | For this job |
    |---|---|---|
-   | One session, in order | the fewest tokens, about four turns | Reasonable: the baseline to beat |
-   | Subagents, one per page, then the schedule in the main session | more tokens, less waiting, and the main conversation stays short | Best fit: each page reads its own sources in its own context, and the schedule waits |
-   | Parallel sessions in separate worktrees | the most setup, and a merge afterwards | Refuse: it pays only when sessions would edit the same files at once, and nothing collides here |
-   | A saved workflow | a script you write and read first, and many agents | Refuse: three pages is not a migration |
-   | A scheduled run | a recurring cost, with nobody watching the result | Not for a one-off change |
+   | One session, in order: Claude edits each page, then the schedule | It uses the least, about four turns | Reasonable: the baseline to beat |
+   | Subagents, one per page, then the schedule in the main session. A subagent is a helper Claude starts, with a conversation of its own | It uses more, you wait less, and the main conversation stays short | Best fit: each page reads its own sources, and the schedule waits |
+   | Parallel sessions, each in its own worktree, a separate copy of the folder | The most setup, and a merge afterwards | Refuse: it pays only when sessions would edit the same files at once, and nothing collides here |
+   | A saved workflow, a script that runs many subagents in stages | You write it and read it first | Refuse: it pays for a job too big for one conversation, not for three pages |
+   | A scheduled run, Claude on a timer with nobody watching | It costs something every time | Not for a one-off change |
 
    A subagent's edits are mostly not undone by `/rewind`, so you check its files yourself.
 3. **Run it: three subagents, then the schedule.** Press `Shift+Tab` until the status bar reads `⏵⏵ auto mode on`, then send: `Use one subagent per session page (june, july, august). Each one adds the lithium battery rule to its page's "We can't take" line, checked against that page's own booking and the fire officer's email, and changes nothing else. When all three are done, update schedule.md from the three pages yourself.` The subagents work in the background, so your prompt stays free. When Claude has finished, type `/usage`: it lists the subagents apart from the main conversation. In this practice workspace the figures are written in advance, and on your own computer the dollar figure is a local estimate, not your bill.
@@ -53,7 +53,7 @@ Splitting always costs something. Subagents give you "parallelism or a fresh pai
    grep -l "36 V" fixit/summer/public/*.md
    ```
 
-   Four files print. This time Claude was right, and you know it from the files.
+   `grep -l` prints the name of each file that holds the words in quotes. Four files print. This time Claude was right, and you know it from the files.
 
 ## Your turn
 
