@@ -42,7 +42,7 @@ Sources, audience, outcome and a test for done are the four things Claude can't 
    | **Accept edits**, `⏵⏵ accept edits on` | File edits go through without asking, and commands still ask | Many small edits you'll review together at the end |
    | **Plan**, `⏸ plan mode on` | Claude reads and proposes a plan, and changes no files until you approve it | A job with several parts, where a wrong approach would waste time |
 
-   Press `Shift+Tab` a few times and watch the line change. Stop on `⏸ plan mode on`.
+   Press `Shift+Tab` and watch the line change. Stop when it reads `⏵⏵ accept edits on`: that is the mode for a run of small edits you'll read together at the end. Then press it again until the line reads `⏸ plan mode on`.
 4. **A two-file job: ask for a plan first.** Two documents have to agree: the handout and a door sign for Room B. Plan when a job has several parts and a wrong approach would waste your time: you read the plan before any file changes. Send: `Make a door sign for Room B in fixit/feb/door-sign.md, big time and room only, and add the date and time to the bottom of the handout so they match. Use the meeting notes and the library's email for the time.` Read the plan: it names both files, the source for the time, and nothing else. Choose **Yes, manually approve edits**. Careful with keys here: at the approval prompt, `Shift+Tab` approves the plan. To back out, press `Esc` first. Claude now asks before each of the two edits. Read each one and choose **Yes**. When it's done, the door sign and the bottom of the handout both say 10:30am to 1pm.
 
 ## Your turn
@@ -80,6 +80,7 @@ With real Claude Code, plans and questions depend on your files and your words, 
 | Command or setting | What it does | How to check | Watch out for | Reference |
 |---|---|---|---|---|
 | `Shift+Tab` | moves to the next permission mode | the line under the input names the mode | at a plan approval prompt, `Shift+Tab` approves the plan: press `Esc` first | [Permission modes](https://code.claude.com/docs/en/permission-modes) |
+| Accept edits mode | file edits go through without asking, and so do simple file commands such as `mkdir`, `cp` and `rm` inside your folder; anything else still asks | the line reads `⏵⏵ accept edits on` | it holds until you change it, so read the edits together at the end | [Permission modes](https://code.claude.com/docs/en/permission-modes#auto-approve-file-edits-with-acceptedits-mode) |
 | `/plan` and a task | enters plan mode and starts the task | the line reads `⏸ plan mode on` | in plan mode Claude can still read files and run commands that only look | [Plan mode](https://code.claude.com/docs/en/permission-modes#analyze-before-you-edit-with-plan-mode) |
 | Plan approval | approve with auto mode, approve and confirm each edit, or keep planning; `Ctrl+G` opens the plan to edit it | after approval the mode changes: read the line | approving a plan doesn't review the result: read the files afterwards | [Permission modes](https://code.claude.com/docs/en/permission-modes) |
 | Auto mode | a safety checker approves each action; interactive sessions start in it from Claude Code 2.1.283 | the line reads `⏵⏵ auto mode on` | it's a judgment, not a rule, and can be wrong; deny rules still hold in every mode | [Permission modes](https://code.claude.com/docs/en/permission-modes) |

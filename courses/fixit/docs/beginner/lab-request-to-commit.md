@@ -110,6 +110,7 @@ The same moves work in any repository of your own that has tests:
 1. Apply a change you were sent with `git apply <patch>`, then run the tests and the program on a case you choose.
 2. Start `claude`, and ask for the fix with a test that fails on the bad version. Plan mode is `Shift+Tab` until the status bar shows plan mode.
 3. Read the diff with `/diff` or `git diff`, then ask Claude to commit, or run `git add` and `git commit` yourself.
+4. For a change in code, `/code-review` reads the same diff in a fresh subagent that never saw your conversation, so it isn't swayed by the reasoning that produced the code. It isn't in this lab: the findings here are written in advance, and a review of your own fix would be too.
 
 ## Technical detail
 
@@ -119,6 +120,7 @@ The same moves work in any repository of your own that has tests:
 | `npm test` | runs `node --test` over `test/` | the last lines read `fail 0` | a test that passes on the bad version proves nothing: put the bad version back and rerun | [Node.js test runner](https://nodejs.org/api/test.html) |
 | `/diff` | shows the session's uncommitted changes | the file list matches what you asked for | a file you didn't ask for: press `Esc` earlier, or ask Claude to put it back | [Commands](https://code.claude.com/docs/en/commands) |
 | Plan mode | Claude reads and plans; edits wait for your approval | the status bar shows `⏸ plan mode on` | approving a plan is not reviewing the diff | [Permission modes](https://code.claude.com/docs/en/permission-modes) |
+| `/code-review` | reviews the current diff, or a branch or pull request you name, for correctness bugs, in a fresh subagent | it reports findings with file and line | it reads code, so it needs a change in code to review; `--fix` applies the findings for you | [Review locally](https://code.claude.com/docs/en/code-review-local) |
 
 ## Go further
 

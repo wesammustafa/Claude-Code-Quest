@@ -56,9 +56,23 @@ The evidence changes: time passes, the conversation grows, and a source changes 
 
 1. **Compact or clear?** The conversation is long now, and your next job is the volunteer rota, which has nothing to do with this guide. What do you do? Compacting is for carrying on the same job with less history. The rota needs none of this conversation, and a summary of it would sit in the way. Keeping going in it is worse: old history about the guide crowds out what the rota needs, and it costs more on every message. Unrelated job, clean start: `/clear` starts an empty conversation, and the guide is saved in its file, where it belongs. The old conversation can still be found with `/resume`.
 
-   Compacting is right in the middle of one long job, for example halfway through checking twenty claims: a focus such as `/compact keep the fact table and the source ranking` keeps the summary on what you name.
+   The rota can wait until Monday, and you carry on with the guide tomorrow, so name today's conversation first:
 
-   The rota can wait until Monday, so don't clear yet. End today's session instead, with `/exit`. Had you cleared, `claude -c` tomorrow would open the new, empty conversation, and you'd find the guide's conversation with `/resume` instead.
+   ```text
+   /rename feb-guide
+   ```
+
+   A name is how you find a conversation again when a job spans several days. Type `/resume` to see where the name turns up: it is the list you pick a conversation back up from. On your own computer `/resume` opens a picker you choose from, and `claude --resume feb-guide` starts it from the shell.
+
+   You're staying on this job, so shrink the conversation rather than clear it, and say what the summary has to keep:
+
+   ```text
+   /compact keep the parking decision and which files are sources
+   ```
+
+   A focus after `/compact` keeps the summary on what tomorrow needs, instead of whatever Claude would pick. Compacting is for the middle of one long job, for example halfway through checking twenty claims. Clearing is for a job that needs none of this conversation.
+
+   Now end today's session, with `/exit`. Had you cleared instead, `claude -c` tomorrow would open the new, empty conversation, and you'd find the guide's conversation by name in `/resume`.
 2. **The next morning.** It's Friday morning. Start Claude so it carries on yesterday's conversation, not a new one:
 
    ```bash
@@ -88,8 +102,8 @@ In Questerm, the turn Claude takes on its own, the overnight email and Claude's 
 
 1. `Esc` stops Claude mid-turn. `Esc` twice on an empty input, or `/rewind` (also `/undo`), opens the rewind list.
 2. Checkpoints are made before each of your messages. Claude Code keeps the 100 most recent, and they persist when you resume a session.
-3. `/compact` takes an optional focus: `/compact keep the fact table`. `/clear` starts an empty conversation; the old one stays available through `/resume`.
-4. `claude -c` resumes the most recent session in the current folder; `claude -r` shows a list to choose from.
+3. `/compact` takes an optional focus: `/compact keep the fact table`. `/clear` starts an empty conversation; the old one stays available through `/resume`, and `/clear feb-guide` labels the one you are leaving.
+4. `claude -c` resumes the most recent session in the current folder; `claude -r` shows a list to choose from, and `claude --resume feb-guide` opens the session you named with `/rename`.
 5. **Checkpoints are not backups.** They don't track files changed only by commands, most edits made by subagents, edits made outside Claude Code, or anything sent to another system. Keep real backups, or version control, for anything that matters.
 
 ## Technical detail
@@ -100,6 +114,11 @@ In Questerm, the turn Claude takes on its own, the overnight email and Claude's 
 | `/rewind` (`Esc` `Esc`) | restore code and conversation, the conversation only, the code only, or summarize from or up to a point | open the files; on a conversation restore the old request returns to the input | a file only a command changed isn't tracked; most subagent edits aren't restored; edits made outside Claude Code aren't tracked | [Checkpointing](https://code.claude.com/docs/en/checkpointing) |
 | `/compact [focus]` | replaces the history with a summary, keeping what you name | `/context` shows less used | rules stated only in chat can be summarized away; project memory and up to five recent files survive | [Context window](https://code.claude.com/docs/en/context-window#what-survives-compaction) |
 | `/clear` | starts an empty conversation | the conversation is empty | none: the old one can be resumed with `/resume` | [Commands](https://code.claude.com/docs/en/commands) |
-| `claude -c`, `claude -r`, `/resume` | resumes the latest, or a chosen, session | the earlier messages are back | background commands aren't restored; launch flags must be passed again | [Sessions](https://code.claude.com/docs/en/sessions) |
+| `claude -c`, `claude -r`, `/resume` | resumes the latest, or a chosen, session; `/resume` with no name opens the session picker, and `/resume <name>` opens one by name | the earlier messages are back | background commands aren't restored; launch flags must be passed again | [Sessions](https://code.claude.com/docs/en/sessions) |
+| `/rename <name>` | names the current session and shows the name on the prompt bar | the name is in the `/resume` picker | without a name Claude Code makes one up from the conversation | [Commands](https://code.claude.com/docs/en/commands) |
+| `/btw <question>` | answers a quick side question without adding it to the conversation | the answer appears, and `/context` doesn't grow | it can't change files: it is a question, not a job | [Interactive mode](https://code.claude.com/docs/en/interactive-mode#side-questions-with-%2Fbtw) |
+| `Ctrl+R` | searches your earlier prompts; type to filter and press it again for older matches | the match appears in the input | it searches what you typed, not Claude's answers | [Interactive mode](https://code.claude.com/docs/en/interactive-mode#reverse-search-with-ctrl-r) |
+
+In this practice terminal `/resume` lists the conversations instead of opening the picker, and a name you give with `/rename` is what it lists.
 
 In the VS Code extension and the Desktop app, sessions are kept in a history list or sidebar, and rewind works in local sessions. In Claude chat there's no checkpoint of your files, because Claude doesn't edit them there. The habits carry over: start a new chat for an unrelated job, and after two failed corrections, start fresh with a better request, as Anthropic's best practices recommend in Claude Code too.

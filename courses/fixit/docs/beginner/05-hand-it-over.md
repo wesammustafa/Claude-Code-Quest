@@ -46,6 +46,15 @@ A new session, or this one after `/clear`, starts with no memory of this convers
 2. **Fix it, or note it?** The door sign says 10am. Maya prints it tomorrow. What do you do? **Still open** is for what the evidence can't settle yet. This one is settled: the sign is wrong. Asking Claude whether 10am is close enough doesn't help. You already have the evidence. Asking again gets a second opinion, not a better one. Fix what's wrong, then write down the rule the fresh session had to guess, so the next check doesn't have to.
 3. **Ask Claude to make it ready.** This step is optional. Ask Claude to correct the door sign's time, and to add a line to the readiness note saying which sources win when they disagree. Or skip the step and make the changes yourself in the files tab.
 4. **Make it ready.** Make sure `fixit/feb/door-sign.md` gives the guide's time, that `fixit/feb/readiness-note.md` says which sources win when they disagree, and that its **Still open** part is honest: is anything in the guide true only for this one Saturday, or not yet confirmed? Stuck? Which source did every row of the readiness note use, and which never? Then read `fixit/feb/venue-email-feb-update.md` again: does it say Park Lane is free every Saturday, or that it's open on this one?
+
+   Before you call it ready, read everything that changed in one place:
+
+   ```text
+   /diff
+   ```
+
+   `/diff` shows every edit in the folder, yours and Claude's together: the door sign's new time and the readiness note's new lines, each under its file name. The panel may already be open, since it opens on its own once Claude edits files: read it there, because typing `/diff` closes it. Nothing there is a surprise if you read each change as it happened; the point is to be sure, in one place, before Maya prints it.
+
 5. **Save a version.** This step is optional, and not part of the check. When it's ready, ask Claude to save a version of the February files called "February guide ready". Claude records a snapshot of the folder you can always go back to, even after rewinds and new sessions. Under the hood this is a Git commit; you don't need to know Git to use it.
 
 ## Check
@@ -78,6 +87,7 @@ In Questerm the fresh session's findings are written in advance. With real Claud
 | A fresh session as reviewer | Anthropic's best practices suggest a fresh context for review, because the writer's context biases the check | the reviewer cites files, not "as we discussed" | a reviewer given your conclusions agrees with them: give it criteria and sources only | [Best practices](https://code.claude.com/docs/en/best-practices) |
 | What a new session loads | project memory (`CLAUDE.md`), settings and skills' descriptions; not the previous conversation | `/context` or `/memory` | rules said only in chat are gone | [Memory](https://code.claude.com/docs/en/memory) |
 | Saving a version (a Git commit) | records the folder's state with a message | `git log --oneline` lists it | committing on Windows needs Git for Windows; checkpoints are not version control | [Common workflows](https://code.claude.com/docs/en/common-workflows), [Checkpointing](https://code.claude.com/docs/en/checkpointing) |
-| Verification commands | `/code-review` and `/verify` exist for code changes | see their pages | they review code, not documents | [Commands](https://code.claude.com/docs/en/commands) |
+| `/diff` | shows what changed in the folder, yours and Claude's edits together | the files you expected, and nothing else, are listed | it reads the working tree, so a change already committed isn't in it | [Interactive mode](https://code.claude.com/docs/en/interactive-mode#review-changes-with-%2Fdiff) |
+| Verification commands | for code changes: `/code-review` reviews the diff in a fresh subagent that never saw your conversation, `/security-review` looks for vulnerabilities in your branch, and `/verify` builds and runs the app to see the change work | see their pages | they review code, not documents, and `/security-review` needs an `origin` remote | [Commands](https://code.claude.com/docs/en/commands), [Review locally](https://code.claude.com/docs/en/code-review-local) |
 
 In Claude chat, a new conversation is the fresh session: attach the work, the sources and the readiness note, and ask for a report. In a Claude Project, files you add to the Project's knowledge are available to every new chat in it, which is chat's version of written down where every new session reads it. The Desktop app's Code tab and the VS Code extension start new sessions from their session lists.
