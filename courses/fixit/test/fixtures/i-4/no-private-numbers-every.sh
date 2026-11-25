@@ -14,7 +14,7 @@ printf '%s' "$input" \
   | grep -Eq '"file_path" *: *"[^"]*(/public/[^"]*|/attendee-guide\.md|/schedule\.md)"' \
   || exit 0
 
-found=$(printf '%s' "$input" | grep -Eo '555[ .-]?01[0-9]{2}' | sed -E 's/555[ .-]?/555-/' | grep -Ev '^555-0100$' | sort -u | tr '\n' ' ')
+found=$(printf '%s' "$input" | grep -Eo '555[ .-]?01[0-9]{2}' | sed -E 's/555[ .-]?/555-/' | grep -Ev '^555-0100$' | sort -u | tr '\n' ' ' | sed 's/ $//')
 if [ -n "$found" ]; then
   echo "Blocked: $found is not a public number. A public page gives only the library's 555-0100." >&2
   exit 2
