@@ -1,0 +1,25 @@
+name: Claude review
+on: pull_request
+permissions:
+  contents: read
+concurrency:
+  group: claude-review-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - uses: anthropics/claude-code-action@v1.0.258
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          display_report: true
+          prompt: /team-review the changes in this pull request
+          claude_args: --max-turns 8 --allowedTools "Bash(git diff *),Bash(npm --prefix project run linkcheck *)"

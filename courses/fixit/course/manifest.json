@@ -1,7 +1,17 @@
 {
   "levels": [
-    { "id": "beginner", "index": "docs/beginner/README.md" },
-    { "id": "intermediate", "index": "docs/intermediate/README.md" }
+    {
+      "id": "beginner",
+      "index": "docs/beginner/README.md"
+    },
+    {
+      "id": "intermediate",
+      "index": "docs/intermediate/README.md"
+    },
+    {
+      "id": "advanced",
+      "index": "docs/advanced/README.md"
+    }
   ],
   "lessons": [
     {
@@ -65,6 +75,17 @@
       "check": "i-5",
       "folder": "copy",
       "slow": [2, 4, 7],
+      "optional": true
+    },
+    {
+      "id": "a-5",
+      "level": "advanced",
+      "order": 7,
+      "page": "docs/advanced/lab-release-review.md",
+      "steps": "course/steps/a-5.md",
+      "check": "a-5",
+      "folder": "new-copy",
+      "slow": [1, 4, 6],
       "optional": true
     }
   ]

@@ -1170,6 +1170,10 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "the optional lab i-3's warm-up is the first question that can mark status missed, and no lesson after it is built yet; a later Intermediate or Advanced pool recalls it",
       "probe-guard":
         "the optional lab i-5's questions are the first that can mark probe-guard missed, and no lesson after it is built yet; in the full course i-4 asks it first and a later pool recalls it",
+      "gh-secret":
+        "the optional lab a-5's credential question is the first that can mark gh-secret missed, and a-5 is the course's last lesson, so no later pool can recall it",
+      "ci-workflow":
+        "the optional lab a-5's question on Claude's CI report is the first that can mark ci-workflow missed, and a-5 is the course's last lesson, so no later pool can recall it",
     };
 
 // The skills a question in `contents` (in PATH order) can mark missed that

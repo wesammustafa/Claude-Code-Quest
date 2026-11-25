@@ -1,0 +1,15 @@
+Fix the booking link on the March page
+
+The booking link starts with /, so the checker looks for it outside
+samples/, where there is no such page. The booking page is
+fixit-booking.md, beside the March page.
+
+diff --git a/project/samples/march-links.md b/project/samples/march-links.md
+--- a/project/samples/march-links.md
++++ b/project/samples/march-links.md
+@@ -1,4 +1,4 @@
+ # Fix-It Saturday, 13 March
+-- [Book a place](/events/fixit-booking.md)
++- [Book a place](fixit-booking.md)
+ - [Map](https://cdn.example.com/map.png)
+ - [Setting up the room](setup.md)
