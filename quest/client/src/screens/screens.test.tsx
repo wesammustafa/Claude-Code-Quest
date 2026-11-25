@@ -1,7 +1,12 @@
 import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
-import type { OverviewLesson, PlayingLesson, Snapshot } from "@quest/contract";
+import type {
+  CourseView,
+  OverviewLesson,
+  PlayingLesson,
+  Snapshot,
+} from "@quest/contract";
 import {
   complete,
   completed,
@@ -155,7 +160,27 @@ const APP_WORDS: readonly RegExp[] = [
   /^(Hints open once you have run Check again\.|Hints open once you have tried an answer\.)$/,
   /^Show the exact command\? This step then counts as Every command shown\.$/,
   /^Hint \d+\. ?$/,
+  // A Level's optional Lessons (labs).
+  /^((Beginner|Intermediate|Advanced)(, | · ))?Lab(: )?$/,
+  /^(Optional labs|Extra practice\. The level is complete without them\.)$/,
 ];
+
+// fullCourse with b-3 a lab after the Beginner capstone, as the Fix-It
+// course places its labs: done, as fullCourse has it.
+const labCourse: CourseView = {
+  ...fullCourse,
+  levels: fullCourse.levels.map((level) => {
+    const lab = level.lessons.find((l) => l.id === "b-3");
+    if (!lab) return level;
+    const core = level.lessons
+      .filter((l) => l !== lab)
+      .map((l, i) => ({ ...l, number: i + 1 }));
+    return {
+      ...level,
+      lessons: [...core, { ...lab, number: 1, optional: true }],
+    };
+  }),
+};
 
 /** Every string the snapshot carries, to match quotes against. */
 function quotes(snapshot: Snapshot): string[] {
@@ -920,6 +945,43 @@ describe("Learning journey", () => {
     expect(screen.getByRole("tabpanel")).not.toHaveTextContent("`");
   });
 
+  test("a Level's lab sits after its path, marked optional: no node on the path, outside the Level's count", () => {
+    const at = snapshotOf(overviewAt("b-4"), {
+      welcomed: true,
+      course: labCourse,
+    });
+    renderConnected("/journey", at);
+    const panel = screen.getByRole("tabpanel");
+    const path = panel.querySelector("ol");
+    expect(
+      [...(path?.querySelectorAll("a[data-state]") ?? [])].map((a) =>
+        a.getAttribute("href"),
+      ),
+    ).toEqual([
+      "/lesson/b-1",
+      "/lesson/b-2",
+      "/lesson/b-4",
+      "/lesson/b-5",
+      "/lesson/b-capstone",
+    ]);
+    const labs = within(panel).getByRole("region", { name: "Optional labs" });
+    expect(
+      within(labs).getByRole("link", { name: /^Lab: .+, done$/ }),
+    ).toHaveAttribute("href", "/lesson/b-3");
+    expect(screen.getAllByRole("tab")[0]).toHaveTextContent("2 of 5");
+    expect(unquoted(at)).toEqual([]);
+  });
+
+  test("a lab's preview says Lab", () => {
+    const at = snapshotOf(overviewAt("b-4"), {
+      welcomed: true,
+      course: labCourse,
+    });
+    renderConnected("/lesson/b-3", at);
+    expect(screen.getByText("Beginner · Lab")).toBeInTheDocument();
+    expect(unquoted(at)).toEqual([]);
+  });
+
   test("a Lesson's preview and its top bar quote the course", () => {
     const at = snapshotOf(overviewAt("b-4"), {
       welcomed: true,
@@ -1018,6 +1080,28 @@ describe("Progress", () => {
     expect(
       within(goal).getByRole("link", { name: "See the journey" }),
     ).toHaveAttribute("href", "/journey");
+  });
+
+  test("a lab counts for no lesson done and keeps its Badge in its Level's Optional labs", () => {
+    const snapshot = snapshotOf(overviewAt("b-3"), {
+      welcomed: true,
+      course: labCourse,
+    });
+    renderConnected("/progress", snapshot);
+    expect(screen.getByText("2 of 22")).toBeInTheDocument();
+    const box = screen.getByRole("region", { name: "Badges" });
+    const labs = within(box).getByRole("heading", {
+      level: 4,
+      name: "Optional labs",
+    });
+    expect(
+      within(labs.nextElementSibling as HTMLElement)
+        .getAllByRole("img")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Builder"]);
+    const goal = screen.getByRole("region", { name: "Next goal" });
+    expect(goal.textContent).toContain("Beginner, Lab: ");
+    expect(unquoted(snapshot)).toEqual([]);
   });
 
   test("no score, rank, XP or streak", () => {

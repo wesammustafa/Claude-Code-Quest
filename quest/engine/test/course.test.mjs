@@ -186,6 +186,31 @@ describe("course manifest", () => {
     ).toThrow(/b-1 has no legacy fingerprint/);
   });
 
+  // An optional Lesson (a lab) sits beside the core path: no Lesson's next
+  // is one, its own next included.
+  test("an optional Lesson is never a Lesson's next", () => {
+    const labbed = {
+      ...manifestValue,
+      lessons: manifestValue.lessons.map((lesson) =>
+        lesson.id === "b-3" ? { ...lesson, optional: true } : lesson,
+      ),
+    };
+    const course = compileCourse(labbed, stepFiles, pages, checks);
+    const of = (id) => course.lessons.find((lesson) => lesson.id === id);
+    expect(of("b-3")).toMatchObject({ optional: true, next: "b-4" });
+    expect(of("b-2").next).toBe("b-4");
+    expect(of("b-2")).not.toHaveProperty("optional");
+  });
+
+  test("rejects an optional capstone", () => {
+    const lessons = manifestValue.lessons.map((lesson) =>
+      lesson.id === "b-capstone" ? { ...lesson, optional: true } : lesson,
+    );
+    expect(() =>
+      parseManifest({ ...manifestValue, lessons }, "course/manifest.json"),
+    ).toThrow(/lessons\.\d+\.optional: a capstone is never optional/);
+  });
+
   test("rejects a malformed manifest with its file and line", () => {
     expect(() =>
       parseManifest({ levels: [], lessons: [{}] }, "course/manifest.json"),

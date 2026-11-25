@@ -517,6 +517,9 @@ const lessonSchema = z.strictObject({
   check: z.string().min(1),
   folder: z.enum(["work", "copy", "new-copy"]),
   slow: z.array(z.number().int().nonnegative()),
+  // An optional Lesson (a lab): beside its Level's core path, and left out
+  // of the Level's completion and the core Lessons' numbers.
+  optional: z.literal(true).optional(),
 });
 const manifestSchema = z
   .strictObject({
@@ -551,6 +554,12 @@ const manifestSchema = z
           code: "custom",
           path: ["lessons", index, "steps"],
           message: `expected course/steps/${lesson.id}.md`,
+        });
+      if (lesson.optional && lesson.id.endsWith("capstone"))
+        ctx.addIssue({
+          code: "custom",
+          path: ["lessons", index, "optional"],
+          message: "a capstone is never optional",
         });
       if (lesson.check !== lesson.id)
         ctx.addIssue({
@@ -1837,7 +1846,8 @@ export function compileCourse(
         ...entry,
         ...metadata,
         newCopy: entry.folder === "new-copy",
-        next: path[at + 1]?.id ?? null,
+        // The next core Lesson: a lab is never the next step of the path.
+        next: path.slice(at + 1).find((later) => !later.optional)?.id ?? null,
         url: `${GUIDE}/blob/main/${entry.page}`,
         items: check.items.map((item) => item.text),
         content,

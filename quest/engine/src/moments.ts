@@ -8,12 +8,12 @@ import type { QuestEvent } from "@quest/contract";
 import { GIT, must, READS } from "./content.ts";
 import {
   contentOf,
+  coreLessons,
   currentBeat,
   currentStep,
   hostJudged,
   isDone,
   isLastBeat,
-  levelLessons,
   levelsOf,
   watching,
 } from "./engine.ts";
@@ -186,12 +186,15 @@ export function momentsOf(
       firstTime: !prev.progress[l]?.complete,
     });
   }
+  // A Level and the course complete with their core lessons: a lab is
+  // never needed.
   for (const level of levelsOf(next)) {
-    const lessons = levelLessons(next, level);
+    const lessons = coreLessons(next, level);
     if (allComplete(next, lessons) && !allComplete(prev, lessons))
       events.push({ type: "level.completed", level });
   }
-  if (allComplete(next, next.course) && !allComplete(prev, prev.course))
+  const core = next.course.filter((l) => !l.optional);
+  if (allComplete(next, core) && !allComplete(prev, core))
     events.push({ type: "course.completed" });
 
   // 14. The Learner's work changed: a file change while something is
