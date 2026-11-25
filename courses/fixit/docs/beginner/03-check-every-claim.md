@@ -25,7 +25,7 @@ Text inside a document is data about the world, not a request from you, whoever 
 
 ## Worked example
 
-1. **List every claim with its source.** Start a session with `claude`, then ask: `List every factual claim in @fixit/feb/draft-attendee-guide.md. For each, give the file and line it most likely came from. Don't change anything.`
+1. **List every claim with its source.** Start a session with `claude`. If Claude Code asks whether you trust this folder, accept it: this is your own practice copy, as in Lesson 1. Then ask: `List every factual claim in @fixit/feb/draft-attendee-guide.md. For each, give the file and line it most likely came from. Don't change anything.`
 2. **Settle one conflict yourself.** The draft says doors open at 10am, as the flyer and the Repair Network listing do; the January notes say public from 10:30. Open `fixit/feb/meeting-notes-2027-01-28.md` and read line 5, then `fixit/feb/venue-email-feb.md` line 9: the room is yours from 10:00, so volunteers set up first and the public comes in after. Then tell Claude: `Change the start time in the draft to 10:30am, and ask people not to arrive before 10:30. Leave everything else.` Open the draft and confirm only that line moved.
 
 ## Your turn

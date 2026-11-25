@@ -31,7 +31,7 @@ Treat its answer as you would a new colleague's: before you act on it, open the 
    claude --version
    ```
 
-   You should see a version number followed by `(Claude Code)`. Questerm's practice workspace simulates Claude Code 2.1.309, so it prints that number; this lesson was checked against the documentation for 2.1.325, and on your own computer you'll see the version you installed. If the shell says `command not found: claude`, the install folder isn't on your `PATH` yet: step 2 shows how to fix that on your own computer.
+   You should see a version number followed by `(Claude Code)`. Questerm's practice workspace simulates Claude Code 2.1.309, so it prints that number; this lesson was checked against the documentation for 2.1.325, and on your own computer you'll see the version you installed. If the shell says `command not found: claude`, the install folder isn't on your `PATH` yet, the list of folders where the shell looks for programs: step 2 shows how to fix that on your own computer.
 2. **Install it on your own computer** (optional in Questerm). On your own computer you install Claude Code once, then run it in any folder:
 
    ```bash
