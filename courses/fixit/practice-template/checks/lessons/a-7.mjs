@@ -261,7 +261,7 @@ export const runnerBounded = {
     if (!args) return /** @type {string} */ (problem);
     const f = args.flags;
     if (f.dangerouslySkipPermissions || f.allowDangerouslySkipPermissions)
-      return 'The runner passes a flag that skips permission checks. Take it out: with it, the bounds stop nothing.';
+      return 'The runner passes a flag that skips permission checks. Take it out: with it, everything your deny rules leave out is approved, so the allow list stops fencing the run.';
     if (f.permissionMode === 'bypassPermissions') return 'The runner starts in `bypassPermissions` mode, which skips every check. Use `--permission-mode dontAsk`.';
     if (f.permissionMode !== 'dontAsk')
       return `The runner ${typeof f.permissionMode === 'string' ? `starts in \`${f.permissionMode}\` mode` : 'sets no permission mode'}. Use \`--permission-mode dontAsk\`, so anything not allowed is denied, never asked.`;
