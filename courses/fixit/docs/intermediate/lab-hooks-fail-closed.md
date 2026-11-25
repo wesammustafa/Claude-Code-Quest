@@ -84,7 +84,7 @@ Hooks run with your own access, outside any sandbox. A hook script is code you r
    exit 0
    ```
 
-   Exit 2 blocks the call, and what the script prints to stderr goes to Claude. Ask Claude to add this block to the shared `.claude/settings.json`, or add it yourself:
+   Exit 2 blocks the call, and what the script prints to stderr goes to Claude. Ask Claude to add this block to the shared `.claude/settings.json`:
 
    ```json
    "hooks": {
@@ -117,7 +117,7 @@ Hooks run with your own access, outside any sandbox. A hook script is code you r
    git checkout -- secrets/api.txt
    ```
 
-   Ask Claude to add `Edit(./secrets/**)` to the deny rules in the shared `.claude/settings.json`, or add it yourself. Then send the shell request again: this time the deny rule refuses it, and `git status --short` doesn't list `secrets/api.txt`. Rules are read before each action, so this one needs no new session.
+   Ask Claude to add `Edit(./secrets/**)` to the deny rules in the shared `.claude/settings.json`. Then send the shell request again: this time the deny rule refuses it, and `git status --short` doesn't list `secrets/api.txt`. Rules are read before each action, so this one needs no new session.
 4. **Have Claude write the Stop gate.** Ask Claude to write a Stop hook, `.claude/hooks/test-gate.sh`, that sends Claude back to work while the tests fail, and can't send it back forever. Don't register it yet: you'll test it by hand first. Read what Claude wrote, before you run it:
 
    ```bash
@@ -159,7 +159,7 @@ Hooks run with your own access, outside any sandbox. A hook script is code you r
    git checkout -- test/links.test.js
    ```
 
-   Ask Claude to register the gate under `Stop` in the shared `.claude/settings.json`, or add it yourself:
+   Ask Claude to register the gate under `Stop` in the shared `.claude/settings.json`:
 
    ```json
    "Stop": [
