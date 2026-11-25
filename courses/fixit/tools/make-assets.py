@@ -10,7 +10,7 @@
 Each has a text version beside it, written by hand and kept in step with the
 words drawn here: booking-confirmation-march-text.md and flyer-2026-10.md.
 Needs Pillow and the macOS system fonts. Run from anywhere:
-  python3 courses/fixit-beginner-pilot/tools/make-assets.py
+  python3 courses/fixit/tools/make-assets.py
 """
 import random
 import time

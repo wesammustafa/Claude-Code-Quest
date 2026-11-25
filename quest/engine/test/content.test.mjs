@@ -1161,7 +1161,7 @@ const NO_LATER_WARMUP = DEVELOPER_COURSE
         "ticket 27 cut a-4's Your turn question, which tested a flag's definition, so a-7's questions are the first that can mark limit-run, and no lesson after a-7 has warm-ups",
     }
   : {
-      // courses/fixit-beginner-pilot: b-1, b-6, then the capstone, which has
+      // courses/fixit: b-1, b-6, then the capstone, which has
       // no warm-ups by the rework's rule, so b-6's are the last pool.
       start:
         "the Fix-It pilot ends after b-6 with the capstone, which has no warm-ups; the full course recalls start in a later lesson",
