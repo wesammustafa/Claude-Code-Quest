@@ -272,6 +272,21 @@ test('the saved run: over the cap, with no findings, or stopped at the cap, fail
   says(saved, dir, /stopped early \(`error_max_turns`\).*Raise the cap/);
 });
 
+test('a script fixed during the review: its run counts uncommitted, within any cap the call may set, and item 1 wants it committed on its own at the end', () => {
+  const dir = start();
+  script(dir, line(FLAGS.replace('--max-turns 5', '--max-turns 1'), 'Review the diff and fix anything wrong.'));
+  // The prompt and the cap fixed in the work tree, with Sam's change staged.
+  const fixed = START[SCRIPT].replace('git diff --cached | claude -p "PROMPT GOES HERE" FLAGS_GO_HERE > "$out"', line());
+  write(dir, { [SCRIPT]: fixed });
+  review(dir, { FAKE_TURNS: '2' });
+  assert.equal(saved.check(openRepo(dir)), true);
+  says(executable, dir, /has changes that aren't committed\. Commit them on their own/);
+  finish(dir);
+  git(dir, 'add', SCRIPT);
+  git(dir, 'commit', '-q', '-m', 'Ask the review for no edits, with room to read');
+  passes(dir);
+});
+
 test('acting on the review: Sam\'s change alone, staged or committed, fails item 4 with finding 1', () => {
   const dir = start();
   script(dir, line());

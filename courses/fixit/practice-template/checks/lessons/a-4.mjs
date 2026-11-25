@@ -368,7 +368,7 @@ export function committedScript(script, guide = 'Your turn step 1') {
     check(repo) {
       const mode = committedMode(repo, script);
       if (mode === null) return repo.exists(script) ? `${code(script)} isn't committed. Run \`git add ${script}\` and commit it.` : `There is no ${code(script)}. Write it as ${guide} describes, then commit it.`;
-      if (mode === '100755') return true;
+      if (mode === '100755') return pending(repo, script) ? `${code(script)} has changes that aren't committed. Commit them on their own, with nothing else staged: \`git add ${script}\`, then \`git commit\`.` : true;
       if (mode === '100644') return `${code(script)} isn't executable. Run \`chmod +x ${script}\`, then \`git add ${script}\` and commit (Your turn step 2). On Windows, run \`git update-index --chmod=+x ${script}\` and commit.`;
       return `${code(script)} is committed as ${mode === '120000' ? 'a symbolic link' : 'something other than a file'}. Commit the script file itself, and make it executable.`;
     },
@@ -563,7 +563,10 @@ export function savedRun(result, script) {
       if (value.is_error !== false) return `The run in ${code(result)} failed${typeof value.result === 'string' && value.result.trim() ? `: "${quoted(value.result)}"` : ''}. Fix what it says. ${again}`;
       if (typeof value.session_id !== 'string' || !value.session_id) return `The run in ${code(result)} has no \`session_id\`, so it isn't the JSON \`claude -p\` saves. ${again}`;
       if (!Number.isInteger(value.num_turns) || value.num_turns < 1) return `The run in ${code(result)} has no turn count in \`num_turns\`, so it isn't the JSON \`claude -p\` saves. ${again}`;
-      const cap = capOf(repo, script);
+      // A script fixed during the review, and not yet committed so that
+      // Sam's staged change stays out of that commit, may have run with a
+      // cap other than the committed one: any cap the call may set.
+      const cap = pending(repo, script) ? CAP_MAX : capOf(repo, script);
       if (value.num_turns > cap) return `The run in ${code(result)} took ${value.num_turns} turns, more than \`--max-turns ${cap}\` allows, so it ran with a higher cap. ${again}`;
       const findings = value.structured_output?.findings;
       if (!Array.isArray(findings)) return `The run in ${code(result)} has no \`structured_output.findings\`, so it ran without the script's \`--json-schema\`. ${again}`;
