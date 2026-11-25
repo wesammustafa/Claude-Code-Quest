@@ -43,7 +43,7 @@ function settings(repo, path) {
 }
 
 /** @param {any} value @param {'allow' | 'ask' | 'deny'} list @returns {string[]} */
-const rules = (value, list) => {
+export const rules = (value, list) => {
   const xs = value?.permissions?.[list];
   return Array.isArray(xs) ? xs.filter((r) => typeof r === 'string') : [];
 };
@@ -97,7 +97,7 @@ export function covers(spec, path) {
 // The first rule of `list` for `tool` that covers `path`: a bare tool name
 // covers every path.
 /** @param {string[]} list @param {string} tool @param {string} path */
-function ruleFor(list, tool, path) {
+export function ruleFor(list, tool, path) {
   return list.find((rule) => {
     const r = parseRule(rule);
     if (!r || r.tool !== tool) return false;
@@ -126,7 +126,7 @@ export function fires(matcher, tool) {
  */
 // A settings file's PreToolUse command hooks, each with the tools it fires for.
 /** @param {any} value @returns {Hook[]} */
-function hooksOf(value) {
+export function hooksOf(value) {
   const groups = value?.hooks?.PreToolUse;
   if (!Array.isArray(groups)) return [];
   return groups.flatMap((g) =>
@@ -147,7 +147,7 @@ const fixitDir = (/** @type {Repo} */ repo) => join(repo.dir, 'fixit').replace(/
 // A test tool call as Claude Code hands it to a PreToolUse hook, on `path`
 // below fixit/; UNREADABLE is input a guard can't make sense of.
 /** @param {Repo} repo @param {'Write' | 'Edit'} tool @param {string} path @param {string} text */
-function call(repo, tool, path, text) {
+export function call(repo, tool, path, text) {
   const dir = fixitDir(repo);
   const file_path = `${dir}/${path}`;
   return JSON.stringify({
@@ -158,7 +158,7 @@ function call(repo, tool, path, text) {
     tool_input: tool === 'Edit' ? { file_path, old_string: '**Questions:**', new_string: text } : { file_path, content: text },
   });
 }
-const UNREADABLE = '{"tool_name": "Write", "tool_in';
+export const UNREADABLE = '{"tool_name": "Write", "tool_in';
 
 const sq = (/** @type {string} */ s) => `'${s.replace(/'/g, `'\\''`)}'`;
 
@@ -173,7 +173,7 @@ const runs = new WeakMap();
 // CLAUDE_PROJECT_DIR set. On Windows it runs with Git Bash, as runStubbed
 // does. A hook that can't start or times out has a null exit.
 /** @param {Repo} repo @param {Hook} hook @param {string} input */
-function run(repo, hook, input) {
+export function run(repo, hook, input) {
   const dir = fixitDir(repo);
   const key = JSON.stringify([hook.command, hook.args, input]);
   const seen = runs.get(repo) ?? new Map();
@@ -197,10 +197,10 @@ function run(repo, hook, input) {
 // Whether Claude Code blocks the call after `hook` ran: exit 2 always, any
 // other failure only when the hook fails closed.
 /** @param {Hook} hook @param {{ exit: number | null }} r */
-const blocks = (hook, r) => r.exit === 2 || (r.exit !== 0 && hook.block);
+export const blocks = (hook, r) => r.exit === 2 || (r.exit !== 0 && hook.block);
 
 /** @param {Repo} repo @param {Hook[]} hooks @param {string} input */
-const blockedBy = (repo, hooks, input) => hooks.filter((h) => blocks(h, run(repo, h, input)));
+export const blockedBy = (repo, hooks, input) => hooks.filter((h) => blocks(h, run(repo, h, input)));
 
 // The script a hook command runs, below fixit/, when it is one of the
 // project's own: `"$CLAUDE_PROJECT_DIR"/.claude/hooks/x.sh` and
@@ -217,7 +217,7 @@ function scriptOf(hook) {
 // Why Claude Code can't run one of `hooks`, or null when it can: a script
 // of the project's that is missing or not executable.
 /** @param {Repo} repo @param {Hook[]} hooks */
-function unrunnable(repo, hooks) {
+export function unrunnable(repo, hooks) {
   for (const hook of hooks) {
     const script = scriptOf(hook);
     if (!script) continue;

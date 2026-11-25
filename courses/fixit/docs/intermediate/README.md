@@ -20,7 +20,7 @@ Sam, the Fixers' second organizer, runs sessions at another venue. In this level
 
 ## Capstone
 
-Hand the kit to Sam: a fresh session uses the kit on a different venue, and you fix the kit, not just its output.
+[Hand the kit to Sam](capstone.md): a fresh session uses the kit on a different venue, and you fix the kit, not just its output.
 
 ## Engineering labs (optional)
 

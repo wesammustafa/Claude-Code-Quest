@@ -106,7 +106,7 @@ export const limits = {
 
 // The skill's numbered steps, each with its continuation lines.
 /** @param {string} body */
-function stepsOf(body) {
+export function stepsOf(body) {
   /** @type {{ n: number, text: string }[]} */
   const out = [];
   let open = false;

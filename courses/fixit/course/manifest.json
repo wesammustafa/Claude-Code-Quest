@@ -83,6 +83,16 @@
       "check": "i-7",
       "folder": "copy",
       "slow": []
+    },
+    {
+      "id": "i-capstone",
+      "level": "intermediate",
+      "order": 9,
+      "page": "docs/intermediate/capstone.md",
+      "steps": "course/steps/i-capstone.md",
+      "check": "i-capstone",
+      "folder": "copy",
+      "slow": []
     }
   ]
 }
