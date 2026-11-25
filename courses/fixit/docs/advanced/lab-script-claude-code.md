@@ -53,7 +53,7 @@ In this practice workspace Claude's replies are written in advance, and model an
 
 ## Your turn
 
-1. **Fill in the review script.** Open `scripts/review-staged.sh` in the files tab. It already stops when nothing is staged, saves the JSON, fails on a failed run and prints each finding. Write your prompt and the flags in place of its two placeholders. The prompt asks Claude to review the staged diff it gets on stdin, report each problem with its file and line, and change nothing. The flags ask for JSON, run in `dontAsk` mode, keep and allow only `Read`, `Grep` and `Glob`, turn hooks and MCP servers off, cap the turns at 10 or fewer, and pass the script's schema with `--json-schema "$schema"`.
+1. **Fill in the review script.** Open `scripts/review-staged.sh` in the files tab. It already stops when nothing is staged, saves the JSON, fails on a failed run and prints each finding. Write your prompt and the flags in place of its two placeholders. The prompt asks Claude to review the staged diff it gets on stdin, the input the script pipes in with `|`; report each problem with its file and line; and change nothing. The flags ask for JSON, run in `dontAsk` mode, keep and allow only `Read`, `Grep` and `Glob`, turn hooks and MCP servers off, cap the turns at 10 or fewer, and pass the script's schema with `--json-schema "$schema"`.
 2. **Commit it, and let the check try it.** Make the script executable and commit it:
 
    ```bash
