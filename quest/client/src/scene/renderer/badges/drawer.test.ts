@@ -4,7 +4,7 @@
 // the Scene's Badges count as drawn only once the Scene's layer has faded
 // its renderer in. Until then the SVG shows as ever.
 import type { RootState } from "@react-three/fiber";
-import { PerspectiveCamera } from "three";
+import { PerspectiveCamera, Vector3 } from "three";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createBadgeStage, type BadgeSlot } from "../../badges";
 import { BadgeDrawer, layerShown } from "./drawer";
@@ -91,6 +91,71 @@ describe("the SVG steps aside only once its 3D Badge shows", () => {
     drawer.frame(stateOf(), 0.016);
     expect(svg).toHaveAttribute("data-scene-shown");
     expect(svg).toHaveAttribute("data-scene-lights", "2");
+  });
+});
+
+describe("where a Badge stands", () => {
+  // Lesson complete frames its place beside the panel its Badge sits in:
+  // the camera draws part of a larger view, and the Badge drawn without
+  // that shift stood a panel's shift away from its HTML Badge.
+  test("on its HTML Badge, under a camera that draws part of a larger view", () => {
+    const stage = createBadgeStage();
+    const drawer = new BadgeDrawer(stage);
+    const state = stateOf();
+    const camera = state.camera as PerspectiveCamera;
+    camera.setViewOffset(800, 600, 160, -40, 800, 600);
+    camera.updateMatrixWorld();
+    stage.add(slotOf(badgeArt()));
+    drawer.frame(state, 0.016);
+    drawer.rig.updateMatrixWorld(true);
+    const badge = drawer.rig.children[0];
+    expect(badge).toBeDefined();
+    const at = badge?.getWorldPosition(new Vector3()).project(camera);
+    // The SVG's centre: 100 + 96 / 2 across and down.
+    expect((((at?.x ?? 0) + 1) / 2) * 800).toBeCloseTo(148, 3);
+    expect(((1 - (at?.y ?? 0)) / 2) * 600).toBeCloseTo(148, 3);
+  });
+});
+
+describe("a Badge in a panel that scrolls in itself", () => {
+  // On a phone the Lesson complete sheet scrolls: a Badge drawn from its
+  // box alone followed it past the sheet's top and over the room.
+  function inPanel(top: number): SVGSVGElement {
+    const panel = document.createElement("div");
+    panel.setAttribute("data-scene-panel", "");
+    panel.getBoundingClientRect = () => rect(0, 300, 800, 300);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.getBoundingClientRect = () => rect(100, top, 96, 96);
+    panel.append(svg);
+    document.body.append(panel);
+    return svg;
+  }
+
+  test("is drawn while its box lies inside the panel", () => {
+    const stage = createBadgeStage();
+    const drawer = new BadgeDrawer(stage);
+    const svg = inPanel(400);
+    stage.add(
+      slotOf(svg, { startedAt: now, ms: 1500, lights: 2, done: false }),
+    );
+    drawer.frame(stateOf(), 0.016);
+    expect(drawer.rig.children[0]?.visible).toBe(true);
+    expect(svg).toHaveAttribute("data-scene-shown");
+  });
+
+  test("is not drawn once scrolled even partly out of it, and its SVG shows again", () => {
+    const stage = createBadgeStage();
+    const drawer = new BadgeDrawer(stage);
+    const svg = inPanel(400);
+    stage.add(
+      slotOf(svg, { startedAt: now, ms: 1500, lights: 2, done: false }),
+    );
+    const state = stateOf();
+    drawer.frame(state, 0.016);
+    svg.getBoundingClientRect = () => rect(100, 260, 96, 96);
+    drawer.frame(state, 0.016);
+    expect(drawer.rig.children[0]?.visible).toBe(false);
+    expect(svg).not.toHaveAttribute("data-scene-shown");
   });
 });
 

@@ -174,6 +174,24 @@ function light(d: Drawn, n: number, c: Colours): void {
   d.slot.element.setAttribute("data-scene-lights", String(d.lights.length));
 }
 
+/**
+ * Whether a Badge's box lies wholly inside the screen panel it scrolls in
+ * (a Scene screen's panel scrolls in itself): the 3D Badge stands over the
+ * room, outside the panel's clip, so one scrolled even partly out of the
+ * panel is not drawn, and its SVG, which the panel cuts, shows instead.
+ */
+function unclipped(box: DOMRect, element: Element): boolean {
+  const panel = element.closest("[data-scene-panel]");
+  if (panel === null) return true;
+  const clip = panel.getBoundingClientRect();
+  return (
+    box.top >= clip.top &&
+    box.bottom <= clip.bottom &&
+    box.left >= clip.left &&
+    box.right <= clip.right
+  );
+}
+
 function dispose(d: Drawn): void {
   d.body?.material.dispose();
   d.art[0]?.material.dispose();
@@ -256,7 +274,21 @@ export class BadgeDrawer {
     if (view.height <= 0) return false;
     const halfH = Math.tan((camera.fov * Math.PI) / 360) * DEPTH;
     const halfW = halfH * camera.aspect;
-    const perPx = (2 * halfH) / view.height;
+    // A camera framing beside a screen's panel draws part of a larger view
+    // (setViewOffset): a point of the page lies that far across and down in
+    // the whole view, so each Badge still stands on its HTML Badge.
+    const part = camera.view?.enabled === true ? camera.view : null;
+    const across = (x: number) =>
+      part === null
+        ? x / view.width
+        : (part.offsetX + (x / view.width) * part.width) / part.fullWidth;
+    const down = (y: number) =>
+      part === null
+        ? y / view.height
+        : (part.offsetY + (y / view.height) * part.height) / part.fullHeight;
+    const perPx =
+      ((2 * halfH) / view.height) *
+      (part === null ? 1 : part.height / part.fullHeight);
     const enter = tokenMs("--duration-base");
     const leave = tokenMs("--duration-fast");
     let moving = false;
@@ -280,7 +312,7 @@ export class BadgeDrawer {
       if (d.went === null) {
         const box = slot.element.getBoundingClientRect();
         d.box =
-          box.height > 0
+          box.height > 0 && unclipped(box, slot.element)
             ? {
                 x: box.left + box.width / 2 - view.left,
                 y: box.top + box.height / 2 - view.top,
@@ -297,6 +329,8 @@ export class BadgeDrawer {
       }
       if (d.box === null) {
         d.place.visible = false;
+        // The SVG shows instead, cut where its panel cuts it.
+        slot.element.removeAttribute("data-scene-shown");
         continue;
       }
       d.place.visible = true;
@@ -320,8 +354,8 @@ export class BadgeDrawer {
         slot.element.setAttribute("data-scene-shown", "");
 
       d.place.position.set(
-        (d.box.x / view.width) * 2 * halfW - halfW,
-        halfH - (d.box.y / view.height) * 2 * halfH,
+        across(d.box.x) * 2 * halfW - halfW,
+        halfH - down(d.box.y) * 2 * halfH,
         -DEPTH,
       );
       d.place.scale.setScalar(d.box.size * perPx);

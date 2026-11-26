@@ -595,6 +595,57 @@ describe("travel", () => {
   });
 });
 
+describe("a first completion the Scene stages", () => {
+  const staging = () => {
+    const made = setup({ screen: "step" });
+    made.director.send({ type: "sceneStages", on: true });
+    return made;
+  };
+
+  test("its Celebration waits on the Workspace and on Lesson complete, then plays once the card is pinned", () => {
+    const { director, send, at } = staging();
+    expect(send(firstLesson).reaction).toBeNull();
+    at(500);
+    expect(
+      director.send({ type: "screen", screen: "complete" }).reaction,
+    ).toBeNull();
+    at(2500);
+    expect(director.send({ type: "pinned" }).reaction).toMatchObject({
+      kind: "celebration",
+      intensity: 0.7,
+    });
+    // Played, it is spent: another pin plays nothing new.
+    const played = director.model().reaction?.id;
+    at(2600);
+    expect(director.send({ type: "pinned" }).reaction?.id).toBe(played);
+  });
+
+  test("a replay is no first completion: its Reaction plays at once, and a pin with nothing staged starts nothing", () => {
+    const { director, send } = staging();
+    const replay = send({ ...firstLesson, firstTime: false }).reaction;
+    expect(replay).toMatchObject({ kind: "success" });
+    expect(director.send({ type: "pinned" }).reaction?.id).toBe(replay?.id);
+  });
+
+  test("leaving the moment drops it, and a Scene that stops staging plays it at once", () => {
+    const left = staging();
+    left.send(firstLesson);
+    left.director.send({ type: "screen", screen: "map" });
+    expect(left.director.send({ type: "pinned" }).reaction).toBeNull();
+
+    const lost = staging();
+    lost.send(firstLesson);
+    expect(
+      lost.director.send({ type: "sceneStages", on: false }).reaction,
+    ).toMatchObject({ kind: "celebration" });
+  });
+
+  test("without the Scene staging it, a first completion celebrates at once, as before", () => {
+    const { send } = setup({ screen: "step" });
+    expect(send(firstLesson).reaction).toMatchObject({ kind: "celebration" });
+  });
+});
+
 describe("an asleep start", () => {
   test("a returning Learner's page starts with Pip asleep: the screen told again keeps him so, and the first activity wakes him", () => {
     const { director, at } = setup({ screen: "map", asleep: true });

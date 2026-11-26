@@ -7,15 +7,23 @@ import { Says } from "../components/Says";
 import { Tier } from "../components/Tier";
 import { LessonBadge } from "../components/badges";
 import { lessonEyebrow } from "../course/labels";
+import { cx } from "../lib/cx";
 import { useActionProps, type ActionProps } from "../live/useAction";
 import { useLessonAccess, useSlots } from "../mount/context";
+import { Link } from "../mount/links";
 import { ReadLesson } from "../pages/ReadLesson";
 import { PageTitle } from "../shell/PageTitle";
 import { CheckLooksFor } from "./CheckLooksFor";
 import { FolderQuestion } from "./FolderQuestion";
 import { problemText, workFolderLabel } from "./folderWords";
 import { LessonGate } from "./LessonGate";
-import { COLUMN, EYEBROW } from "./layout";
+import { COLUMN, EYEBROW, QUIET_LINK } from "./layout";
+import {
+  PANEL_FOOT,
+  PANEL_SURFACE,
+  PanelMain,
+  useOverScene,
+} from "./OverScene";
 import {
   summaryOf,
   useActiveLesson,
@@ -74,7 +82,9 @@ function noteText(note: OverviewNote): string | null {
  * teaches (quoted), its time and Badge, the help by part, and how to start.
  * Every word about Claude Code here is the snapshot's. A Lesson the mount
  * keeps closed shows the mount's offer: in place of the start buttons behind
- * a paywall, or above them, inert, while it needs a connection.
+ * a paywall, or above them, inert, while it needs a connection. Over the
+ * Scene it is a panel beside the room, with a way back to the journey and
+ * the Lesson's why as the request it answers, above what it teaches.
  */
 export function LessonOverview() {
   const active = useActiveLesson("overview");
@@ -116,6 +126,7 @@ export function LessonOverview() {
     wasAsked.current = asked;
   }, [asked, startable]);
   const learner = useCourseSnapshot()?.learner;
+  const over = useOverScene();
   // The open-first offer leaves once its prerequisite passes: focus it had
   // moves to Start.
   const first = active?.lesson.start?.first ?? null;
@@ -148,8 +159,27 @@ export function LessonOverview() {
     return [{ text, offer, key: `${String(at)} ${note.kind}` }];
   });
 
+  const why = intro?.why ? (
+    <p
+      className={cx(
+        "max-w-measure",
+        over
+          ? "rounded-lg border-l-4 border-accent bg-surface-2 px-4 py-3.5"
+          : "text-muted",
+      )}
+      data-overview-why=""
+    >
+      Why: <InlineText text={intro.why} />
+    </p>
+  ) : null;
+
   return (
-    <main className={COLUMN}>
+    <PanelMain column={COLUMN} panel={PANEL_SURFACE}>
+      {over && (
+        <Link to="/journey" className={cx(QUIET_LINK, "justify-self-start")}>
+          Back to the learning journey
+        </Link>
+      )}
       {/* Pip's one line: the `can` line the Lesson builds to, quoted. */}
       <Says>
         {intro?.payoff ? (
@@ -194,6 +224,8 @@ export function LessonOverview() {
         )}
       </header>
 
+      {over && why}
+
       {intro && intro.can.length > 0 && (
         <section aria-label="What you will do" className="grid gap-2">
           <h2 className="text-sm text-muted">After this lesson you can</h2>
@@ -207,11 +239,7 @@ export function LessonOverview() {
         </section>
       )}
 
-      {intro?.why && (
-        <p className="max-w-measure text-muted" data-overview-why="">
-          Why: <InlineText text={intro.why} />
-        </p>
-      )}
+      {!over && why}
 
       <section aria-label="Help by part" className="grid gap-2">
         <h2 className="text-sm text-muted">Help by part of the lesson</h2>
@@ -312,7 +340,13 @@ export function LessonOverview() {
         </section>
       )}
 
-      <div ref={actions} className="flex flex-wrap items-center gap-2.5">
+      <div
+        ref={actions}
+        className={cx(
+          "flex flex-wrap items-center gap-2.5",
+          over && PANEL_FOOT,
+        )}
+      >
         {Offer && access === "keep-going" && (
           <Offer lesson={lesson.id} offer={access} />
         )}
@@ -339,7 +373,7 @@ export function LessonOverview() {
         <span className="grow" />
         <ReadLesson />
       </div>
-    </main>
+    </PanelMain>
   );
 }
 

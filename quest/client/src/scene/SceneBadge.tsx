@@ -307,5 +307,10 @@ export function BadgeShelfHint({ earned }: { earned: boolean }): ReactNode {
   const { scene } = useMount();
   const drawn = useBadgesDrawn();
   if (scene === null || !drawn || !earned) return null;
-  return <p className="text-sm text-muted">{SHELF_HINT}</p>;
+  // On the shelf over the room, on a surface of its own, as Progress's other words are.
+  return (
+    <p className="justify-self-start rounded-md bg-surface px-2 py-0.5 text-sm text-muted">
+      {SHELF_HINT}
+    </p>
+  );
 }
