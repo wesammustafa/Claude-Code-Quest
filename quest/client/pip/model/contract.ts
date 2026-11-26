@@ -2,8 +2,10 @@
 // for the Scene's renderer to drive him from the same PipModel the Rive rig
 // takes. One clip per mode and per Reaction, named as the Rive contract names
 // them, a still pose for reduced motion, a walk for travelling the Journey's
-// path, and one node the renderer turns for the gaze. This is the asset brief's technical half; the contract tests load
-// the committed model and name every way it departs from it.
+// path, one node the renderer turns for the gaze, and the nodes the
+// workshop's stride moves and follows. This is the asset brief's technical
+// half; the contract tests load the committed model and name every way it
+// departs from it.
 import { PIP_MODES, PIP_REACTIONS } from "../contract";
 
 /** The clip that holds Pip still under reduced motion: one pose, no travel. */
@@ -23,6 +25,32 @@ export const PIP_MODEL_WALK = "walk";
  * down), eased over the rig's 150 ms. No clip may key its rotation; clips move the parts under it.
  */
 export const PIP_MODEL_GAZE = "gaze";
+
+/**
+ * The nodes the workshop's stride moves over the clips' pose (D6): the body
+ * that hops, leans and sways, the legs and feet it plants, the arms and
+ * hands it swings, the neck that steadies the head, and the antennas that
+ * lag. The walk in the room is the renderer's, so no clip is added for it.
+ */
+export const PIP_MODEL_STRIDE = [
+  "Hop",
+  "Lean",
+  "Body",
+  "LegLeft",
+  "LegRight",
+  "FootLeft",
+  "FootRight",
+  "ArmLeft",
+  "ArmRight",
+  "HandLeft",
+  "HandRight",
+  "Neck",
+  "AntennaLeft",
+  "AntennaRight",
+] as const;
+
+/** The node at Pip's head, which the workshop's speech and tags follow on the page. */
+export const PIP_MODEL_HEAD = "Head";
 
 /** Every clip the model holds, and nothing else: the modes, the Reactions, the still pose and the walk. */
 export const PIP_MODEL_CLIPS = [
@@ -110,6 +138,11 @@ export function modelProblems(shape: ModelShape): string[] {
     problems.push(`no node ${PIP_MODEL_GAZE} for the gaze control`);
   else if (gazes > 1)
     problems.push(`more than one node is named ${PIP_MODEL_GAZE}`);
+  for (const name of [...PIP_MODEL_STRIDE, PIP_MODEL_HEAD])
+    if (!shape.nodes.includes(name))
+      problems.push(
+        `no node ${name} for ${name === PIP_MODEL_HEAD ? "his head's place" : "the stride"}`,
+      );
   for (const extension of shape.extensionsRequired)
     if (!EXTENSIONS.includes(extension))
       problems.push(`it requires ${extension}, which the app cannot decode`);

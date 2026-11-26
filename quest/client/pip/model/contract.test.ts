@@ -7,7 +7,9 @@ import { describe, expect, test } from "vitest";
 import { PIP_MODES, PIP_REACTIONS } from "../contract";
 import {
   PIP_MODEL_CLIPS,
+  PIP_MODEL_HEAD,
   PIP_MODEL_MAX_BYTES,
+  PIP_MODEL_STRIDE,
   modelProblems,
   type ModelShape,
 } from "./contract";
@@ -20,7 +22,7 @@ function exact(): ModelShape {
       duration: name === "still" ? 0 : 1.2,
       tracks: ["body.position", "head.quaternion"],
     })),
-    nodes: ["Pip", "body", "gaze", "head"],
+    nodes: ["Pip", ...PIP_MODEL_STRIDE, "gaze", "HeadPose", PIP_MODEL_HEAD],
     extensionsRequired: [],
     bytes: 20_000,
   };
@@ -84,7 +86,7 @@ describe("modelProblems", () => {
 
   test("fails without the gaze control, with two, or when a clip turns it", () => {
     const none = exact();
-    none.nodes = ["Pip", "head"];
+    none.nodes = none.nodes.filter((n) => n !== "gaze");
     expect(modelProblems(none)).toEqual(["no node gaze for the gaze control"]);
 
     const two = exact();
@@ -100,6 +102,32 @@ describe("modelProblems", () => {
     expect(modelProblems(keyed)).toEqual([
       "clip curious keys gaze's rotation, which the gaze drives",
       "clip walk keys gaze's rotation, which the gaze drives",
+    ]);
+  });
+
+  test("fails without a node the workshop's stride moves or follows, naming it", () => {
+    for (const name of ["FootLeft", "AntennaRight", "Head"]) {
+      const shape = exact();
+      shape.nodes = shape.nodes.filter((n) => n !== name);
+      expect(modelProblems(shape)).toEqual([
+        `no node ${name} for ${name === "Head" ? "his head's place" : "the stride"}`,
+      ]);
+    }
+    expect(PIP_MODEL_STRIDE).toEqual([
+      "Hop",
+      "Lean",
+      "Body",
+      "LegLeft",
+      "LegRight",
+      "FootLeft",
+      "FootRight",
+      "ArmLeft",
+      "ArmRight",
+      "HandLeft",
+      "HandRight",
+      "Neck",
+      "AntennaLeft",
+      "AntennaRight",
     ]);
   });
 

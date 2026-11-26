@@ -8,7 +8,9 @@ import { describe, expect, test } from "vitest";
 import {
   PIP_MODEL_CLIPS,
   PIP_MODEL_GAZE,
+  PIP_MODEL_HEAD,
   PIP_MODEL_STILL,
+  PIP_MODEL_STRIDE,
   PIP_MODEL_WALK,
 } from "../../../../pip/model/contract";
 import { packGlb, unpackGlb } from "../../../../pip/model/glb";
@@ -62,6 +64,9 @@ describe("the committed model", () => {
       [...PIP_MODEL_CLIPS].sort(),
     );
     expect(model.scene.getObjectByName(PIP_MODEL_GAZE)).toBeDefined();
+    // The parts the workshop's stride moves, and the head it follows.
+    for (const name of [...PIP_MODEL_STRIDE, PIP_MODEL_HEAD])
+      expect(model.scene.getObjectByName(name), name).toBeDefined();
   });
 
   test("stands 1 m tall on his soles at rest, facing +z, as the renderer measures him", async () => {
