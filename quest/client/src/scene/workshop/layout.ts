@@ -44,7 +44,7 @@ export const FURNITURE: Readonly<Record<string, FloorRect>> = {
 
 export const SPOTS: Readonly<Record<SpotId, Spot>> = {
   noticeboard: { stand: { x: -3.4, z: -3.95 }, look: [-3.4, 1.85, -4.95] },
-  organizer: { stand: { x: 5.3, z: -1.7 }, look: [6.6, 1.0, -2.2] },
+  organizer: { stand: { x: 4.8, z: -1.7 }, look: [6.6, 1.0, -2.2] },
   "release-desk": { stand: { x: 4.6, z: 3.05 }, look: [6.4, 1.3, 3.6] },
   bench: { stand: { x: 0, z: 1.35 }, look: [0, 1.05, 0] },
   shelf: { stand: { x: 2.7, z: -3.75 }, look: [2.7, 1.3, -4.8] },

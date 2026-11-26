@@ -6,8 +6,8 @@
 // screen's Pip stands down for the 2D Pip floating over the Scene, or,
 // with the mount's 3D Pip, stays for the Scene's renderer to hold, which
 // then stands him in the stage's empty box on the path. The Stations are
-// lit from the snapshot alone. With the Scene off, and on the other
-// Levels, the Journey is as it was. The renderer is a stand-in
+// lit from the snapshot alone. Every Level's tab has its stage. With the
+// Scene off, the Journey is as it was. The renderer is a stand-in
 // that draws each Station where the test says: jsdom has no WebGL.
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { useContext, useEffect, type ReactNode } from "react";
@@ -290,18 +290,20 @@ describe("the Journey path, with the Scene drawing", () => {
     expect(fireEvent.keyDown(whole, { key: "ArrowRight" })).toBe(true);
     expect(document.activeElement).toBe(whole);
     expect(path.at()).toBe("b-1");
-    // A Level tab keeps its own arrows: Right selects Intermediate, which
-    // has no path, so the page's arrows are off.
+    // A Level tab keeps its own arrows: Right selects Intermediate, whose
+    // path the page's arrows then move along.
     const [beginner, intermediate] = screen.getAllByRole("tab");
     act(() => {
       beginner?.focus();
     });
     fireEvent.keyDown(beginner as HTMLElement, { key: "ArrowRight" });
     expect(document.activeElement).toBe(intermediate);
-    expect(path.at()).toBe("b-1");
+    await waitFor(() => {
+      expect(path.at()).toBe("i-1");
+    });
     blur();
-    expect(fireEvent.keyDown(document.body, { key: "ArrowRight" })).toBe(true);
-    expect(document.activeElement).toBe(document.body);
+    expect(fireEvent.keyDown(document.body, { key: "ArrowRight" })).toBe(false);
+    expect(document.activeElement).toBe(link("i-2"));
     page.unmount();
     expect(fireEvent.keyDown(document.body, { key: "ArrowLeft" })).toBe(true);
   });
@@ -429,14 +431,22 @@ describe("the Journey path, with the Scene drawing", () => {
     expect(document.querySelector("[data-scene-pip]")).toBeNull();
   });
 
-  test("the other Levels keep today's screen: no band, and the screen's own Pip", async () => {
-    await onPath();
-    fireEvent.click(screen.getByRole("tab", { name: /Intermediate/ }));
-    await waitFor(() => {
-      expect(stage()).toBeNull();
-    });
-    expect(document.querySelector("[data-pip-stood-down]")).toBeNull();
-    expect(document.querySelector('[data-pip="beside"]')).not.toBeNull();
+  // U4 drew the stage for Beginner alone: the other tabs left Pip and the
+  // camera at the noticeboard, under the Journey's panels.
+  test("every Level's tab gets its own stage, Pip standing at that Level's next Lesson, and back at the Learner's place on Beginner", async () => {
+    const { path } = await onPath();
+    for (const [tab, next] of [
+      [/Intermediate/, "i-1"],
+      [/Advanced/, "a-1"],
+      [/Beginner/, "b-1"],
+    ] as const) {
+      fireEvent.click(screen.getByRole("tab", { name: tab }));
+      await waitFor(() => {
+        expect(path.at()).toBe(next);
+      });
+      expect(stage()).not.toBeNull();
+      expect(document.querySelector("[data-pip-stood-down]")).not.toBeNull();
+    }
   });
 
   test("the Stations are the snapshot's Lessons, lit from complete alone, the same until one changes", async () => {

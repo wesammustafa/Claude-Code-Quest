@@ -4,9 +4,10 @@
 // things fall on the page, what lies under a point of the page, and what
 // Pip is doing and where; the screens tell Pip where to go and what to do.
 // One per page's Scene, as the Journey path is.
-import { useCallback, useContext } from "react";
+import { useCallback, useContext, useEffect, type RefObject } from "react";
 import type { LessonId } from "@quest/contract";
 import { SceneContext, type SceneHub } from "../context";
+import type { Band } from "../path";
 import type { SpotId } from "./layout";
 import type { WorkshopPlaceId } from "./places";
 
@@ -134,6 +135,9 @@ export interface Workshop {
   /** Sets the host until the returned release is called. */
   setHost: (host: DeckHost) => () => void;
   subscribeHost: (fn: () => void) => () => void;
+  /** Welcome's card on the page, which the camera keeps Pip clear of, or null while none is measured. */
+  card: () => Band | null;
+  setCard: (card: Band | null) => void;
   /** The probe set to measure Pip's motion, or null; only a test sets one. */
   probe?: () => PipProbe | null;
   setProbe?: (probe: PipProbe | null) => void;
@@ -186,6 +190,7 @@ export function createWorkshop(): Workshop {
   let ready = false;
   let probe: PipProbe | null = null;
   let host: DeckHost | null = null;
+  let card: Band | null = null;
   const drawn = listeners<[]>();
   const hosts = listeners<[]>();
   const commands = listeners<[PipCommand]>();
@@ -233,6 +238,10 @@ export function createWorkshop(): Workshop {
       };
     },
     subscribeHost: hosts.on,
+    card: () => card,
+    setCard: (next) => {
+      card = next;
+    },
     probe: () => probe,
     setProbe: (next) => {
       probe = next;
@@ -283,4 +292,42 @@ export function useDeckHost(
           ),
     [workshop, kind, line],
   );
+}
+
+/**
+ * Tells the camera where Welcome's card stands on the page, followed as the
+ * page scrolls or resizes, while `card` is mounted: the room keeps Pip
+ * clear of it. Read once the page is laid out, never in the commit that
+ * mounts the screen.
+ */
+export function useWelcomeCard(card: RefObject<HTMLElement | null>): void {
+  const workshop = useWorkshop();
+  useEffect(() => {
+    const el = card.current;
+    if (el === null) return;
+    const measure = () => {
+      const r = el.getBoundingClientRect();
+      workshop.setCard({
+        left: r.left,
+        top: r.top,
+        width: r.width,
+        height: r.height,
+      });
+    };
+    const resized =
+      typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    if (resized === null) measure();
+    else {
+      resized.observe(el);
+      resized.observe(document.documentElement);
+    }
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      resized?.disconnect();
+      window.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+      workshop.setCard(null);
+    };
+  }, [workshop, card]);
 }

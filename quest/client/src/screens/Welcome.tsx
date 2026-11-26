@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import type { PlayingLesson, Snapshot, StepDownLesson } from "@quest/contract";
 import { Button, ButtonLink } from "../components/Button";
 import { Icon } from "../components/Icon";
@@ -12,7 +12,11 @@ import { Link, useQuestNavigate } from "../mount/links";
 import { Pip } from "../pip/Pip";
 import { usePipInput } from "../pip/PipStage";
 import { usePipStandsDown } from "../scene/context";
-import { useDeckHost, useWorkshop } from "../scene/workshop/store";
+import {
+  useDeckHost,
+  useWelcomeCard,
+  useWorkshop,
+} from "../scene/workshop/store";
 import { PageTitle } from "../shell/PageTitle";
 import { BOX, EYEBROW, QUIET_LINK } from "./layout";
 import {
@@ -281,6 +285,9 @@ function RoomWelcome() {
   const lesson = useFirstLesson(snapshot);
   const returning = back || lesson.welcomed;
   const host = useDeckHost("room");
+  // The camera keeps Pip clear of the card wherever he is sent.
+  const card = useRef<HTMLElement>(null);
+  useWelcomeCard(card);
   // The 3D Pip stands in the room once he holds Pip; until then, and on
   // the still image, the card shows the screen's own.
   const inRoom = usePipStandsDown();
@@ -299,6 +306,7 @@ function RoomWelcome() {
       className="min-h-dvh max-md:px-4 max-md:pt-14 max-md:pb-32 md:px-6 md:pt-6 md:max-lg:pb-28 lg:flex lg:flex-col lg:justify-end lg:pb-6"
     >
       <section
+        ref={card}
         aria-label="Welcome"
         data-welcome-card=""
         data-deck-clear=""

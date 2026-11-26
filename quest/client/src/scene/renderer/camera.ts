@@ -8,7 +8,7 @@ import type { LessonId } from "@quest/contract";
 import type { ScreenChange, ScreenOnShow } from "../../mount/types";
 import { lessonOfScreen, type Band, type PathView } from "../path";
 import { sceneStops } from "../SceneLayer";
-import { SPOTS } from "../workshop/layout";
+import { PIP_RADIUS, SPOTS, type FloorPoint } from "../workshop/layout";
 import type { WorkshopPlace, WorkshopPlaceId } from "../workshop/places";
 import { placedCards, SURFACES, type PlacedCard } from "./workshop/cards";
 
@@ -35,8 +35,22 @@ export interface PathState {
 }
 
 /**
+ * Welcome's part in its framing: where Pip was last sent on the floor, or
+ * null, and the box of Welcome's card on the page, or null before it is
+ * measured. A spot the room's view draws Pip under the card at, or off the
+ * page, is framed anew to keep him clear of it.
+ */
+export interface WelcomeState {
+  to: FloorPoint | null;
+  card: Band | null;
+}
+
+const NO_WELCOME: WelcomeState = { to: null, card: null };
+
+/**
  * What the camera frames: the whole room, or the whole room under
- * Welcome's card, which on a narrow page keeps the top; a Level's place, with or without
+ * Welcome's card, which on a narrow page keeps the top, panned to keep Pip
+ * clear of the card where he was sent; a Level's place, with or without
  * room kept free for the screen's panel beside it (or below it, on a narrow
  * page); close on a place, beside the panel too; or, while today's Journey
  * shows its stage, the card of the Lesson Pip stands at, or its whole place
@@ -45,13 +59,12 @@ export interface PathState {
  */
 export type Framing =
   | { kind: "room" }
-  | { kind: "welcome" }
+  | ({ kind: "welcome" } & WelcomeState)
   | { kind: "place"; place: WorkshopPlaceId; panel: boolean }
   | { kind: "close"; place: WorkshopPlaceId }
   | { kind: "stage"; card: PlacedCard; whole: boolean; band: Band };
 
 const ROOM_WIDE: Framing = { kind: "room" };
-const WELCOME: Framing = { kind: "welcome" };
 
 /** The place that holds a Lesson's card, or null for a Lesson the places do not hold. */
 function placeHolding(
@@ -85,6 +98,7 @@ export function framingFor(
   screen: ScreenOnShow,
   path: PathState,
   places: readonly WorkshopPlace[],
+  welcome: WelcomeState = NO_WELCOME,
 ): Framing {
   switch (screen.screen) {
     case "map": {
@@ -116,7 +130,7 @@ export function framingFor(
         place,
       }));
     case "welcome":
-      return WELCOME;
+      return { kind: "welcome", ...welcome };
     default:
       return ROOM_WIDE;
   }
@@ -126,8 +140,9 @@ export function framingFor(
 export function sameFraming(a: Framing, b: Framing): boolean {
   switch (a.kind) {
     case "room":
-    case "welcome":
       return b.kind === a.kind;
+    case "welcome":
+      return b.kind === "welcome" && a.to?.x === b.to?.x && a.to?.z === b.to?.z;
     case "place":
       return b.kind === "place" && a.place === b.place && a.panel === b.panel;
     case "close":
@@ -186,7 +201,7 @@ const NARROW = 0.9;
  * closer. At exactly NARROW too, as the page's CSS has it (app.css,
  * scene-narrow's max-aspect-ratio), so the camera and the panel agree.
  */
-const isNarrow = (viewport: Viewport): boolean =>
+export const isNarrow = (viewport: Viewport): boolean =>
   viewport.width <= viewport.height * NARROW;
 
 /** The share of a wide page the Scene keeps on its left beside a panel, and of a narrow one on its top above it (the panel's five eighths, layout.ts). */
@@ -247,12 +262,15 @@ const PLACE_VIEWS: Readonly<Record<WorkshopPlaceId, View>> = {
     height: 4,
     narrow: { look: [-3.3, 1.5, -4.2], from: unit(0.18, 0.4, 1), width: 3.9 },
   },
+  // Seen from above Pip's head, which then falls below the lowest row of
+  // its upright face's cards, as the noticeboard's and desk's views keep
+  // him clear of theirs.
   organizer: {
     look: [5.85, 0.95, -2.0],
-    from: unit(-1, 0.4, 0.42),
+    from: unit(-1, 0.8, 0.42),
     width: 4.6,
     height: 3.5,
-    narrow: { look: [6.0, 0.95, -2.1], from: unit(-1, 0.4, 0.3), width: 3.1 },
+    narrow: { look: [5.6, 0.9, -2.0], from: unit(-1, 0.7, 0.3), width: 3.1 },
   },
   "release-desk": {
     look: [4.55, 0.85, 2.3],
@@ -282,9 +300,9 @@ const seenOn = (view: View, narrow: boolean): Seen =>
 
 /**
  * How much round a card the Journey's stage shows: a little either side,
- * and from under Pip's feet to over his head or the top of the card's
- * surface, whichever is higher, with this margin, so every card of a place
- * is framed alike.
+ * and, up the page, from the front of Pip's feet to over his head or the
+ * top of the card's surface, whichever is higher, with this margin, so
+ * every card of a place is framed alike.
  */
 const CARD_ACROSS = 2.4;
 const CARD_MARGIN = 0.3;
@@ -304,23 +322,42 @@ function pipFootAt(card: PlacedCard): Vector3 {
 /**
  * The stage's view of a card: from its place's side, turned square to the
  * card's row, so the card and Pip's feet in front of it fall in one column
- * of the page, and high enough to hold both.
+ * of the page, and high enough to hold both. Its height is measured up the
+ * page, not up the room: seen from above, what stands nearer the camera
+ * falls lower on the page, so the desk's steep view, framed by heights
+ * alone, drew the front of Pip's feet under the panel below the band.
  */
 function cardView(card: PlacedCard, narrow: boolean): Seen {
   const surface = SURFACES[card.place];
   const [fx, fy, fz] = seenOn(PLACE_VIEWS[card.place], narrow).from;
   const [rx, ry, rz] = surface.right;
   const along = fx * rx + fy * ry + fz * rz;
-  const foot = pipFootAt(card);
-  const top = Math.max(
-    PIP_TALL,
-    surface.centre[1] + (surface.height / 2) * Math.abs(surface.up[1]),
+  const from = new Vector3(
+    ...unit(fx - rx * along, fy - ry * along, fz - rz * along),
   );
+  // Up the page: the room's up with its part along the view taken out.
+  const up = new Vector3(0, 1, 0).addScaledVector(from, -from.y).normalize();
+  const foot = pipFootAt(card);
+  const at = new Vector3(...card.at);
+  const surfaceUp = new Vector3(...surface.up);
+  const fromCentre = at.clone().sub(new Vector3(...surface.centre));
+  const surfaceTop = at
+    .clone()
+    .addScaledVector(surfaceUp, surface.height / 2 - fromCentre.dot(surfaceUp));
+  const toCamera = new Vector3(from.x, 0, from.z).normalize();
+  const mid = at.clone().add(foot).multiplyScalar(0.5).setY(0);
+  const heights = [
+    surfaceTop,
+    foot.clone().setY(PIP_TALL),
+    foot.clone().addScaledVector(toCamera, PIP_RADIUS),
+  ].map((p) => p.sub(mid).dot(up));
+  const low = Math.min(...heights);
+  const high = Math.max(...heights);
   return {
-    look: [(card.at[0] + foot.x) / 2, top / 2, (card.at[2] + foot.z) / 2],
-    from: unit(fx - rx * along, fy - ry * along, fz - rz * along),
+    look: mid.addScaledVector(up, (low + high) / 2).toArray(),
+    from: from.toArray(),
     width: CARD_ACROSS,
-    height: top + 2 * CARD_MARGIN,
+    height: high - low + 2 * CARD_MARGIN,
   };
 }
 
@@ -377,11 +414,148 @@ export function poseOf(framing: Framing, viewport: Viewport): Pose {
     (seen.height * scale * f) / Math.max(1, region.height),
   );
   const look = new Vector3(...seen.look);
-  return {
+  const pose: Pose = {
     position: new Vector3(...seen.from).multiplyScalar(distance).add(look),
     look,
     shift,
     pip: framing.kind === "stage" ? pipFootAt(framing.card) : null,
+  };
+  return framing.kind === "welcome" && framing.to !== null
+    ? keepClear(pose, viewport, framing.to, framing.card, narrow)
+    : pose;
+}
+
+/** How far Pip stands clear of the page's edges and of Welcome's card, in CSS pixels. */
+const CLEAR_PX = 16;
+/** The share of a wide page's foot Pip's toolbar keeps. */
+const TOOLBAR_WIDE = 0.1;
+/** Pip's width over his height, as he stands drawn on the page. */
+const PIP_WIDTH = 0.8;
+
+/** A box on the page: its left, top, right and bottom edges. */
+interface Edges {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+const overlaps = (a: Edges, b: Edges) =>
+  a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+/**
+ * How far to move Pip's box across and down the page so it lies in `free`
+ * and clear of `card`: the least move into the free part, then, if he would
+ * still stand under the card, the least move past one of its edges that
+ * keeps him in the free part (the least of them all if none does).
+ */
+export function clearMove(
+  pip: Edges,
+  free: Edges,
+  card: Edges | null,
+): { x: number; y: number } {
+  const into = (lo: number, hi: number, min: number, max: number) =>
+    lo < min ? min - lo : hi > max ? Math.max(max - hi, min - lo) : 0;
+  const x = into(pip.left, pip.right, free.left, free.right);
+  const y = into(pip.top, pip.bottom, free.top, free.bottom);
+  const at = (dx: number, dy: number): Edges => ({
+    left: pip.left + dx,
+    right: pip.right + dx,
+    top: pip.top + dy,
+    bottom: pip.bottom + dy,
+  });
+  if (card === null || !overlaps(at(x, y), card)) return { x, y };
+  const moved = at(x, y);
+  const ways = [
+    { x: x + card.right - moved.left, y },
+    { x: x + card.left - moved.right, y },
+    { x, y: y + card.bottom - moved.top },
+    { x, y: y + card.top - moved.bottom },
+  ];
+  const inside = (m: { x: number; y: number }) => {
+    const b = at(m.x, m.y);
+    return (
+      b.left >= free.left - 0.5 &&
+      b.right <= free.right + 0.5 &&
+      b.top >= free.top - 0.5 &&
+      b.bottom <= free.bottom + 0.5
+    );
+  };
+  const size = (m: { x: number; y: number }) => Math.hypot(m.x - x, m.y - y);
+  const fits = ways.filter(inside);
+  const from = fits.length > 0 ? fits : ways;
+  return from.reduce((a, b) => (size(b) < size(a) ? b : a));
+}
+
+/**
+ * Welcome's room with Pip sent to `to`: the room's own pose when it draws
+ * him whole on the page, clear of the card and over his toolbar; else that
+ * pose panned, across the page and up or down it, just far enough that it
+ * does. Pip about the room is kept in view, never under the card.
+ */
+function keepClear(
+  pose: Pose,
+  viewport: Viewport,
+  to: FloorPoint,
+  card: Band | null,
+  narrow: boolean,
+): Pose {
+  const camera = new PerspectiveCamera(
+    FOV,
+    viewport.width / viewport.height,
+    0.1,
+    100,
+  );
+  aim(camera, pose, viewport);
+  const onPage = (y: number) => {
+    const v = new Vector3(to.x, y, to.z).project(camera);
+    return {
+      x: ((v.x + 1) / 2) * viewport.width,
+      y: ((1 - v.y) / 2) * viewport.height,
+    };
+  };
+  const feet = onPage(0);
+  const head = onPage(PIP_TALL);
+  const half = ((feet.y - head.y) * PIP_WIDTH) / 2;
+  const pip: Edges = {
+    left: Math.min(feet.x, head.x) - half,
+    right: Math.max(feet.x, head.x) + half,
+    top: head.y,
+    bottom: feet.y,
+  };
+  const foot = viewport.height * (narrow ? OVER_TOOLBAR : TOOLBAR_WIDE);
+  const free: Edges = {
+    left: CLEAR_PX,
+    top: CLEAR_PX,
+    right: viewport.width - CLEAR_PX,
+    bottom: viewport.height - foot - CLEAR_PX,
+  };
+  const around =
+    card === null
+      ? null
+      : {
+          left: card.left - CLEAR_PX,
+          top: card.top - CLEAR_PX,
+          right: card.left + card.width + CLEAR_PX,
+          bottom: card.top + card.height + CLEAR_PX,
+        };
+  const move = clearMove(pip, free, around);
+  if (move.x === 0 && move.y === 0) return pose;
+  // A pan parallel to the page moves a point at Pip's depth by the
+  // focal length over that depth per unit: the camera moves the other way.
+  const mid = new Vector3(to.x, PIP_TALL / 2, to.z);
+  const forward = camera.getWorldDirection(new Vector3());
+  const depth = mid.clone().sub(camera.position).dot(forward);
+  const perPx = depth / focal(viewport.height);
+  const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+  const up = new Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+  const pan = right
+    .multiplyScalar(-move.x * perPx)
+    .add(up.multiplyScalar(move.y * perPx));
+  return {
+    ...pose,
+    position: pose.position.clone().add(pan),
+    look: pose.look.clone().add(pan),
   };
 }
 

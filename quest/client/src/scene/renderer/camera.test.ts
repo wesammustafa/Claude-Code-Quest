@@ -6,7 +6,7 @@ import { PerspectiveCamera, Vector3 } from "three";
 import { describe, expect, test } from "vitest";
 import type { SceneStation, ScreenOnShow } from "../../mount/types";
 import type { Band } from "../path";
-import { PIP_START, SPOTS } from "../workshop/layout";
+import { PIP_RADIUS, PIP_START, SPOTS, type SpotId } from "../workshop/layout";
 import { workshopPlaces } from "../workshop/places";
 import {
   aim,
@@ -78,8 +78,13 @@ const standing = (
 ): PathState => ({ at, whole, band });
 
 /** Today's Journey stage's band, as the Journey lays it out on a desktop and on a phone. */
-const DESKTOP_BAND: Band = { left: 120, top: 380, width: 1200, height: 320 };
+/** The stage's band as the Journey lays it out at 1440 by 900, and on a phone. */
+const DESKTOP_BAND: Band = { left: 224, top: 387, width: 992, height: 320 };
 const PHONE_BAND: Band = { left: 16, top: 420, width: 358, height: 256 };
+
+/** Welcome's card, as it lays out at a desktop's foot on the left and across a phone's top. */
+const DESKTOP_CARD: Band = { left: 24, top: 510, width: 432, height: 366 };
+const PHONE_CARD: Band = { left: 16, top: 56, width: 358, height: 228 };
 
 const at = (path: string, screen: ScreenOnShow["screen"]): ScreenOnShow => ({
   path,
@@ -118,6 +123,8 @@ describe("the framing each screen shows", () => {
     for (const screen of [at("/", "welcome"), at("/resume", "welcome")])
       expect(framingFor(screen, standing("b-4"), PLACES), screen.path).toEqual({
         kind: "welcome",
+        to: null,
+        card: null,
       });
     for (const screen of [
       at("/progress", "progress"),
@@ -188,6 +195,14 @@ describe("the framing each screen shows", () => {
       card: { lesson: "b-2", place: "noticeboard" },
       whole: false,
     });
+    // Each Level's stage frames a card at its own place.
+    for (const [lesson, place] of [
+      ["i-4", "organizer"],
+      ["a-9", "release-desk"],
+    ] as const)
+      expect(
+        framingFor(journey, standing(lesson, DESKTOP_BAND), PLACES),
+      ).toMatchObject({ kind: "stage", card: { lesson, place } });
     const pulled = framingFor(
       journey,
       standing("b-2", DESKTOP_BAND, true),
@@ -226,7 +241,10 @@ describe("where the framings put the places", () => {
   test("Welcome shows Pip at his start clear on the floor, above Pip's toolbar at the page's foot; on a phone below the card's top third, with the board in view and the other places ahead, off to the side, where their tags wait at the page's edge", () => {
     const PIP_TALL = 1.1;
     for (const viewport of [DESKTOP, PHONE]) {
-      const { onPage, anchors } = drawn({ kind: "welcome" }, viewport);
+      const { onPage, anchors } = drawn(
+        { kind: "welcome", to: null, card: null },
+        viewport,
+      );
       const feet = onPage(new Vector3(PIP_START.x, 0, PIP_START.z));
       const head = onPage(new Vector3(PIP_START.x, PIP_TALL, PIP_START.z));
       const what = String(viewport.width);
@@ -241,6 +259,74 @@ describe("where the framings put the places", () => {
       expect(anchors.noticeboard?.visible, what).toBe(true);
       for (const place of ["organizer", "release-desk"] as const)
         expect(anchors[place]?.ahead, `${what} ${place}`).toBe(true);
+    }
+  });
+
+  // The owner's tour sent Pip to the tea table on Welcome and lost him
+  // under its card on a desktop, and off the page on a phone.
+  test("Pip sent to any spot of the room on Welcome stands whole on the page, over his toolbar and clear of the card, on a desktop and a phone", () => {
+    const PIP_TALL = 1.1;
+    for (const [viewport, card, toolbar] of [
+      [DESKTOP, DESKTOP_CARD, 70],
+      [PHONE, PHONE_CARD, 120],
+    ] as const)
+      for (const spot of Object.keys(SPOTS) as SpotId[]) {
+        const to = SPOTS[spot].stand;
+        const { onPage } = drawn({ kind: "welcome", to, card }, viewport);
+        const what = `${String(viewport.width)} ${spot}`;
+        const feet = onPage(new Vector3(to.x, 0, to.z));
+        const head = onPage(new Vector3(to.x, PIP_TALL, to.z));
+        for (const p of [feet, head]) {
+          expect(p.x, what).toBeGreaterThan(0);
+          expect(p.x, what).toBeLessThan(viewport.width);
+          expect(p.y, what).toBeGreaterThan(0);
+          expect(p.y, what).toBeLessThan(viewport.height - toolbar);
+          const under =
+            p.x > card.left &&
+            p.x < card.left + card.width &&
+            p.y > card.top &&
+            p.y < card.top + card.height;
+          expect(under, what).toBe(false);
+        }
+      }
+  });
+
+  test("a spot the room already shows clear keeps the room's own view, and no card measured yet still keeps him on the page", () => {
+    const room = drawn({ kind: "welcome", to: null, card: null }, DESKTOP);
+    const bench = drawn(
+      { kind: "welcome", to: SPOTS.bench.stand, card: DESKTOP_CARD },
+      DESKTOP,
+    );
+    expect(bench.pose.position.toArray()).toEqual(room.pose.position.toArray());
+    const { x, z } = SPOTS.organizer.stand;
+    const phone = drawn(
+      { kind: "welcome", to: { x, z }, card: null },
+      PHONE,
+    ).onPage(new Vector3(x, 0, z));
+    expect(phone.x).toBeGreaterThan(0);
+    expect(phone.x).toBeLessThan(PHONE.width);
+  });
+
+  // U4 left Pip where he stood on Progress and the Level and course
+  // moments, behind their panels over the room's middle.
+  test("the whole room draws Pip aside at the armchair whole beside a 720 px column, at every wide size", () => {
+    const PIP_TALL = 1.1;
+    const COLUMN = 720;
+    const { x, z } = SPOTS.armchair.stand;
+    for (const viewport of [
+      DESKTOP,
+      { width: 1280, height: 800 },
+      { width: 1024, height: 768 },
+    ]) {
+      const { onPage } = drawn({ kind: "room" }, viewport);
+      const feet = onPage(new Vector3(x, 0, z));
+      const head = onPage(new Vector3(x, PIP_TALL, z));
+      const half = ((feet.y - head.y) * 0.8) / 2;
+      const what = String(viewport.width);
+      expect(feet.x - half, what).toBeGreaterThan(0);
+      expect(feet.x + half, what).toBeLessThan((viewport.width - COLUMN) / 2);
+      expect(head.y, what).toBeGreaterThan(0);
+      expect(feet.y, what).toBeLessThan(viewport.height);
     }
   });
 
@@ -335,10 +421,16 @@ describe("where the framings put the places", () => {
     for (const p of view.points) expect(p.r).toBeGreaterThanOrEqual(22);
   });
 
-  test("on the Journey's stage, Pip's Station's card and his feet under it fall in the band, in one column; pulled back, every card of the Level is wholly on the band", () => {
+  // Every Level's tab frames its own place: U4 drew a stage for Beginner
+  // alone, and the other tabs left the camera on the noticeboard under the
+  // Journey's panels, with Pip behind them.
+  test("on every Level's stage, Pip's Station's card and his feet under it fall in the band, in one column, with the 3D Pip at his place's spot whole on it too; pulled back, every card of the Level is wholly on the band", () => {
+    for (const place of PLACES) stageOf(place.cards.map((c) => c.lesson));
+  });
+
+  function stageOf(lessons: readonly string[]): void {
     const journey = at("/journey", "map");
-    const beginner = PLACES[0]?.cards.map((c) => c.lesson) ?? [];
-    expect(beginner).toHaveLength(7);
+    expect(lessons.length).toBeGreaterThan(0);
     for (const [viewport, band] of [
       [DESKTOP, DESKTOP_BAND],
       [PHONE, PHONE_BAND],
@@ -348,11 +440,10 @@ describe("where the framings put the places", () => {
         p.x + r <= band.left + band.width &&
         p.y - r >= band.top &&
         p.y + r <= band.top + band.height;
-      for (const lesson of beginner) {
-        const shown = drawn(
-          framingFor(journey, standing(lesson, band), PLACES),
-          viewport,
-        );
+      for (const lesson of lessons) {
+        const framing = framingFor(journey, standing(lesson, band), PLACES);
+        expect(framing, lesson).toMatchObject({ kind: "stage" });
+        const shown = drawn(framing, viewport);
         const card = shown.view.points.find((p) => p.lesson === lesson);
         const feet = shown.view.pip;
         const where = `${String(viewport.width)} ${lesson}`;
@@ -368,12 +459,30 @@ describe("where the framings put the places", () => {
         );
         expect(head.y, where).toBeGreaterThan(card?.y ?? Infinity);
         expect(onBand(head), where).toBe(true);
+        // The 3D Pip walks to his place's spot, not under the card: he
+        // stands whole on the band at every card of the place.
+        if (framing.kind !== "stage") continue;
+        // His feet's edges too, his radius round his spot: from the desk's
+        // steep view their front fell under the panel below the band.
+        const { x, z } = SPOTS[framing.card.place].stand;
+        const r = PIP_RADIUS;
+        for (const [dx, y, dz] of [
+          [0, 1.1, 0],
+          [r, 0, 0],
+          [-r, 0, 0],
+          [0, 0, r],
+          [0, 0, -r],
+        ] as const)
+          expect(
+            onBand(shown.onPage(new Vector3(x + dx, y, z + dz))),
+            `${where} 3D Pip ${String(dx)} ${String(y)} ${String(dz)}`,
+          ).toBe(true);
       }
       const whole = drawn(
-        framingFor(journey, standing("b-2", band, true), PLACES),
+        framingFor(journey, standing(lessons[0] ?? null, band, true), PLACES),
         viewport,
       ).view;
-      for (const lesson of beginner) {
+      for (const lesson of lessons) {
         const card = whole.points.find((p) => p.lesson === lesson);
         expect(
           card && onBand(card, card.r),
@@ -382,7 +491,7 @@ describe("where the framings put the places", () => {
       }
       expect(whole.pip && onBand(whole.pip)).toBe(true);
     }
-  });
+  }
 
   test("no screen but the Journey's stage tells the page where Pip's feet are", () => {
     for (const framing of [

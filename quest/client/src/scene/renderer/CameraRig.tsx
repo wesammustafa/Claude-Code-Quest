@@ -21,6 +21,7 @@ import type {
 import { motionTokens, type Easing } from "../../lib/motion";
 import { SceneContext, useSceneMove, type SceneMove } from "../context";
 import { journeyPathOf, type PathView } from "../path";
+import { SPOTS, type FloorPoint } from "../workshop/layout";
 import { workshopPlaces } from "../workshop/places";
 import { workshopOf } from "../workshop/store";
 import {
@@ -33,6 +34,7 @@ import {
   sameFraming,
   sameView,
   type PathState,
+  type WelcomeState,
 } from "./camera";
 import { tellPage, toldCards } from "./workshop/anchors";
 import { floorHit, pickOf } from "./workshop/pick";
@@ -94,6 +96,9 @@ export function CameraRig({ screen, stations, sway, feet }: Props): null {
   const shown = useRef<ScreenOnShow>(screen.get());
   const sent = useRef<PathView | null>(null);
   const drawn = useRef(false);
+  // Where Pip was last sent on this screen, for Welcome's framing to keep
+  // him clear of its card; else the spot he stands at.
+  const sentTo = useRef<FloorPoint | null>(null);
   const places = useMemo(() => workshopPlaces(stations), [stations]);
   const placeIds = useMemo(() => places.map((p) => p.id), [places]);
   const cards = useMemo(() => toldCards(places), [places]);
@@ -109,9 +114,16 @@ export function CameraRig({ screen, stations, sway, feet }: Props): null {
     }),
     [path],
   );
+  const welcomeNow = useCallback((): WelcomeState => {
+    const at = workshop.status().at;
+    return {
+      to: sentTo.current ?? (at === null ? null : SPOTS[at].stand),
+      card: workshop.card(),
+    };
+  }, [workshop]);
   const framingNow = useCallback(
-    () => framingFor(shown.current, pathNow(), places),
-    [pathNow, places],
+    () => framingFor(shown.current, pathNow(), places, welcomeNow()),
+    [pathNow, places, welcomeNow],
   );
 
   const start = useCallback(
@@ -129,6 +141,7 @@ export function CameraRig({ screen, stations, sway, feet }: Props): null {
       // Coming back from a Lesson's screens, the Journey stands at its Lesson.
       if (plan.at !== null) path.setAt(plan.at);
       shown.current = change.to;
+      sentTo.current = null;
       if (!plan.travel) {
         moves.end(performance.now(), poseOf(framingNow(), size));
         canvas.removeAttribute(MOVING);
@@ -179,15 +192,33 @@ export function CameraRig({ screen, stations, sway, feet }: Props): null {
       invalidate();
     });
     const offScreen = screen.subscribe(() => {
+      if (screen.get() !== shown.current) sentTo.current = null;
       shown.current = screen.get();
       last = framingNow();
+      invalidate();
+    });
+    // On Welcome, Pip sent where its room draws him under the card, or off
+    // the page, glides the room over --duration-slow to keep him clear.
+    const offCommand = workshop.onCommand((command) => {
+      if (command.type !== "goTo") return;
+      sentTo.current =
+        "spot" in command.to ? SPOTS[command.to.spot].stand : command.to.floor;
+      const next = framingNow();
+      if (
+        shown.current.screen === "welcome" &&
+        !sameFraming(last, next) &&
+        !canvas.hasAttribute(MOVING)
+      )
+        start(motionTokens().slow * MS_PER_SECOND, motionTokens().inOut, false);
+      last = next;
       invalidate();
     });
     return () => {
       offPath();
       offScreen();
+      offCommand();
     };
-  }, [path, screen, framingNow, canvas, start, invalidate]);
+  }, [path, screen, workshop, framingNow, canvas, start, invalidate]);
 
   // Ready once a frame is drawn; gone, the page shows nothing that rides on the Scene.
   useEffect(() => {
@@ -231,7 +262,11 @@ export function CameraRig({ screen, stations, sway, feet }: Props): null {
     const shot = moves.frame(performance.now(), poseOf(framing, size));
     if (!shot.between) canvas.removeAttribute(MOVING);
     if (shot.moving) invalidate();
-    if (sway && (framing.kind === "room" || framing.kind === "welcome"))
+    if (
+      sway &&
+      (framing.kind === "room" ||
+        (framing.kind === "welcome" && framing.to === null))
+    )
       shot.pose.position.x += Math.sin(clock.elapsedTime * SWAY_RATE) * SWAY;
     aim(camera, shot.pose, size);
     const told = tellPage(

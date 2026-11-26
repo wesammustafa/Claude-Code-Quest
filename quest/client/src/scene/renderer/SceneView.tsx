@@ -1,4 +1,9 @@
-import { Canvas, useFrame, type CameraProps } from "@react-three/fiber";
+import {
+  Canvas,
+  useFrame,
+  useThree,
+  type CameraProps,
+} from "@react-three/fiber";
 import {
   useContext,
   useEffect,
@@ -17,7 +22,7 @@ import { DeckPortal } from "../workshop/Deck";
 import { pipOnScreen } from "../workshop/goal";
 import { workshopPlaces } from "../workshop/places";
 import { CameraRig } from "./CameraRig";
-import { FOV } from "./camera";
+import { FOV, isNarrow } from "./camera";
 import { SceneBadges } from "./badges/SceneBadges";
 import { WorkshopPip } from "./pip/WorkshopPip";
 import { WorkshopLamps, WorkshopRoom } from "./workshop/WorkshopRoom";
@@ -195,7 +200,8 @@ function FollowedPip({
   const current = useSyncExternalStore(screen.subscribe, screen.get);
   const path = journeyPathOf(useContext(SceneContext));
   const at = useSyncExternalStore(path.subscribe, path.at);
-  const pip = pipOnScreen(current, at, stations);
+  const narrow = useThree((s) => isNarrow(s.size));
+  const pip = pipOnScreen(current, at, stations, narrow);
   // A renderer that loads while the Learner is already on a Workspace
   // fetches no model there.
   const [entered, setEntered] = useState(pip.inRoom);

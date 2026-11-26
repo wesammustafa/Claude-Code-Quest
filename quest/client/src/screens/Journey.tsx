@@ -227,7 +227,7 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
     tabs.current[to]?.focus();
   };
 
-  const onPath = useOnPath(level?.id);
+  const onPath = useOnPath(level?.lessons);
   const room = useRoom();
   const host = useDeckHost("inline");
   const links = useRef(new Map<LessonId, HTMLAnchorElement>());
@@ -241,7 +241,7 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
   // itself. They move focus to the Station's link, whose focus moves Pip,
   // as the links' own arrows do; Up and Down keep scrolling the page.
   const path = useJourneyPath();
-  const home = current?.id ?? null;
+  const home = level ? stageHome(splitLabs(level.lessons).core, current) : null;
   useEffect(() => {
     if (!onPath || !level) return;
     const ids = splitLabs(level.lessons).core.map((l) => l.id);
@@ -377,13 +377,7 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
           ))}
       </div>
 
-      {onPath && (
-        <JourneyStage
-          lessons={stations}
-          home={current?.id ?? null}
-          link={link}
-        />
-      )}
+      {onPath && <JourneyStage lessons={stations} home={home} link={link} />}
 
       <section
         id="level-panel"
@@ -432,16 +426,38 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
 }
 
 /**
- * Whether the Level's Lessons are a path through the Scene here (09 9.3):
- * the mount turns the Scene on, its renderer draws, and the Level is
- * Beginner, whose cards the stage marks on the workshop's noticeboard
- * until the workshop's own screen takes the Journey's place.
+ * Whether the selected Level's Lessons are a path through the Scene here
+ * (09 9.3): the mount turns the Scene on, its renderer draws, and the Level
+ * has a core Lesson. Every Level's cards are at its own place in the
+ * workshop (the noticeboard, the kit organizer, the release desk), so each
+ * tab's stage frames its own place, as the course's Levels give them.
  */
-function useOnPath(level: LevelId | undefined): boolean {
+function useOnPath(lessons: readonly LessonSummary[] | undefined): boolean {
   const scene = useMount().scene !== null;
   const path = useJourneyPath();
   const ready = useSyncExternalStore(path.subscribe, path.ready, () => false);
-  return scene && ready && level === "beginner";
+  return (
+    scene &&
+    ready &&
+    lessons !== undefined &&
+    splitLabs(lessons).core.length > 0
+  );
+}
+
+/**
+ * Where Pip stands on a Level's stage when the Journey names none of its
+ * Lessons: the Learner's place when it is in the Level, else the Level's
+ * first core Lesson not complete, else its first.
+ */
+function stageHome(
+  core: readonly LessonSummary[],
+  current: LessonSummary | null,
+): LessonId | null {
+  const at =
+    core.find((l) => l.id === current?.id) ??
+    core.find((l) => !l.complete) ??
+    core[0];
+  return at?.id ?? null;
 }
 
 /**

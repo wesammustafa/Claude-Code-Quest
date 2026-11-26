@@ -32,9 +32,6 @@ describe("the workshop Pip's goal per screen", () => {
   test.each([
     ["welcome", "/"],
     ["resume", "/resume"],
-    ["progress", "/progress"],
-    ["levelComplete", "/level/beginner/complete"],
-    ["courseComplete", "/course/complete"],
     ["other", "/settings"],
   ] as const)("%s keeps him in the room where he stands", (screen, path) => {
     expect(pipOnScreen(on(screen, path), "i-2", COURSE)).toEqual({
@@ -75,6 +72,26 @@ describe("the workshop Pip's goal per screen", () => {
       goal: null,
     });
   });
+
+  // U4 left him where he stood, which on these screens is behind their
+  // panels, his Celebration on the moments unseen.
+  test.each([
+    ["progress", "/progress"],
+    ["levelComplete", "/level/b/complete"],
+    ["courseComplete", "/course/complete"],
+  ] as const)(
+    "%s sends him aside to the armchair on a wide page, and leaves him where he stands on a narrow one",
+    (screen, path) => {
+      expect(pipOnScreen(on(screen, path), "i-2", COURSE)).toEqual({
+        inRoom: true,
+        goal: "armchair",
+      });
+      expect(pipOnScreen(on(screen, path), "i-2", COURSE, true)).toEqual({
+        inRoom: true,
+        goal: null,
+      });
+    },
+  );
 
   test("a Lesson the course does not hold, or no Stations yet, sends him nowhere", () => {
     expect(pipOnScreen(on("intro", "/lesson/z-9"), null, COURSE)).toEqual({
