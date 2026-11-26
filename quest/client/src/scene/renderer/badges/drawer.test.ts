@@ -117,6 +117,48 @@ describe("where a Badge stands", () => {
   });
 });
 
+describe("a Badge in a panel that scrolls in itself", () => {
+  // On a phone the Lesson complete sheet scrolls: a Badge drawn from its
+  // box alone followed it past the sheet's top and over the room.
+  function inPanel(top: number): SVGSVGElement {
+    const panel = document.createElement("div");
+    panel.setAttribute("data-scene-panel", "");
+    panel.getBoundingClientRect = () => rect(0, 300, 800, 300);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.getBoundingClientRect = () => rect(100, top, 96, 96);
+    panel.append(svg);
+    document.body.append(panel);
+    return svg;
+  }
+
+  test("is drawn while its box lies inside the panel", () => {
+    const stage = createBadgeStage();
+    const drawer = new BadgeDrawer(stage);
+    const svg = inPanel(400);
+    stage.add(
+      slotOf(svg, { startedAt: now, ms: 1500, lights: 2, done: false }),
+    );
+    drawer.frame(stateOf(), 0.016);
+    expect(drawer.rig.children[0]?.visible).toBe(true);
+    expect(svg).toHaveAttribute("data-scene-shown");
+  });
+
+  test("is not drawn once scrolled even partly out of it, and its SVG shows again", () => {
+    const stage = createBadgeStage();
+    const drawer = new BadgeDrawer(stage);
+    const svg = inPanel(400);
+    stage.add(
+      slotOf(svg, { startedAt: now, ms: 1500, lights: 2, done: false }),
+    );
+    const state = stateOf();
+    drawer.frame(state, 0.016);
+    svg.getBoundingClientRect = () => rect(100, 260, 96, 96);
+    drawer.frame(state, 0.016);
+    expect(drawer.rig.children[0]?.visible).toBe(false);
+    expect(svg).not.toHaveAttribute("data-scene-shown");
+  });
+});
+
 describe("the layer shows its renderer in full", () => {
   function layer(fade: string): HTMLCanvasElement {
     const scene = document.createElement("div");
