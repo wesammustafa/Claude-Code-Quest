@@ -64,6 +64,7 @@ function sceneWith(heard: Heard, { holds = false } = {}): SceneMount {
         light: "#ffffff",
         ambient: 3,
         key: 1,
+        shadow: "#3a1a10",
         landscape: {
           meadow: "#eeeeee",
           path: "#f5f5f5",
@@ -78,6 +79,7 @@ function sceneWith(heard: Heard, { holds = false } = {}): SceneMount {
         light: "#ffffff",
         ambient: 2,
         key: 2,
+        shadow: "#3a1a10",
         landscape: {
           meadow: "#111111",
           path: "#121212",

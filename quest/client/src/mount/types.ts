@@ -94,6 +94,8 @@ export interface SceneLook {
    */
   ambient: number;
   key: number;
+  /** Pip's soft ground shadow, laid over the ground at its own opacity. */
+  shadow: string;
   /** The landscapes' own colours, baked under the same light. */
   landscape: LandscapeLook;
 }

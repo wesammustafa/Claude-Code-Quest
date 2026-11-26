@@ -39,6 +39,7 @@ const LOOK = {
     light: "#fff6ee",
     ambient: 2.9,
     key: 1,
+    shadow: "#3a1a10",
     landscape: {
       meadow: "#eef0de",
       path: "#f6ecdc",
@@ -53,6 +54,7 @@ const LOOK = {
     light: "#ffd9c9",
     ambient: 2.6,
     key: 2.4,
+    shadow: "#3a1a10",
     landscape: {
       meadow: "#17223f",
       path: "#26315a",

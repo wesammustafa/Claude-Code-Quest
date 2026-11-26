@@ -40,20 +40,27 @@ import modelUrl from "../../../../pip/model/pip.glb?url";
 import { PipDrive, frameStep } from "./drive";
 import { loadPipModel, type PipModel3D } from "./load";
 import { PIP_FILL, placeAtSpot } from "./place";
-import { poseShadow, shadowMesh } from "./shadow";
+import { poseShadow, shadowMesh, tintShadow } from "./shadow";
 
 export interface ScenePipProps {
   screen: ScreenOnShow;
   tier: Exclude<SceneTier, "still">;
   /** The Scene's sky, which sets how dark his ground shadow lies. */
   theme: SceneTheme;
+  /** His ground shadow's colour: the look's `shadow`. */
+  shadow: string;
 }
 
 type Loaded =
   { state: "loading" | "failed" } | { state: "ready"; model: PipModel3D };
 
 /** The 3D Pip: his model loading, then driven, or nothing where it fails. */
-export function ScenePip({ screen, tier, theme }: ScenePipProps): ReactNode {
+export function ScenePip({
+  screen,
+  tier,
+  theme,
+  shadow,
+}: ScenePipProps): ReactNode {
   const canvas = useThree((s) => s.gl.domElement);
   const [loaded, setLoaded] = useState<Loaded>({ state: "loading" });
   useEffect(() => {
@@ -90,7 +97,13 @@ export function ScenePip({ screen, tier, theme }: ScenePipProps): ReactNode {
   );
   if (loaded.state !== "ready") return null;
   return (
-    <Driven model={loaded.model} screen={screen} tier={tier} theme={theme} />
+    <Driven
+      model={loaded.model}
+      screen={screen}
+      tier={tier}
+      theme={theme}
+      shadow={shadow}
+    />
   );
 }
 
@@ -100,6 +113,7 @@ function Driven({
   screen,
   tier,
   theme,
+  shadow: shadowColour,
 }: ScenePipProps & { model: PipModel3D }): ReactNode {
   const pip = usePipModel();
   const send = usePipInput();
@@ -115,13 +129,16 @@ function Driven({
     [driver],
   );
   // His ground shadow, outside the model so it never counts in his height.
-  const [shadow] = useState(() => shadowMesh(theme));
+  const [shadow] = useState(() => shadowMesh(theme, shadowColour));
   useEffect(
     () => () => {
       disposeTree(shadow);
     },
     [shadow],
   );
+  useEffect(() => {
+    tintShadow(shadow, shadowColour);
+  }, [shadow, shadowColour]);
   const hop = useMemo(() => {
     const node = model.scene.getObjectByName("Hop") ?? null;
     return node === null ? null : { node, rest: node.position.y };

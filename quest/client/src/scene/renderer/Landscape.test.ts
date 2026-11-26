@@ -12,6 +12,7 @@ const LOOK: SceneLook = {
   light: "#fff6ee",
   ambient: 3.15,
   key: 1,
+  shadow: "#3a1a10",
   landscape: {
     meadow: "#e4f2cf",
     path: "#fff8ec",

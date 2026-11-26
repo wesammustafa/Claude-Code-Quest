@@ -26,7 +26,6 @@ export const SHADOW = {
   /** Half its width and height: the rig's 460-unit circle squashed to 0.11. */
   halfWidth: 230 / 725,
   halfHeight: (230 * 0.11) / 725,
-  colour: "#3A1A10",
   /**
    * Its strongest opacity on each sky: on the light one, as dark under his
    * soles as the posters' 28% black reads on the page.
@@ -56,8 +55,11 @@ const alphaAt = (r: number): number => {
   return 0;
 };
 
-/** The shadow's mesh: a unit-radius disc of rings, its alpha in its vertex colours, laid on Pip's camera-facing plane. */
-export function shadowMesh(theme: SceneTheme): Mesh {
+/**
+ * The shadow's mesh: a unit-radius disc of rings, its alpha in its vertex
+ * colours, laid on Pip's camera-facing plane, in the look's `shadow` colour.
+ */
+export function shadowMesh(theme: SceneTheme, colour: string): Mesh {
   const positions: number[] = [0, 0, 0];
   const colours: number[] = [1, 1, 1, alphaAt(0)];
   for (const r of RINGS)
@@ -82,7 +84,7 @@ export function shadowMesh(theme: SceneTheme): Mesh {
   geometry.setAttribute("color", new Float32BufferAttribute(colours, 4));
   geometry.setIndex(index);
   const material = new MeshBasicMaterial({
-    color: new Color(SHADOW.colour),
+    color: new Color(colour),
     vertexColors: true,
     transparent: true,
     opacity: SHADOW.opacity[theme],
@@ -95,6 +97,11 @@ export function shadowMesh(theme: SceneTheme): Mesh {
   mesh.position.set(0, SHADOW.y, SHADOW.z);
   mesh.scale.set(SHADOW.halfWidth, SHADOW.halfHeight, 1);
   return mesh;
+}
+
+/** Gives the shadow a new look's colour, as when the theme changes. */
+export function tintShadow(shadow: Mesh, colour: string): void {
+  (shadow.material as MeshBasicMaterial).color.set(colour);
 }
 
 /**
