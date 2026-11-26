@@ -37,6 +37,7 @@ import {
   OTHER_SPOTS,
   SPOT_NAMES,
   activityLine,
+  dropNextClick,
   keysSteer,
   roomTap,
   stickSteer,
@@ -184,6 +185,7 @@ export function WorkshopDeck({
       const tap = roomTap(workshop.pick(x, y), path.view().points, x, y);
       if (tap === null) return;
       if (tap.type === "open") {
+        dropNextClick();
         void navigate(`/lesson/${tap.lesson}`);
         return;
       }

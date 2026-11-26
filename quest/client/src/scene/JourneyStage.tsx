@@ -25,6 +25,7 @@ import {
   type JourneyPath,
   type PathView,
 } from "./path";
+import { dropNextClick } from "./workshop/controls";
 
 /** The pull-back control's words (05 5.11): it names the place, never a key. */
 export const WHOLE_LEVEL = "Show the whole Level";
@@ -348,7 +349,9 @@ function useGestures(
       const lesson =
         mark?.getAttribute("data-station") ??
         stationAt(path.view().points, event.clientX, event.clientY)?.lesson;
-      if (lesson !== undefined) link(lesson)?.click();
+      if (lesson === undefined) return;
+      link(lesson)?.click();
+      dropNextClick();
     },
     onPointerCancel: (event: PointerEvent<HTMLDivElement>) => {
       down.current.delete(event.pointerId);

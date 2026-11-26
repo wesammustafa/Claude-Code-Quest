@@ -171,3 +171,26 @@ export function typesInto(target: EventTarget | null): boolean {
     target.closest("input, textarea, select, [contenteditable]") !== null
   );
 }
+
+/**
+ * A tap that opens another screen on pointerup is followed by the
+ * browser's click, which lands on whatever the new screen puts under the
+ * finger (a Lesson's Start, on a phone): that one click is dropped. Only a
+ * pointer's click is (`detail` counts its presses; a key's or a script's
+ * click has none), and the next press ends the watch, so a tap that sends
+ * no click never costs a later one.
+ */
+export function dropNextClick(): void {
+  const drop = (event: MouseEvent) => {
+    if (event.detail === 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    stop();
+  };
+  const stop = () => {
+    document.removeEventListener("click", drop, true);
+    document.removeEventListener("pointerdown", stop, true);
+  };
+  document.addEventListener("click", drop, true);
+  document.addEventListener("pointerdown", stop, true);
+}

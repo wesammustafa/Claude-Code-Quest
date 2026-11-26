@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import type { StationPoint } from "../path";
 import {
   activityLine,
+  dropNextClick,
   keysSteer,
   roomTap,
   stickSteer,
@@ -109,5 +110,42 @@ describe("a tap on the room", () => {
     expect(tapsRoom(card)).toBe(false);
     expect(tapsRoom(button)).toBe(false);
     expect(tapsRoom(null)).toBe(false);
+  });
+});
+
+describe("a tap that opens another screen", () => {
+  const press = (button: HTMLElement) =>
+    button.dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }),
+    );
+  const counted = () => {
+    const button = document.createElement("button");
+    const presses = { n: 0 };
+    button.addEventListener("click", () => {
+      presses.n += 1;
+    });
+    document.body.append(button);
+    return { button, presses };
+  };
+
+  test("drops the pointer's click that follows it, so it never presses the new screen's control", () => {
+    const { button, presses } = counted();
+    dropNextClick();
+    press(button);
+    expect(presses.n).toBe(0);
+    press(button);
+    expect(presses.n).toBe(1);
+    button.remove();
+  });
+
+  test("lets a key's click through, and the next press's click when the tap sent none", () => {
+    const { button, presses } = counted();
+    dropNextClick();
+    button.click();
+    expect(presses.n).toBe(1);
+    button.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    press(button);
+    expect(presses.n).toBe(2);
+    button.remove();
   });
 });
