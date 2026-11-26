@@ -1,169 +1,224 @@
-// The Scene's camera (09 9.3, ticket 52): the place each screen shows, the
-// pose for each place and where it puts the Stations on the page, and the
-// camera moves between screens, with Three.js's own math and no renderer.
+// The Scene's camera in the workshop (the warm workshop, D5): the framing
+// each screen asks for, where each framing puts the places and their cards
+// on the page, and the camera moves between screens, with Three.js's own
+// math and no renderer.
 import { PerspectiveCamera } from "three";
 import { describe, expect, test } from "vitest";
 import type { SceneStation, ScreenOnShow } from "../../mount/types";
-import type { Band } from "../path";
+import { workshopPlaces } from "../workshop/places";
 import {
   aim,
   createCameraMoves,
   cubicBezier,
   FOV,
-  glideOf,
-  pipStation,
-  placeFor,
+  framingFor,
   planMove,
   poseOf,
   sameView,
-  viewOf,
-  walkEase,
-  walkWay,
-  type Place,
+  type Framing,
   type Pose,
+  type Viewport,
 } from "./camera";
-import { beginnerLayout } from "./beginner";
+import { tellPage, toldCards } from "./workshop/anchors";
 
-const BEGINNER = ["b-1", "b-2", "b-3", "b-4", "b-5", "b-capstone"];
-const STATIONS: SceneStation[] = [
-  ...BEGINNER.map((lesson, i) => ({
-    lesson,
-    level: "beginner" as const,
-    optional: false,
-    complete: i < 2,
-  })),
-  { lesson: "i-1", level: "intermediate", optional: false, complete: false },
+type Course = readonly (readonly [string, SceneStation["level"], boolean])[];
+
+const level = (
+  lessons: readonly string[],
+  of: SceneStation["level"],
+  optional: boolean,
+): Course => lessons.map((l) => [l, of, optional] as const);
+
+/** Fix-It's Lessons in course order: each Level's core Lessons, then its labs. */
+const COURSE: Course = [
+  ...level(
+    ["b-1", "b-2", "b-6", "b-4", "b-5", "b-capstone"],
+    "beginner",
+    false,
+  ),
+  ...level(["b-3"], "beginner", true),
+  ...level(
+    ["i-2", "i-1", "i-4", "i-6", "i-7", "i-capstone"],
+    "intermediate",
+    false,
+  ),
+  ...level(["i-3", "i-5", "i-8"], "intermediate", true),
+  ...level(
+    ["a-2", "a-8", "a-7", "a-9", "a-6", "a-capstone"],
+    "advanced",
+    false,
+  ),
+  ...level(["a-1", "a-3", "a-4", "a-5"], "advanced", true),
 ];
-const VIEWPORT = { width: 1440, height: 900 };
-const BAND: Band = { left: 170, top: 300, width: 1100, height: 320 };
+
+const stationsWith = (done: readonly string[]): SceneStation[] =>
+  COURSE.map(([lesson, level, optional]) => ({
+    lesson,
+    level,
+    optional,
+    complete: done.includes(lesson),
+  }));
+
+const STATIONS = stationsWith(["b-1", "b-2"]);
+const DESKTOP: Viewport = { width: 1440, height: 900 };
+const PHONE: Viewport = { width: 390, height: 844 };
 
 const at = (path: string, screen: ScreenOnShow["screen"]): ScreenOnShow => ({
   path,
   screen,
 });
-const noPath = { at: null, whole: false, band: null };
 
-/** A camera as the renderer aims it, on a page of VIEWPORT's size. */
-function aimed(pose: Pose): PerspectiveCamera {
+/** Where the places and cards fall on a page of `viewport`'s size, through the framing's pose. */
+function drawn(framing: Framing, viewport: Viewport) {
   const camera = new PerspectiveCamera(
     FOV,
-    VIEWPORT.width / VIEWPORT.height,
+    viewport.width / viewport.height,
     0.1,
-    160,
+    80,
   );
-  aim(camera, pose, VIEWPORT);
-  return camera;
+  aim(camera, poseOf(framing, viewport), viewport);
+  const places = workshopPlaces(STATIONS);
+  return tellPage(
+    camera,
+    { left: 0, top: 0, ...viewport },
+    places.map((p) => p.id),
+    toldCards(places),
+  );
 }
 
-const marks = BEGINNER.map((lesson) => ({ lesson, lit: false }));
-
-describe("the place each screen shows", () => {
-  test("the Journey with its band frames Pip's Station, or the whole Level once pulled back", () => {
-    const journey = at("/journey", "map");
-    expect(
-      placeFor(journey, { at: "b-3", whole: false, band: BAND }, STATIONS),
-    ).toEqual({ kind: "station", at: 2, band: BAND });
-    expect(
-      placeFor(journey, { at: "b-3", whole: true, band: BAND }, STATIONS),
-    ).toEqual({ kind: "whole", band: BAND });
-    // No band (another Level, or before the renderer draws): the meadow.
-    expect(placeFor(journey, noPath, STATIONS)).toEqual({ kind: "meadow" });
+describe("the framing each screen shows", () => {
+  test("Welcome, Progress, the added screens and the Level's and course's ends show the whole room", () => {
+    for (const screen of [
+      at("/", "welcome"),
+      at("/resume", "welcome"),
+      at("/progress", "progress"),
+      at("/settings", "other"),
+      at("/level/beginner/complete", "levelComplete"),
+      at("/course/complete", "courseComplete"),
+    ])
+      expect(framingFor(screen, "b-4", STATIONS), screen.path).toEqual({
+        kind: "room",
+      });
   });
 
-  test("a Beginner Lesson's overview, step and complete screens dive into its Station; the rest stand over the meadow", () => {
-    expect(placeFor(at("/lesson/b-2", "intro"), noPath, STATIONS)).toEqual({
-      kind: "dive",
-      at: 1,
+  test("the Journey frames the place of the Lesson it stands at, else the first place with a card to do, else the room", () => {
+    const journey = at("/journey", "map");
+    expect(framingFor(journey, "i-3", STATIONS)).toEqual({
+      kind: "place",
+      place: "organizer",
+      panel: false,
     });
+    expect(framingFor(journey, null, STATIONS)).toEqual({
+      kind: "place",
+      place: "noticeboard",
+      panel: false,
+    });
+    const beginnerDone = stationsWith(
+      COURSE.filter(([, of]) => of === "beginner").map(([l]) => l),
+    );
+    expect(framingFor(journey, null, beginnerDone)).toMatchObject({
+      place: "organizer",
+    });
+    const allDone = stationsWith(COURSE.map(([l]) => l));
+    expect(framingFor(journey, null, allDone)).toEqual({ kind: "room" });
+  });
+
+  test("a Lesson's overview frames its place beside the panel, its step keeps that, and Lesson complete comes close", () => {
+    expect(framingFor(at("/lesson/a-4", "intro"), null, STATIONS)).toEqual({
+      kind: "place",
+      place: "release-desk",
+      panel: true,
+    });
+    expect(framingFor(at("/lesson/a-4/step", "step"), null, STATIONS)).toEqual(
+      framingFor(at("/lesson/a-4", "intro"), null, STATIONS),
+    );
     expect(
-      placeFor(at("/lesson/b-capstone/complete", "complete"), noPath, STATIONS),
-    ).toEqual({ kind: "dive", at: 5 });
-    for (const screen of [
-      at("/lesson/i-1", "intro"),
-      at("/progress", "progress"),
-      at("/", "welcome"),
-      at("/settings", "other"),
-    ])
-      expect(placeFor(screen, noPath, STATIONS), screen.path).toEqual({
-        kind: "meadow",
-      });
+      framingFor(at("/lesson/b-6/complete", "complete"), null, STATIONS),
+    ).toEqual({ kind: "close", place: "noticeboard" });
+  });
+
+  test("a Lesson the course does not hold, or no snapshot yet, shows the whole room", () => {
+    expect(framingFor(at("/lesson/x-9", "intro"), null, STATIONS)).toEqual({
+      kind: "room",
+    });
+    expect(framingFor(at("/journey", "map"), "b-1", [])).toEqual({
+      kind: "room",
+    });
   });
 });
 
-describe("the poses", () => {
-  test("at a Station, its beacon falls in the band's middle and its neighbours inside the band", () => {
-    const camera = aimed(
-      poseOf({ kind: "station", at: 2, band: BAND }, VIEWPORT),
-    );
-    const view = viewOf(camera, VIEWPORT, marks, 0);
-    const b3 = view.points.find((p) => p.lesson === "b-3");
-    expect(b3?.x).toBeCloseTo(BAND.left + BAND.width / 2, -1);
-    expect(Math.abs((b3?.y ?? 0) - (BAND.top + BAND.height / 2))).toBeLessThan(
-      BAND.height / 3,
-    );
-    for (const lesson of ["b-2", "b-4"]) {
-      const p = view.points.find((q) => q.lesson === lesson);
-      expect(p?.x, lesson).toBeGreaterThan(BAND.left);
-      expect(p?.x, lesson).toBeLessThan(BAND.left + BAND.width);
+describe("where the framings put the places", () => {
+  test("the whole room on a desktop shows all three places and every card", () => {
+    const { anchors, view } = drawn({ kind: "room" }, DESKTOP);
+    for (const place of ["noticeboard", "organizer", "release-desk"] as const)
+      expect(anchors[place]?.visible, place).toBe(true);
+    expect(view.points).toHaveLength(COURSE.length);
+    expect(view.pip).toBeNull();
+  });
+
+  test("a Lesson's overview on a desktop keeps its place's cards in the left 60%, leaving the panel's side free", () => {
+    for (const place of ["noticeboard", "organizer", "release-desk"] as const) {
+      const { view } = drawn({ kind: "place", place, panel: true }, DESKTOP);
+      const own = new Set(
+        workshopPlaces(STATIONS)
+          .find((p) => p.id === place)
+          ?.cards.map((c) => c.lesson),
+      );
+      const cards = view.points.filter((p) => own.has(p.lesson));
+      expect(cards, place).toHaveLength(own.size);
+      for (const card of cards)
+        expect(card.x + card.r, `${place} ${card.lesson}`).toBeLessThan(
+          DESKTOP.width * 0.6,
+        );
     }
   });
 
-  test("pulled back, all six Stations fall inside the band", () => {
-    const camera = aimed(poseOf({ kind: "whole", band: BAND }, VIEWPORT));
-    const view = viewOf(camera, VIEWPORT, marks, 0);
-    expect(view.points.map((p) => p.lesson)).toEqual(BEGINNER);
-    for (const p of view.points) {
-      expect(p.x, p.lesson).toBeGreaterThan(BAND.left);
-      expect(p.x, p.lesson).toBeLessThan(BAND.left + BAND.width);
-      expect(p.y, p.lesson).toBeGreaterThan(BAND.top);
-      expect(p.y, p.lesson).toBeLessThan(BAND.top + BAND.height);
+  test("on a phone the overview keeps its place's cards in the top half, over the panel", () => {
+    const { view } = drawn(
+      { kind: "place", place: "noticeboard", panel: true },
+      PHONE,
+    );
+    const beginner = view.points.filter((p) => p.lesson.startsWith("b-"));
+    expect(beginner).toHaveLength(7);
+    for (const card of beginner) {
+      expect(card.y + card.r, card.lesson).toBeLessThan(PHONE.height / 2);
+      expect(card.x - card.r, card.lesson).toBeGreaterThanOrEqual(0);
+      expect(card.x + card.r, card.lesson).toBeLessThanOrEqual(PHONE.width);
     }
   });
 
-  test("a narrow phone band backs the camera off to keep the whole Level in it", () => {
-    const phone = { width: 390, height: 844 };
-    const band = { left: 16, top: 260, width: 358, height: 300 };
-    const camera = new PerspectiveCamera(FOV, phone.width / phone.height);
-    aim(camera, poseOf({ kind: "whole", band }, phone), phone);
-    const view = viewOf(camera, phone, marks, 0);
-    for (const p of view.points) {
-      expect(p.x, p.lesson).toBeGreaterThan(band.left);
-      expect(p.x, p.lesson).toBeLessThan(band.left + band.width);
-    }
+  test("close on a place draws its cards larger than the Journey's framing does, every one in view", () => {
+    const reach = (framing: Framing) =>
+      drawn(framing, DESKTOP).view.points.filter((p) =>
+        p.lesson.startsWith("a-"),
+      );
+    const journey = reach({
+      kind: "place",
+      place: "release-desk",
+      panel: false,
+    });
+    const close = reach({ kind: "close", place: "release-desk" });
+    expect(close).toHaveLength(10);
+    expect(close[0]?.r ?? 0).toBeGreaterThan(journey[0]?.r ?? Infinity);
   });
 
-  test("a dive puts its Station's beacon at the page's middle, close", () => {
-    const camera = aimed(poseOf({ kind: "dive", at: 0 }, VIEWPORT));
-    const b1 = viewOf(camera, VIEWPORT, marks, 0).points.find(
-      (p) => p.lesson === "b-1",
+  test("an anchor off the page is told, but not as in view; a card is a 44 px target at the least", () => {
+    const { anchors, view } = drawn(
+      { kind: "close", place: "noticeboard" },
+      PHONE,
     );
-    expect(b1?.x).toBeCloseTo(VIEWPORT.width / 2, 0);
-    expect(b1?.y).toBeCloseTo(VIEWPORT.height / 2, 0);
-    expect(b1?.r).toBeGreaterThan(100);
-  });
-
-  test("every Station's reach is a 44 px target at the least, and the lit state is the one told", () => {
-    const camera = aimed(poseOf({ kind: "whole", band: BAND }, VIEWPORT));
-    const view = viewOf(
-      camera,
-      VIEWPORT,
-      BEGINNER.map((lesson) => ({ lesson, lit: lesson === "b-1" })),
-      0,
-    );
+    expect(anchors["release-desk"]?.visible).toBe(false);
+    expect(anchors["card:a-5"]?.visible).toBe(false);
+    expect(view.points.some((p) => p.lesson === "a-5")).toBe(false);
     for (const p of view.points) expect(p.r).toBeGreaterThanOrEqual(22);
-    expect(view.points.filter((p) => p.lit).map((p) => p.lesson)).toEqual([
-      "b-1",
-    ]);
-    expect(view.pip).not.toBeNull();
   });
 
   test("a view the same to within a quarter pixel is not told again", () => {
-    const camera = aimed(poseOf({ kind: "whole", band: BAND }, VIEWPORT));
-    const a = viewOf(camera, VIEWPORT, marks, 0);
-    const b = viewOf(camera, VIEWPORT, marks, 0);
+    const a = drawn({ kind: "room" }, DESKTOP).view;
+    const b = drawn({ kind: "room" }, DESKTOP).view;
     expect(sameView(a, b)).toBe(true);
     expect(sameView(null, b)).toBe(false);
-    expect(sameView(a, viewOf(camera, VIEWPORT, marks, 0.5))).toBe(false);
+    expect(sameView(a, drawn({ kind: "room" }, PHONE).view)).toBe(false);
   });
 });
 
@@ -175,202 +230,75 @@ describe("the camera moves between screens", () => {
   });
   const journey = at("/journey", "map");
 
-  test("entering a Lesson dives, and coming back returns Pip to its Station", () => {
+  test("a screen that frames anew travels, and coming back to the Journey stands it at the Lesson left", () => {
     expect(
-      planMove(change(journey, at("/lesson/b-2", "intro")), BEGINNER),
+      planMove(change(at("/", "welcome"), journey), null, STATIONS),
     ).toEqual({ at: null, travel: true });
     expect(
       planMove(
-        change(at("/lesson/b-1/complete", "complete"), journey),
-        BEGINNER,
+        change(at("/lesson/i-4/complete", "complete"), journey),
+        "b-1",
+        STATIONS,
       ),
-    ).toEqual({ at: "b-1", travel: true });
+    ).toEqual({ at: "i-4", travel: true });
     expect(
-      planMove(change(at("/lesson/b-3", "intro"), journey), BEGINNER),
-    ).toEqual({ at: "b-3", travel: true });
+      planMove(change(journey, at("/lesson/b-4", "intro")), "b-4", STATIONS),
+    ).toEqual({ at: null, travel: true });
   });
 
-  test("into the Workspace the Scene stops: the change is the screens' own", () => {
+  test("into the Workspace the Scene stops, reduced motion never travels, and between two screens of the whole room nothing moves", () => {
     expect(
       planMove(
         change(at("/lesson/b-1", "intro"), at("/lesson/b-1/step", "step")),
-        BEGINNER,
-      ),
-    ).toEqual({ at: null, travel: false });
+        null,
+        STATIONS,
+      ).travel,
+    ).toBe(false);
     expect(
-      planMove(change(journey, at("/lesson/b-1/step", "levelup")), BEGINNER),
-    ).toEqual({ at: null, travel: false });
-  });
-
-  test("reduced motion never travels, and between screens over the meadow nothing moves", () => {
-    expect(
-      planMove(change(journey, at("/lesson/b-2", "intro"), true), BEGINNER),
-    ).toEqual({ at: null, travel: false });
+      planMove(change(at("/", "welcome"), journey, true), null, STATIONS)
+        .travel,
+    ).toBe(false);
     expect(
       planMove(
         change(at("/progress", "progress"), at("/settings", "other")),
-        BEGINNER,
-      ).travel,
-    ).toBe(false);
-    // An Intermediate Lesson has no Station yet (ticket 57).
-    expect(
-      planMove(
-        change(at("/lesson/i-1", "intro"), at("/progress", "progress")),
-        BEGINNER,
+        null,
+        STATIONS,
       ).travel,
     ).toBe(false);
   });
 
-  const station = poseOf({ kind: "station", at: 0, band: BAND }, VIEWPORT);
-  const dive = poseOf({ kind: "dive", at: 0 }, VIEWPORT);
+  const room = poseOf({ kind: "room" }, DESKTOP);
+  const board = poseOf({ kind: "close", place: "noticeboard" }, DESKTOP);
   const linear = (t: number) => t;
 
-  test("a move eases from where the camera stood to the place, and ends on it", () => {
+  test("a move eases from where the camera stood to the framing, and ends on it", () => {
     const moves = createCameraMoves();
-    moves.frame(0, station, 0);
+    moves.frame(0, room);
     moves.start(0, 200, linear, true);
-    const half = moves.frame(100, dive, 0.5);
+    const half = moves.frame(100, board);
     expect(half.between).toBe(true);
     expect(half.moving).toBe(true);
-    expect(half.pose.position.distanceTo(station.position)).toBeCloseTo(
-      half.pose.position.distanceTo(dive.position),
+    expect(half.pose.position.distanceTo(room.position)).toBeCloseTo(
+      half.pose.position.distanceTo(board.position),
       5,
     );
-    const done = moves.frame(200, dive, 0.5);
+    const done = moves.frame(200, board);
     expect(done.moving).toBe(false);
     expect(done.between).toBe(false);
-    expect(done.pose.position.distanceTo(dive.position)).toBe(0);
-    expect(done.pip).toBe(0.5);
+    expect(done.pose.position.distanceTo(board.position)).toBe(0);
   });
 
-  test("a new navigation starts the next move from where the last one stood", () => {
-    const moves = createCameraMoves();
-    moves.frame(0, station, 0);
-    moves.start(0, 200, linear, true);
-    const mid = moves.frame(50, dive, 0).pose;
-    // Ended where it stands, then a new move back to the Station.
-    moves.end(50, dive);
-    moves.start(50, 200, linear, true);
-    const next = moves.frame(50, station, 0).pose;
-    expect(next.position.distanceTo(mid.position)).toBeCloseTo(0, 5);
-  });
-
-  test("a move ended at the cap stays where it stood; none starts before a first frame", () => {
+  test("a new navigation starts the next move from where the last one stood; none starts before a first frame", () => {
     const moves = createCameraMoves();
     moves.start(0, 200, linear, true);
-    expect(moves.frame(0, station, 0).moving).toBe(false);
-    moves.start(0, 200, linear, true);
-    moves.end(360, dive);
-    const after = moves.frame(361, dive, 0);
-    expect(after.moving).toBe(false);
-    expect(after.pose.position.distanceTo(dive.position)).toBe(0);
-  });
-
-  test("Pip walks while a glide moves him along the path, the way he goes across the page, and stands once it ends", () => {
-    const shares = beginnerLayout().shares;
-    const [b1 = 0, b2 = 0] = shares;
-    const moves = createCameraMoves();
-    expect(moves.frame(0, station, b1).walk).toBe(0);
-    // On to the next Station: rightward across the page.
-    moves.start(0, 360, linear, false);
-    const on = moves.frame(180, station, b2);
-    expect(on).toMatchObject({ moving: true, walk: 1 });
-    expect(moves.frame(360, station, b2)).toMatchObject({
-      moving: false,
-      walk: 0,
-    });
-    // Back again: leftward.
-    moves.start(400, 360, linear, false);
-    expect(moves.frame(500, station, b1).walk).toBe(-1);
-    // A move that keeps Pip where he is, as the pull-back does, is no walk.
-    moves.frame(800, station, b1);
-    moves.start(800, 360, linear, false);
-    expect(moves.frame(900, station, b1)).toMatchObject({
-      moving: true,
-      walk: 0,
-    });
-    for (let i = 1; i < shares.length; i++) {
-      expect(walkWay(shares[i - 1] ?? 0, shares[i] ?? 0)).toBe(1);
-      expect(walkWay(shares[i] ?? 0, shares[i - 1] ?? 0)).toBe(-1);
-    }
-  });
-
-  test("the view says which way Pip walks, and a new way is told again", () => {
-    const camera = aimed(station);
-    const standing = viewOf(camera, VIEWPORT, marks, 0.09);
-    expect(standing.pip).not.toHaveProperty("walk");
-    const walking = viewOf(camera, VIEWPORT, marks, 0.09, 1);
-    expect(walking.pip).toMatchObject({ walk: 1 });
-    expect(sameView(standing, walking)).toBe(false);
-    expect(sameView(walking, viewOf(camera, VIEWPORT, marks, 0.09, 1))).toBe(
-      true,
-    );
-  });
-
-  test("a glide tells how fast Pip goes along the path", () => {
-    const [b1 = 0, b2 = 0] = beginnerLayout().shares;
-    const moves = createCameraMoves();
-    moves.frame(0, station, b1);
-    moves.start(0, 800, linear, false);
-    expect(moves.frame(400, station, b2).pace).toBeCloseTo((b2 - b1) / 0.8, 6);
-    expect(moves.frame(800, station, b2).pace).toBe(0);
-  });
-
-  test("the view tells Pip's pace over the ground on the page, in a Station's view and the whole Level's", () => {
-    const [b1 = 0, b2 = 0] = beginnerLayout().shares;
-    const pace = (b2 - b1) / 0.8;
-    for (const place of [
-      { kind: "station", at: 0, band: BAND },
-      { kind: "whole", band: BAND },
-    ] as const) {
-      const camera = aimed(poseOf(place, VIEWPORT));
-      const view = viewOf(camera, VIEWPORT, marks, b1, 1, pace);
-      // Over the whole move, about the two Stations' distance on the page.
-      const [p1, p2] = view.points;
-      if (p1 === undefined || p2 === undefined) throw new Error("no marks");
-      const apart = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-      expect(view.pip?.pace, place.kind).toBeGreaterThan(apart / 0.8 / 2);
-      expect(view.pip?.pace, place.kind).toBeLessThan((apart / 0.8) * 2);
-    }
-    // Standing, no pace is told.
-    const camera = aimed(station);
-    expect(viewOf(camera, VIEWPORT, marks, b1, 0, pace).pip).not.toHaveProperty(
-      "pace",
-    );
-  });
-
-  test("a new Station walks Pip there in a Station's view and in the whole Level's; the pull-back glides; nothing else moves", () => {
-    const st = (at: number): Place => ({ kind: "station", at, band: BAND });
-    const whole: Place = { kind: "whole", band: BAND };
-    const meadow: Place = { kind: "meadow" };
-    expect(pipStation(st(2), 4)).toBe(2);
-    expect(pipStation(whole, 4)).toBe(4);
-    expect(pipStation(whole, -1)).toBe(0);
-    expect(pipStation({ kind: "dive", at: 3 }, 1)).toBe(3);
-    const on = (place: Place, pip: number) => ({ place, pip });
-    expect(glideOf(on(st(0), 0), on(st(1), 1))).toBe("walk");
-    // Pulled back, he walks too: the camera stands, he goes.
-    expect(glideOf(on(whole, 0), on(whole, 1))).toBe("walk");
-    expect(glideOf(on(st(1), 1), on(whole, 1))).toBe("pull");
-    expect(glideOf(on(whole, 1), on(st(1), 1))).toBe("pull");
-    expect(glideOf(on(whole, 1), on(whole, 1))).toBeNull();
-    expect(glideOf(on(meadow, 0), on(st(1), 1))).toBeNull();
-    expect(glideOf(on(st(1), 1), on({ kind: "dive", at: 1 }, 1))).toBeNull();
-  });
-
-  test("a walk sets off from a stand on the token's easing, and a new Station chosen on the way carries him on at his speed", () => {
-    const base = [0.65, 0, 0.35, 1] as const;
-    expect(walkEase(base, 0, 0.2, 0.4, 0.8)).toBe(base);
-    // Walking the other way, the new walk starts from a stand.
-    expect(walkEase(base, -0.3, 0.2, 0.4, 0.8)).toBe(base);
-    // On the way at 0.25 shares a second, 0.2 still to go over 0.8 s: the
-    // new walk leaves at that speed, its slope one in units of the move.
-    const [x1, y1, x2, y2] = walkEase(base, 0.25, 0.2, 0.4, 0.8);
-    expect(y1 / x1).toBeCloseTo((0.25 * 0.8) / 0.2, 9);
-    expect([x2, y2]).toEqual([0.35, 1]);
-    const ease = cubicBezier(x1, y1, x2, y2);
-    expect(ease(0.01) / 0.01).toBeCloseTo(1, 1);
-    expect(ease(1)).toBe(1);
+    expect(moves.frame(10, room).moving).toBe(false);
+    moves.start(10, 200, linear, true);
+    const mid: Pose = moves.frame(60, board).pose;
+    moves.end(60, board);
+    moves.start(60, 200, linear, true);
+    expect(
+      moves.frame(60, room).pose.position.distanceTo(mid.position),
+    ).toBeCloseTo(0, 5);
   });
 
   test("the easing is the token's cubic Bézier", () => {

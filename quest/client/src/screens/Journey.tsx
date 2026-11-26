@@ -402,8 +402,8 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
 /**
  * Whether the Level's Lessons are a path through the Scene here (09 9.3):
  * the mount turns the Scene on, its renderer draws, and the Level is
- * Beginner, the one landscape so far (Intermediate and Advanced keep this
- * screen as it is until ticket 57).
+ * Beginner, whose cards the stage marks on the workshop's noticeboard
+ * until the workshop's own screen takes the Journey's place.
  */
 function useOnPath(level: LevelId | undefined): boolean {
   const scene = useMount().scene !== null;

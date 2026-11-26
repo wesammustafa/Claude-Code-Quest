@@ -47,7 +47,7 @@ export interface JourneyPath {
   /** The Journey's stage band on the page while it shows, or null. */
   band: () => Band | null;
   setBand: (band: Band | null) => void;
-  /** The renderer is drawing the landscape, so the Journey may show its stage. */
+  /** The renderer is drawing the Scene, so the Journey may show its stage. */
   ready: () => boolean;
   setReady: (ready: boolean) => void;
   /** Called when at, whole, band or ready change. */
