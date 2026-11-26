@@ -1,9 +1,4 @@
-import {
-  Canvas,
-  useFrame,
-  useThree,
-  type CameraProps,
-} from "@react-three/fiber";
+import { Canvas, useFrame, type CameraProps } from "@react-three/fiber";
 import {
   useContext,
   useEffect,
@@ -171,10 +166,9 @@ export function SceneView({
 /**
  * The 3D Pip on the followed screen, walked to the goal it gives him (D5):
  * only this renders again when the screen, or the Lesson the Journey stands
- * at, changes. Where the Scene stops he leaves the room, so the screen's
- * own Pip is the one, and the frame the stopped Scene keeps is drawn again
- * without him, so it never shows him beside that Pip when the Scene comes
- * back.
+ * at, changes. He first comes on a screen the Scene runs on; where the
+ * Scene stops he leaves the room, so the screen's own Pip is the one, yet
+ * stays loaded where he stood for the way back.
  */
 function FollowedPip({
   screen,
@@ -193,15 +187,19 @@ function FollowedPip({
   const path = journeyPathOf(useContext(SceneContext));
   const at = useSyncExternalStore(path.subscribe, path.at);
   const pip = pipOnScreen(current, at, stations);
-  const get = useThree((s) => s.get);
-  useLayoutEffect(() => {
-    if (pip.inRoom) return;
-    const { gl, scene, camera } = get();
-    gl.render(scene, camera);
-  }, [pip.inRoom, get]);
-  if (!pip.inRoom) return null;
+  // A renderer that loads while the Learner is already on a Workspace
+  // fetches no model there.
+  const [entered, setEntered] = useState(pip.inRoom);
+  if (pip.inRoom && !entered) setEntered(true);
+  if (!entered) return null;
   return (
-    <WorkshopPip goal={pip.goal} tier={tier} theme={theme} shadow={shadow} />
+    <WorkshopPip
+      goal={pip.inRoom ? pip.goal : null}
+      inRoom={pip.inRoom}
+      tier={tier}
+      theme={theme}
+      shadow={shadow}
+    />
   );
 }
 

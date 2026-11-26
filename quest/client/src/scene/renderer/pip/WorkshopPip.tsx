@@ -3,7 +3,9 @@
 // the Scene has drawn, and holds Pip (S12's useScenePip) only once it has
 // passed its contract, loaded and been drawn, so the screen's own Pip
 // shows until then, and wherever it fails, and the two never draw
-// together. Where the Scene stops he is not mounted at all (SceneView).
+// together. Where the Scene stops he leaves the room and lets Pip go, but
+// stays mounted: his model and his place in the room wait for the way
+// back, so he holds Pip again at once, where he stood, with no reload.
 // The one director still plays his modes and Reactions through the
 // guide's driver; his legs are his own: he walks and runs where the
 // screen's goal and the workshop's commands send him, round the
@@ -45,6 +47,8 @@ import { poseShadow, shadowMesh, tintShadow } from "./shadow";
 export interface WorkshopPipProps {
   /** Where the screen wants Pip: a spot of the room, or null to leave him be. A new goal sends him there. */
   goal: SpotId | null;
+  /** Whether he stands in the room; false where the Scene stops, so the screen's own Pip is the one. */
+  inRoom: boolean;
   tier: Exclude<SceneTier, "still">;
   /** The Scene's sky, which sets how dark his ground shadow lies. */
   theme: SceneTheme;
@@ -120,6 +124,7 @@ export function WorkshopPip(props: WorkshopPipProps): ReactNode {
 function InRoom({
   model,
   goal,
+  inRoom,
   tier,
   theme,
   shadow: shadowColour,
@@ -156,8 +161,9 @@ function InRoom({
   }, [shadow, shadowColour, theme, invalidate]);
 
   const [drawn, setDrawn] = useState(false);
+  const shown = drawn && inRoom;
   const [travelling, setTravelling] = useState(false);
-  usePipTravel(travelling);
+  usePipTravel(travelling && inRoom);
   const hold = tier === "phone";
   useEffect(() => {
     driver.set(pip, hold);
@@ -171,7 +177,7 @@ function InRoom({
     if (reaction !== null) reactionLedger.arrive(reaction.id);
   }, [reaction]);
   useEffect(() => {
-    if (!drawn || reaction === null) return;
+    if (!shown || reaction === null) return;
     if (pip.reducedMotion) {
       reactionLedger.spend(reaction.id);
       return;
@@ -182,11 +188,11 @@ function InRoom({
     canvas.setAttribute("data-scene-pip-reaction-kind", reaction.kind);
     canvas.setAttribute("data-scene-pip-intensity", String(reaction.intensity));
     invalidate();
-  }, [drawn, reaction, pip.reducedMotion, driver, canvas, invalidate]);
+  }, [shown, reaction, pip.reducedMotion, driver, canvas, invalidate]);
   useEffect(() => {
-    canvas.setAttribute("data-scene-pip", drawn ? "shown" : "ready");
+    canvas.setAttribute("data-scene-pip", shown ? "shown" : "ready");
     canvas.setAttribute("data-scene-pip-mode", pip.mode);
-  }, [canvas, drawn, pip.mode]);
+  }, [canvas, shown, pip.mode]);
 
   // The screen's goal: a new one sends him there, unless Explore steers him.
   const goalNow = useRef(goal);
@@ -236,6 +242,17 @@ function InRoom({
     },
     [workshop],
   );
+  // Out of the room, the Scene's loop stops on its last frame, which shows
+  // again when the Scene comes back: that frame is drawn now without him,
+  // so it never shows him beside the screen's own Pip.
+  useLayoutEffect(() => {
+    if (inRoom) return;
+    const place = root.current;
+    if (place !== null) place.visible = false;
+    workshop.setAnchors(withoutPip(workshop.anchors()));
+    const { gl, scene, camera } = get();
+    gl.render(scene, camera);
+  }, [inRoom, workshop, get]);
 
   const holding = useRef(false);
   const onHold = useCallback((held: boolean) => {
@@ -251,7 +268,7 @@ function InRoom({
 
   useFrame((state, delta) => {
     const place = root.current;
-    if (place === null) return;
+    if (place === null || !inRoom) return;
     const dt = frameStep(delta, wasMoving.current);
     clock.current += dt;
 
@@ -339,7 +356,7 @@ function InRoom({
     <group ref={root} visible={false} userData={PICK}>
       <primitive object={model.scene} />
       <primitive object={shadow.group} />
-      {drawn && <Hold onHold={onHold} />}
+      {shown && <Hold onHold={onHold} />}
     </group>
   );
 }
