@@ -89,18 +89,18 @@ export function Hints({
               ref={newest ? newestRef : undefined}
               tabIndex={newest ? -1 : undefined}
               data-pip-target={newest ? "hint" : undefined}
-              className="flex w-full items-start gap-2.5 rounded-lg border border-line bg-surface-2 px-4.5 py-3.5 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
+              className="flex w-full items-start gap-2.5 rounded-lg bg-accent-soft px-4.5 py-3.5 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
             >
               <Icon name="bulb" className="mt-0.5 text-accent-text" />
               {typeof hint === "string" ? (
                 <p>
-                  <span className="text-muted">{`Hint ${String(i + 1)}. `}</span>
+                  <span className="font-semibold">{`Hint ${String(i + 1)}. `}</span>
                   <InlineText text={hint} />
                 </p>
               ) : (
                 // A drawn rung (the exact command, with Copy) is blocks, not a line.
                 <div className="grid min-w-0 flex-1 gap-2">
-                  <span className="text-muted">{`Hint ${String(i + 1)}.`}</span>
+                  <span className="font-semibold">{`Hint ${String(i + 1)}.`}</span>
                   {hint}
                 </div>
               )}

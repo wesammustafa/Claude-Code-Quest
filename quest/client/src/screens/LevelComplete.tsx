@@ -11,7 +11,8 @@ import { PageTitle } from "../shell/PageTitle";
 import { Waiting } from "./LessonGate";
 import { NotFound } from "./NotFound";
 import { OpenLessonButton } from "./OpenLessonButton";
-import { EYEBROW, MOMENT, QUIET_LINK } from "./layout";
+import { EYEBROW, QUIET_LINK } from "./layout";
+import { MomentMain } from "./OverScene";
 import { useCourseSnapshot } from "./lesson";
 import {
   COURSE_PATH,
@@ -35,12 +36,12 @@ function BackToJourney() {
 /** Not complete in the snapshot: a plain line, and the way back. */
 function NotYet({ what }: { what: string }) {
   return (
-    <main className={MOMENT}>
+    <MomentMain>
       <PageTitle title={`${what} not complete`} className={TITLE}>
         {`This ${what} is not complete yet`}
       </PageTitle>
       <BackToJourney />
-    </main>
+    </MomentMain>
   );
 }
 
@@ -62,7 +63,7 @@ export function LevelComplete() {
   if (moment === null) return <NotYet what="level" />;
   const name = LEVEL_NAMES[level];
   return (
-    <main className={MOMENT}>
+    <MomentMain>
       <Pip size="hero" className="mb-2" />
       <span className={EYEBROW}>Level complete</span>
       <PageTitle title={`${name} level complete`} className={TITLE} />
@@ -87,7 +88,7 @@ export function LevelComplete() {
       </ul>
       <LevelNext snapshot={snapshot} next={moment.next?.id ?? null} />
       <BackToJourney />
-    </main>
+    </MomentMain>
   );
 }
 
@@ -141,7 +142,7 @@ export function CourseComplete() {
   if (levels.length === 0 || levels.some((view) => !view.complete))
     return <NotYet what="course" />;
   return (
-    <main className={MOMENT}>
+    <MomentMain>
       <Pip size="hero" className="mb-2" />
       <span className={EYEBROW}>Course complete</span>
       <PageTitle title={`You finished ${product}`} className={TITLE} />
@@ -176,7 +177,7 @@ export function CourseComplete() {
         </ButtonLink>
         <BackToJourney />
       </div>
-    </main>
+    </MomentMain>
   );
 }
 

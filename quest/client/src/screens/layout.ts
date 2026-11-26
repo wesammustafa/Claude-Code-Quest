@@ -33,3 +33,29 @@ export const EYEBROW =
 /** A quiet text link drawn as a button. */
 export const QUIET_LINK =
   "rounded-sm px-0.5 py-1 text-sm text-muted underline underline-offset-3 transition-colors duration-(--duration-fast) ease-out hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+
+/**
+ * A screen over the running Scene (the warm workshop): the page under the
+ * sticky top (the top bar and any notice), holding the screen's panel
+ * beside the room on the right, or under it on a narrow page, where the
+ * camera leaves the room its share (scene/renderer/camera.ts: the left
+ * 60%, or the top half).
+ */
+export const SCENE_STAGE =
+  "flex h-[calc(var(--page-min-height)-var(--top-height))] flex-col items-end p-4 scene-narrow:items-stretch scene-narrow:justify-end";
+
+/**
+ * The panel on a Scene screen's stage: two fifths of the page across at
+ * most, or at most half its height below the room, scrolling in itself.
+ * The stood-down box of a screen's Pip collapses in it: the Scene's Pip
+ * stands in the room.
+ */
+export const SCENE_PANEL =
+  "grid max-h-full w-2/5 max-w-136 content-start gap-5 overflow-y-auto overscroll-contain scene-narrow:max-h-1/2 scene-narrow:w-auto scene-narrow:max-w-none [&>*]:min-w-0 [&_[data-pip-stood-down]]:hidden";
+
+/** An opaque card for words over the Scene: no page text sits on the room itself. */
+export const SURFACE = "rounded-xl border border-line bg-surface shadow-md";
+
+/** A Badge's name, under its art, on a surface of its own where the art sits on the room (the Scene's 3D Badge drawn behind it). */
+export const CAPTION_ON_SURFACE =
+  "[&_figcaption]:rounded-md [&_figcaption]:bg-surface [&_figcaption]:px-2 [&_figcaption]:py-0.5";

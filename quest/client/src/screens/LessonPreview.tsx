@@ -5,6 +5,7 @@ import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { Link } from "../mount/links";
 import { PageTitle } from "../shell/PageTitle";
 import { COLUMN, EYEBROW, QUIET_LINK } from "./layout";
+import { PANEL_SURFACE, PanelMain } from "./OverScene";
 import { useCourseSnapshot, useOpenLesson } from "./lesson";
 
 /**
@@ -20,7 +21,7 @@ export function LessonPreview({ id }: { id: string }) {
   const summary = level?.lessons.find((lesson) => lesson.id === id);
   if (!level || !summary) return null;
   return (
-    <main className={COLUMN} data-lesson-preview="">
+    <PanelMain column={COLUMN} panel={PANEL_SURFACE} data-lesson-preview="">
       <header className="grid gap-2">
         <span className={EYEBROW}>
           {`${LEVEL_NAMES[level.id]} · ${lessonLabel(summary.number, summary.capstone, summary.optional)}`}
@@ -48,6 +49,6 @@ export function LessonPreview({ id }: { id: string }) {
           Back to the learning journey
         </Link>
       </div>
-    </main>
+    </PanelMain>
   );
 }

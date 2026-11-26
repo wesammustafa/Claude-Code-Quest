@@ -4,12 +4,14 @@ import { ButtonLink } from "../components/Button";
 import { InlineText } from "../components/InlineText";
 import { Tier } from "../components/Tier";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
+import { cx } from "../lib/cx";
 import { Pip } from "../pip/Pip";
 import { usePipLook } from "../pip/PipStage";
 import { useBadgesDrawn } from "../scene/badges";
 import { BadgeShelfHint, SceneBadge } from "../scene/SceneBadge";
 import { PageTitle } from "../shell/PageTitle";
-import { BOX, COLUMN, EYEBROW } from "./layout";
+import { BOX, CAPTION_ON_SURFACE, COLUMN, EYEBROW } from "./layout";
+import { useOverScene } from "./OverScene";
 import { OpenLessonButton } from "./OpenLessonButton";
 import { pathOf, useCourseSnapshot } from "./lesson";
 import { courseCounts, journeyPlace, levelOf, splitLabs } from "./place";
@@ -21,6 +23,7 @@ const GLANCE_AFTER_MS = 600;
  * Progress: counts, skills by the help last needed with Pip beside them (above
  * them below the sm breakpoint, so the box keeps the full width), the next
  * goal, and Badges. Completion and Mastery never share a number or a bar.
+ * Over the Scene its heading sits on a surface, as every other part does.
  */
 export function Progress() {
   const look = usePipLook();
@@ -33,10 +36,11 @@ export function Progress() {
     };
   }, [look]);
   const snapshot = useCourseSnapshot();
+  const over = useOverScene();
 
   return (
     <main className={COLUMN}>
-      <header className="grid gap-2">
+      <header className={cx("grid gap-2", over && BOX)}>
         <PageTitle title="Progress" className="text-3xl max-sm:text-2xl" />
         <p className="text-muted">
           Only what your checks verified counts here.
@@ -98,7 +102,7 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
         className={shelf ? SHELF : BOX}
         aria-labelledby="progress-badges"
       >
-        <h2 id="progress-badges" className="text-lg">
+        <h2 id="progress-badges" className={cx("text-lg", shelf && ON_SHELF)}>
           Badges
         </h2>
         <BadgeShelfHint earned={counts.lessons.done > 0} />
@@ -106,12 +110,16 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
           const { core, labs } = splitLabs(level.lessons);
           return (
             <div key={level.id} className="grid gap-2">
-              <h3 className="text-sm text-muted">{LEVEL_NAMES[level.id]}</h3>
-              <Badges lessons={core} />
+              <h3 className={cx("text-sm text-muted", shelf && ON_SHELF)}>
+                {LEVEL_NAMES[level.id]}
+              </h3>
+              <Badges lessons={core} shelf={shelf} />
               {labs.length > 0 && (
                 <>
-                  <h4 className="text-xs text-muted">Optional labs</h4>
-                  <Badges lessons={labs} />
+                  <h4 className={cx("text-xs text-muted", shelf && ON_SHELF)}>
+                    Optional labs
+                  </h4>
+                  <Badges lessons={labs} shelf={shelf} />
                 </>
               )}
             </div>
@@ -122,10 +130,16 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
   );
 }
 
-/** The Badges of `lessons`, earned or not yet, in course order. */
-function Badges({ lessons }: { lessons: readonly LessonSummary[] }) {
+/** The Badges of `lessons`, earned or not yet, in course order; on the shelf over the room, each name on a surface of its own. */
+function Badges({
+  lessons,
+  shelf,
+}: {
+  lessons: readonly LessonSummary[];
+  shelf: boolean;
+}) {
   return (
-    <ul className="flex flex-wrap gap-3">
+    <ul className={cx("flex flex-wrap gap-3", shelf && CAPTION_ON_SURFACE)}>
       {lessons.map(
         (s) =>
           s.badge !== null && (
@@ -149,6 +163,9 @@ function Badges({ lessons }: { lessons: readonly LessonSummary[] }) {
  * the card with no surface of its own, so the 3D Badges behind it show.
  */
 const SHELF = "grid gap-3 rounded-lg border border-line p-5";
+
+/** A word on the Badge shelf: on a surface of its own, never on the room. */
+const ON_SHELF = "justify-self-start rounded-md bg-surface px-2 py-0.5";
 
 const GOAL =
   "flex items-center justify-between gap-4 rounded-lg border border-accent-edge bg-surface px-5 py-4 shadow-sm max-sm:flex-col max-sm:items-stretch";

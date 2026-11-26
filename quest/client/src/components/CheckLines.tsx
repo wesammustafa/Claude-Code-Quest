@@ -58,7 +58,7 @@ const LOOKS: Record<
     said: "Not yet: ",
     mark: "bg-wait-soft text-wait",
     icon: "circle",
-    text: "text-text",
+    text: "font-semibold text-text",
     evidence: "border-wait",
   },
   pending: {
@@ -83,8 +83,9 @@ const stateOf = (line: CheckLine): CheckLineState =>
   line.state ?? (line.ok ? "pass" : "notYet");
 
 /**
- * The Check's lines: met ones quiet, the rest amber, never red, and a line
- * still being checked in teal; any line may show what the Check saw. They
+ * The Check's lines, one to a row: met ones quiet, the rest amber and in
+ * bold, never red, and a line still being checked in teal; any line may
+ * show what the Check saw. They
  * arrive one after another, --stagger apart. Pip watches them as they arrive.
  * A line keeps its place (and does not arrive again) as its state and words
  * change; to stagger a new Check run's lines in again, the caller gives
@@ -105,7 +106,7 @@ export function CheckLines({ lines }: CheckLinesProps) {
             // A line keeps its place as its state and words change.
             key={i}
             data-state={look.data}
-            className="flex animate-line items-start gap-2.5 text-sm [animation-delay:calc(var(--i)*var(--stagger))]"
+            className="flex animate-line items-start gap-2.5 border-b border-line pb-2.5 text-sm last:border-b-0 last:pb-0 [animation-delay:calc(var(--i)*var(--stagger))]"
             style={{ "--i": i } as CSSProperties}
           >
             <span className={cx(MARK, look.mark)}>

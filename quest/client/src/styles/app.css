@@ -8,6 +8,11 @@
 @import "@fontsource-variable/jetbrains-mono/index.css";
 @import "./tokens.css";
 
+/* A page narrower than nine tenths of its height, as a phone held upright:
+   a Scene screen's panel sits under the room rather than beside it, where
+   the Scene's camera leaves it room (scene/renderer/camera.ts, NARROW). */
+@custom-variant scene-narrow (@media (max-aspect-ratio: 9/10));
+
 @layer base {
   html {
     background-color: var(--color-bg);

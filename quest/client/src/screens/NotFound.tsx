@@ -1,12 +1,12 @@
 import { ButtonLink } from "../components/Button";
 import { Pip } from "../pip/Pip";
 import { PageTitle } from "../shell/PageTitle";
-import { MOMENT } from "./layout";
+import { MomentMain } from "./OverScene";
 
 /** An address the app has no screen for. */
 export function NotFound() {
   return (
-    <main className={MOMENT}>
+    <MomentMain>
       <Pip size="beside" className="mb-2" />
       <PageTitle title="Nothing here" className="text-2xl" />
       <p className="text-muted">
@@ -20,6 +20,6 @@ export function NotFound() {
       >
         Open the learning journey
       </ButtonLink>
-    </main>
+    </MomentMain>
   );
 }

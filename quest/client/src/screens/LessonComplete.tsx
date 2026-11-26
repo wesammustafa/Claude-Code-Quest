@@ -6,6 +6,7 @@ import { CheckLines } from "../components/CheckLines";
 import { InlineText } from "../components/InlineText";
 import { Tier } from "../components/Tier";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
+import { cx } from "../lib/cx";
 import { useSlots } from "../mount/context";
 import { Link } from "../mount/links";
 import { githubTree, pageIndex } from "../pages/fetch";
@@ -14,9 +15,10 @@ import { Pip } from "../pip/Pip";
 import { SceneBadge } from "../scene/SceneBadge";
 import { PageTitle } from "../shell/PageTitle";
 import { LessonGate } from "./LessonGate";
-import { BOX, EYEBROW, MOMENT, QUIET_LINK } from "./layout";
+import { BOX, CAPTION_ON_SURFACE, EYEBROW, MOMENT, QUIET_LINK } from "./layout";
 import { useActiveLesson, useCourseSnapshot, useOpenLesson } from "./lesson";
 import { celebratable, levelPath, useClaimMilestone } from "./milestones";
+import { PANEL_SURFACE, PanelMain, useOverScene } from "./OverScene";
 
 /**
  * Whether this tab reveals the Lesson's Badge: only on its first
@@ -81,7 +83,12 @@ const NOTCH_HARDER = "A notch harder: it starts with less help.";
 const PRACTISED_HELP =
   "Beside each: the help on its latest step, counting any hint or exact command you opened.";
 
-/** Lesson complete: Pip, the Badge, the check result, the skills practised and the next Lesson. */
+/**
+ * Lesson complete: Pip, the Badge, the check result, the skills practised
+ * and the next Lesson. Over the Scene it is a panel beside the room: the
+ * heading and the rest each on a surface, and the Badge between them on
+ * none, so the Scene's 3D Badge drawn behind it shows.
+ */
 export function LessonComplete() {
   const active = useActiveLesson("complete");
   const reveal = useReveal(active?.lesson ?? null);
@@ -89,13 +96,14 @@ export function LessonComplete() {
   const ref = useReleaseRef();
   const { lessonCompleteExtra: Extra, lessonCompleteReference: Reference } =
     useSlots();
+  const over = useOverScene();
   if (!active) return <LessonGate />;
   const { lesson, summary } = active;
   const passed = lesson.checkSummary.filter((line) => line.pass).length;
   const total = lesson.checkSummary.length;
 
-  return (
-    <main className={MOMENT}>
+  const head = (
+    <>
       <Pip size="hero" className="mb-2" />
       <span className={EYEBROW}>
         {`${lessonLabel(summary?.number ?? null, lesson.capstone, summary?.optional ?? false)} complete`}
@@ -106,6 +114,10 @@ export function LessonComplete() {
       >
         <InlineText text={lesson.title} />
       </PageTitle>
+    </>
+  );
+  const badge = (
+    <>
       <SceneBadge
         lesson={lesson.id}
         name={lesson.badge}
@@ -117,6 +129,10 @@ export function LessonComplete() {
       <span role="status" className="sr-only">
         {reveal && lesson.badge !== null ? `${NEW_BADGE}: ${lesson.badge}` : ""}
       </span>
+    </>
+  );
+  const rest = (
+    <>
       {!lesson.firstTime && lesson.badge !== null && (
         <p className="text-sm text-muted">You already earned this badge.</p>
       )}
@@ -198,9 +214,31 @@ export function LessonComplete() {
       <Link to="/journey" className={QUIET_LINK}>
         Back to the learning journey
       </Link>
-    </main>
+    </>
+  );
+
+  if (!over)
+    return (
+      <main className={MOMENT}>
+        {head}
+        {badge}
+        {rest}
+      </main>
+    );
+  return (
+    <PanelMain column={MOMENT} panel="">
+      <div className={cx(PANEL_SURFACE, MOMENT_CARD)}>{head}</div>
+      {/* No surface behind the Badge, so the Scene's 3D Badge shows; its name on one of its own. */}
+      <div className={cx("grid justify-items-center py-2", CAPTION_ON_SURFACE)}>
+        {badge}
+      </div>
+      <div className={cx(PANEL_SURFACE, MOMENT_CARD)}>{rest}</div>
+    </PanelMain>
   );
 }
+
+/** A card of Lesson complete's panel: centred, as the moment is. */
+const MOMENT_CARD = "grid justify-items-center gap-4 text-center";
 
 /** Opens the next Lesson: it sends lesson.open, as browsing to it would not. */
 function NextLesson({ next }: { next: NonNullable<CompleteLesson["next"]> }) {
