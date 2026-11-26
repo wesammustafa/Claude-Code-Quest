@@ -168,7 +168,7 @@ export const boundsNarrow = {
       return `${code(String(wide))} lets the run run ${code(command)}. This run needs no commands: take the rule out.`;
     }
     if (value.permissions?.defaultMode === 'bypassPermissions')
-      return '`"defaultMode": "bypassPermissions"` skips every permission check. Take it out: nobody is there to press No.';
+      return '`"defaultMode": "bypassPermissions"` approves every call your deny and ask rules leave out. Take it out: nobody is there to press No.';
     const sandbox = value.sandbox;
     if (!isObject(sandbox)) return `${BOUNDS_NAME} has no \`sandbox\` settings. Add \`"sandbox": {"enabled": true, "failIfUnavailable": true, "allowUnsandboxedCommands": false, "autoAllowBashIfSandboxed": false}\`.`;
     if (sandbox.enabled !== true) return 'Set `"enabled": true` in `sandbox`, so any command runs fenced in.';
@@ -261,8 +261,8 @@ export const runnerBounded = {
     if (!args) return /** @type {string} */ (problem);
     const f = args.flags;
     if (f.dangerouslySkipPermissions || f.allowDangerouslySkipPermissions)
-      return 'The runner passes a flag that skips permission checks. Take it out: with it, everything your deny rules leave out is approved, so the allow list stops fencing the run.';
-    if (f.permissionMode === 'bypassPermissions') return 'The runner starts in `bypassPermissions` mode, which skips every check. Use `--permission-mode dontAsk`.';
+      return 'The runner passes a flag that skips permission checks. Take it out: with it, everything your deny and ask rules leave out is approved, so the allow list stops fencing the run.';
+    if (f.permissionMode === 'bypassPermissions') return 'The runner starts in `bypassPermissions` mode, which approves everything your deny and ask rules leave out. Use `--permission-mode dontAsk`.';
     if (f.permissionMode !== 'dontAsk')
       return `The runner ${typeof f.permissionMode === 'string' ? `starts in \`${f.permissionMode}\` mode` : 'sets no permission mode'}. Use \`--permission-mode dontAsk\`, so anything not allowed is denied, never asked.`;
     if (typeof f.settings !== 'string' || f.settings.replace(/^\.\//, '') !== 'summer/run/easy-bounds.json')

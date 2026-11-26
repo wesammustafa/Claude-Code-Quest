@@ -70,16 +70,16 @@ The evidence changes: time passes, the conversation grows, and a source changes 
    /compact keep the parking decision and which files are sources
    ```
 
-   A focus after `/compact` keeps the summary on what tomorrow needs, instead of whatever Claude would pick. Compacting is for the middle of one long job, for example halfway through checking twenty claims. Clearing is for a job that needs none of this conversation.
+   A focus after `/compact` keeps the summary on what tomorrow needs, instead of whatever Claude would pick. Compacting is for the middle of one long job, for example halfway through checking twenty claims. Clearing is for a job that needs none of this conversation. Here the summary is written in advance, so your focus doesn't change it; on your own computer the focus is what steers it.
 
-   Now end today's session, with `/exit`. Had you cleared instead, `claude -c` tomorrow would open the new, empty conversation, and you'd find the guide's conversation by name in `/resume`.
+   Now end today's session, with `/exit`. Had you cleared instead, `claude -c` tomorrow would open the new, empty conversation. A plain `/clear` moves the name to that new conversation, so you'd clear with `/clear feb-guide` to find the guide's conversation by name in `/resume`.
 2. **The next morning.** It's Friday morning. Start Claude so it carries on yesterday's conversation, not a new one:
 
    ```bash
    claude -c
    ```
 
-   `-c` is short for continue: the most recent conversation in this folder. The conversation is back, Claude's message about the Station Road car park included. And the folder has changed overnight: there's a new file, `fixit/feb/venue-email-feb-update.md`.
+   `-c` is short for continue: the most recent conversation in this folder. The conversation is back. Claude carries on from the summary, which kept the Station Road car park, not from the messages it replaced. And the folder has changed overnight: there's a new file, `fixit/feb/venue-email-feb-update.md`.
 3. **Ask what changed, in your own words.** Ask Claude whether anything in `fixit/feb/` has changed since yesterday that makes the guide wrong, citing the file and line. Claude remembers yesterday's conversation, not today's folder: it knows which files changed only if it looks. For example: `Before we go on: has anything in fixit/feb changed since yesterday that affects the attendee guide? Check the files again, don't rely on what you remember, and cite file and line.` Then open `fixit/feb/venue-email-feb-update.md` and read line 6: Claude's answer comes from there. This time Claude is right, because it looked.
 4. **Fix the parking line.** Ask Claude to update the parking line in `fixit/feb/attendee-guide.md`, or skip the step and fix the line yourself in the files tab. You decide how much to say: the update also says Park Lane is free on Saturdays and eight minutes' walk. Stuck? Ask yourself which car park, and why not Station Road.
 

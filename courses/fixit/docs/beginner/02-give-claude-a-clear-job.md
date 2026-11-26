@@ -39,7 +39,7 @@ Sources, audience, outcome and a test for done are the four things Claude can't 
    |---|---|---|
    | **Auto**, `⏵⏵ auto mode on` | A safety checker approves each action, and Claude doesn't stop to ask you | Small jobs you'll read afterwards anyway |
    | **Manual**, `⏸ manual mode on` | Claude asks before it edits a file or runs a command | You want to see each change as it happens |
-   | **Accept edits**, `⏵⏵ accept edits on` | File edits go through without asking, and commands still ask | Many small edits you'll review together at the end |
+   | **Accept edits**, `⏵⏵ accept edits on` | File edits, and simple file commands such as `mkdir`, `cp` and `rm` inside your folder, go through without asking; other commands still ask | Many small edits you'll review together at the end |
    | **Plan**, `⏸ plan mode on` | Claude reads and proposes a plan, and changes no files until you approve it | A job with several parts, where a wrong approach would waste time |
 
    Press `Shift+Tab` and watch the line change. Stop when it reads `⏵⏵ accept edits on`: that is the mode for a run of small edits you'll read together at the end. Then press it again until the line reads `⏸ plan mode on`.

@@ -364,7 +364,7 @@ function boundsOff(text) {
   const allow = strings(b.permissions?.allow);
   const deny = strings(b.permissions?.deny);
   const keep = 'Keep every deny rule: Reset this step puts the file back.';
-  if (/bypassPermissions|dangerously/i.test(text)) return '`summer/run/bounds.json` turns on bypassPermissions, which skips every rule. With nobody watching at 02:00, nothing would refuse a call.';
+  if (/bypassPermissions|dangerously/i.test(text)) return '`summer/run/bounds.json` turns on bypassPermissions, which approves every call the deny rules leave out. With nobody watching at 02:00, nothing else would refuse one.';
   if (!deny.some((r) => /^Read\(.*private/.test(r))) return `\`summer/run/bounds.json\` no longer denies reading \`private/\` folders. ${keep}`;
   if (!deny.some((r) => /^Edit\(.*sources/.test(r))) return `\`summer/run/bounds.json\` no longer denies editing \`sources/\`. ${keep}`;
   if (!deny.some((r) => /git push/.test(r))) return `\`summer/run/bounds.json\` no longer denies \`git push\`. ${keep}`;
