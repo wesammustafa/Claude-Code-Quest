@@ -22,8 +22,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Group, Mesh, Vector3, type Object3D } from "three";
+import { Box3, Group, Mesh, Vector3, type Object3D } from "three";
 import type { SceneTheme, SceneTier } from "../../../mount/types";
+import { PIP_MODEL_HEAD } from "../../../../pip/model/contract";
 import { reactionLedger } from "../../../pip/playback";
 import { usePipInput, usePipModel, usePipTravel } from "../../../pip/PipStage";
 import { SceneContext, useScenePip } from "../../context";
@@ -41,12 +42,18 @@ import { loadPipModel, type PipModel3D } from "./load";
 import type { Side } from "./motion/gait";
 import { workshopNav } from "./motion/nav";
 import { StridePose } from "./motion/pose";
-import { Walker, activityOf, placeOf } from "./motion/walker";
+import { Walker, activityOf } from "./motion/walker";
 import { poseShadow, shadowMesh, tintShadow } from "./shadow";
 
 export interface WorkshopPipProps {
-  /** Where the screen wants Pip: a spot of the room, or null to leave him be. A new goal sends him there. */
+  /** Where the screen wants Pip: a spot of the room, or null to leave him be. */
   goal: SpotId | null;
+  /**
+   * The screen on show, a new value for each show: each show sends him to
+   * its goal, the same goal as the last screen's too, so a command that
+   * took him elsewhere never keeps him from where the next screen wants him.
+   */
+  show: unknown;
   /** Whether he stands in the room; false where the Scene stops, so the screen's own Pip is the one. */
   inRoom: boolean;
   tier: Exclude<SceneTier, "still">;
@@ -124,6 +131,7 @@ export function WorkshopPip(props: WorkshopPipProps): ReactNode {
 function InRoom({
   model,
   goal,
+  show,
   inRoom,
   tier,
   theme,
@@ -194,13 +202,7 @@ function InRoom({
     canvas.setAttribute("data-scene-pip-mode", pip.mode);
   }, [canvas, shown, pip.mode]);
 
-  // The screen's goal: a new one sends him there, unless Explore steers him.
-  const goalNow = useRef(goal);
-  useEffect(() => {
-    goalNow.current = goal;
-    if (goal !== null && !walker.explore) walker.goTo({ spot: goal });
-    invalidate();
-  }, [goal, walker, invalidate]);
+  const goalNow = useScreenGoal(walker, goal, show, invalidate);
 
   // The screens' commands, each replacing what he did at once.
   useEffect(
@@ -208,12 +210,7 @@ function InRoom({
       workshop.onCommand((command: PipCommand) => {
         switch (command.type) {
           case "goTo":
-            walker.goTo(
-              "place" in command.to
-                ? { spot: command.to.place }
-                : { floor: command.to.floor },
-              command.pace ?? "auto",
-            );
+            walker.goTo(command.to, command.pace ?? "auto");
             break;
           case "greet": {
             const at = get().camera.position;
@@ -232,7 +229,7 @@ function InRoom({
         }
         invalidate();
       }),
-    [workshop, walker, get, invalidate],
+    [workshop, walker, get, invalidate, goalNow],
   );
 
   // Gone, he leaves no anchor behind.
@@ -258,12 +255,18 @@ function InRoom({
   const onHold = useCallback((held: boolean) => {
     holding.current = held;
   }, []);
+  // Whether the camera sees him, for the director: told only as it changes.
+  const [inView, setInView] = useState(true);
+  const inViewNow = useRef(true);
   const travelled = useRef(false);
   const wasMoving = useRef(false);
   const clock = useRef(0);
   /** Seconds left to wait for the director's Greeting after telling it of a greet. */
   const greetAnswer = useRef(0);
   const [head] = useState(() => new Vector3());
+  const [headRise] = useState(
+    () => new Vector3(0, riseToHeadTop(model.scene), 0),
+  );
   const [feetAt] = useState(() => [new Vector3(), new Vector3()] as const);
 
   useFrame((state, delta) => {
@@ -272,10 +275,9 @@ function InRoom({
     const dt = frameStep(delta, wasMoving.current);
     clock.current += dt;
 
-    // The clips first, over what the stride moved given back; the walk
-    // clip off; then the stride over them.
+    // The clips first, over what the stride moved given back; then the
+    // stride over them.
     stride.restore();
-    driver.walk(0);
     driver.update(dt);
     const frame = walker.update(dt);
     const driven = driver.state();
@@ -318,9 +320,18 @@ function InRoom({
         mode: driven.mode,
         reaction: driven.reaction?.kind ?? null,
       }),
-      at: placeOf(walker.at),
+      at: walker.at,
     });
-    publishHead(workshop, stride.headWorld(head), holding.current, state);
+    const seen = publishHead(
+      workshop,
+      stride.headWorld(head).add(headRise),
+      holding.current,
+      state,
+    );
+    if (seen !== inViewNow.current) {
+      inViewNow.current = seen;
+      setInView(seen);
+    }
 
     const probe = workshop.probe?.();
     if (probe) {
@@ -356,14 +367,39 @@ function InRoom({
     <group ref={root} visible={false} userData={PICK}>
       <primitive object={model.scene} />
       <primitive object={shadow.group} />
-      {shown && <Hold onHold={onHold} />}
+      {shown && <Hold onHold={onHold} visible={inView} />}
     </group>
   );
 }
 
-/** The Scene holds Pip while this is mounted: the screen's own Pip stands down, and he shows. */
-function Hold({ onHold }: { onHold: (held: boolean) => void }): null {
-  useScenePip();
+/**
+ * The screen's goal, on each show and each new goal, sends him there,
+ * unless Explore steers him; the goal as it stands now, for Explore's end.
+ */
+export function useScreenGoal(
+  walker: Pick<Walker, "explore" | "goTo">,
+  goal: SpotId | null,
+  show: unknown,
+  invalidate: () => void,
+): { readonly current: SpotId | null } {
+  const goalNow = useRef(goal);
+  useEffect(() => {
+    goalNow.current = goal;
+    if (goal !== null && !walker.explore) walker.goTo({ spot: goal });
+    invalidate();
+  }, [goal, show, walker, invalidate]);
+  return goalNow;
+}
+
+/** The Scene holds Pip while this is mounted: the screen's own Pip stands down, and he shows; the director hears whether the camera sees him. */
+function Hold({
+  onHold,
+  visible,
+}: {
+  onHold: (held: boolean) => void;
+  visible: boolean;
+}): null {
+  useScenePip(visible);
   useEffect(() => {
     onHold(true);
     return () => {
@@ -408,7 +444,23 @@ function drawnFoot(
 
 const onPage = new Vector3();
 
-/** Publishes where his head falls on the page, beside the room's own anchors; hidden until he shows. */
+/**
+ * How far the top of his head stands above its node, in the Scene's units,
+ * as the model rests: his anchor is the top of his head, so what the page
+ * hangs over him (his bubble) clears his face.
+ */
+function riseToHeadTop(model: Object3D): number {
+  const head = model.getObjectByName(PIP_MODEL_HEAD);
+  if (head === undefined) return 0;
+  model.updateMatrixWorld(true);
+  const top = new Box3().setFromObject(head).max.y;
+  return Math.max(0, top - head.getWorldPosition(new Vector3()).y);
+}
+
+/**
+ * Publishes where the top of his head falls on the page, beside the room's
+ * own anchors, hidden until he shows; and says whether the camera sees it.
+ */
 function publishHead(
   workshop: Workshop,
   headWorld: Vector3,
@@ -417,22 +469,20 @@ function publishHead(
     camera: Parameters<Vector3["project"]>[0];
     size: { width: number; height: number; left: number; top: number };
   },
-): void {
+): boolean {
   const p = onPage.copy(headWorld).project(state.camera);
   const { size } = state;
+  const inView =
+    p.z > -1 && p.z < 1 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1;
   workshop.setAnchors({
     ...workshop.anchors(),
     pip: {
       x: size.left + ((p.x + 1) / 2) * size.width,
       y: size.top + ((1 - p.y) / 2) * size.height,
-      visible:
-        shown &&
-        p.z > -1 &&
-        p.z < 1 &&
-        Math.abs(p.x) <= 1 &&
-        Math.abs(p.y) <= 1,
+      visible: shown && inView,
     },
   });
+  return inView;
 }
 
 function withoutPip(anchors: Anchors): Anchors {

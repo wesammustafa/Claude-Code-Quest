@@ -3,7 +3,7 @@ import type { LevelId, Snapshot } from "@quest/contract";
 import { ButtonLink } from "../components/Button";
 import { LessonBadge } from "../components/badges";
 import { LEVEL_NAMES, levelsComplete } from "../course/labels";
-import { useSlots } from "../mount/context";
+import { useMount, useSlots } from "../mount/context";
 import { Link } from "../mount/links";
 import { useProductName } from "../mount/copy";
 import { Pip } from "../pip/Pip";
@@ -198,10 +198,20 @@ export function PendingMoment() {
   return null;
 }
 
+/** QUIET_LINK on a surface over the Scene, with its own padding and corners. */
+const ROOM_PENDING_LINK =
+  "inline-block rounded-lg border border-line bg-surface px-4 py-2.5 text-sm text-muted underline underline-offset-3 shadow-sm transition-colors duration-(--duration-fast) ease-out hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+
 function PendingLink({ to, children }: { to: string; children: string }) {
+  // Over the Scene the link sits on a surface, never on the room.
+  const room = useMount().scene !== null;
   return (
     <p className="mx-auto max-w-wide px-6 pt-4 text-center max-sm:px-5">
-      <Link to={to} className={QUIET_LINK} data-pending-moment="">
+      <Link
+        to={to}
+        className={room ? ROOM_PENDING_LINK : QUIET_LINK}
+        data-pending-moment=""
+      >
         {children}
       </Link>
     </p>

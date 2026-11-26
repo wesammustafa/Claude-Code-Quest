@@ -51,7 +51,6 @@ function inRoom(pip: PipModel = IDLE, hold = false) {
   /** One frame; `clips` sees the driver's pose before the stride lays over it. */
   const frame = (clips?: () => void) => {
     stride.restore();
-    driver.walk(0);
     driver.update(DT);
     clips?.();
     const f = walker.update(DT);
@@ -75,7 +74,7 @@ const node = (name: string): Object3D => {
 
 describe("the stride over the driver", () => {
   test("as drawn, a planted foot stays where the gait planted it, from setting off, walking and running, to the clips taking it back as he stands", () => {
-    const { driver, stride, walker, frame } = inRoom();
+    const { stride, walker, frame } = inRoom();
     walker.goTo({ spot: "noticeboard" });
     const held = new Map<number, Vector3>();
     let slide = 0;
@@ -85,7 +84,6 @@ describe("the stride over the driver", () => {
     for (let i = 0; i < 8 * 60; i++) {
       const f = frame();
       ran ||= f.out.runWeight > 0.5;
-      expect(driver.state().walkShare).toBe(0);
       for (const foot of walker.gait.feet) {
         stride.footWorld(foot.side, at);
         if (!foot.planted) {
@@ -179,7 +177,6 @@ async function gapToDriverAlone(
   for (let i = 0; i < 3 * 60; i++) {
     script?.(i, reference);
     script?.(i, driver);
-    reference.walk(0);
     reference.update(DT);
     frame();
     for (const name of PIP_MODEL_STRIDE) {

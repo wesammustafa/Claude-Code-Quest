@@ -7,7 +7,6 @@
 import { Vector3 } from "three";
 import type { PipMode, PipReactionKind } from "../../../../../pip/contract";
 import { SPOTS, type FloorPoint, type SpotId } from "../../../workshop/layout";
-import type { WorkshopPlaceId } from "../../../workshop/places";
 import type { PipActivity } from "../../../workshop/store";
 import { Gait, wrapAngle, type GaitOutput, type RootState } from "./gait";
 import { Motor, type Pace } from "./motor";
@@ -44,17 +43,6 @@ export interface WalkFrame {
   travelling: boolean;
   /** The greet is due: he has turned to the Learner, so the director may play it. */
   greet: boolean;
-}
-
-const PLACES = {
-  noticeboard: true,
-  organizer: true,
-  "release-desk": true,
-} as const satisfies Record<WorkshopPlaceId, true>;
-
-/** The place a spot is, or null for the room's other spots. */
-export function placeOf(spot: SpotId | null): WorkshopPlaceId | null {
-  return spot !== null && spot in PLACES ? (spot as WorkshopPlaceId) : null;
 }
 
 /** The turn that faces from `from` to `to` on the floor. */

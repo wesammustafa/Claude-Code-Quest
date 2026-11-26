@@ -79,19 +79,23 @@ export const SceneContext = createContext<SceneHub>(noScene);
  * Has the Scene hold Pip while the calling component is mounted: the
  * screen's own Pip stands down, so only one Pip is ever on screen. The one
  * director is unchanged: the Scene's Pip reads the same model, and tells it
- * Pip is on screen as the screen's Pip would, and gone once it goes.
+ * whether Pip is in view (`visible`, as the screen's Pip would: a Pip the
+ * camera has left plays no Reaction to no one), and that he is gone once
+ * it goes.
  */
-export function useScenePip(): void {
+export function useScenePip(visible = true): void {
   const hub = useContext(SceneContext);
   const send = usePipInput();
   useEffect(() => {
     const release = hub.holdPip();
-    send({ type: "onScreen", visible: true });
     return () => {
       release();
       send({ type: "onScreen", visible: false });
     };
   }, [hub, send]);
+  useEffect(() => {
+    send({ type: "onScreen", visible });
+  }, [send, visible]);
 }
 
 /** Whether the Scene holds Pip at this moment, read when asked rather than followed. */

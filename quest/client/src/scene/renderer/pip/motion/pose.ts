@@ -157,8 +157,8 @@ export class StridePose {
    * every part on the phone, whose mixer clock stands) would show rest.
    * Only what the stride writes comes back: each part's turn, the places
    * of Hop, Body, the legs and feet, and Hop's squash. In the model those
-   * are keyed by a clip that always plays (a mode, the still pose or the
-   * walk) or by none, so no Reaction starting or stopping writes them
+   * are keyed by a clip that always plays (a mode or the still pose) or
+   * by none, so no Reaction starting or stopping writes them
    * between frames; an arm's place, which only Reactions key, the mixer
    * puts back itself when one stops.
    */

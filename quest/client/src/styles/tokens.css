@@ -332,6 +332,8 @@
   --stagger: 40ms;
   /* The status words wait this long after Pip's Reaction starts (components/Says.tsx, through Motion). */
   --says-delay: 80ms;
+  /* How long a line in Pip's bubble over the Scene stays before it clears: time to read it, not motion, so reduced motion keeps it. */
+  --says-hold: 5200ms;
 
   /* Travel: the screen rise, the press, a hovered node, the copy tick. */
   --rise: 8px;

@@ -18,8 +18,9 @@ import type {
   SceneStation,
   ScreenOnShow,
 } from "../mount/types";
+import { usePipInput } from "../pip/PipStage";
 import type { PipScreen } from "../pip/screen-name";
-import { useCourseSnapshot } from "../screens/lesson";
+import { hasProgress, useCourseSnapshot } from "../screens/lesson";
 import { useBadgeReveal } from "./badges";
 import { lessonOfScreen } from "./path";
 import { useSceneTier } from "./tier";
@@ -64,6 +65,7 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
   const lesson = snapshot?.lesson ?? null;
   const stations = useRevealedStations(useStations(snapshot), screen);
   const stopped = sceneStops(screen.screen);
+  useDozeOnReturn(snapshot, stopped);
   const [loaded, setLoaded] = useState<Loaded>({ state: "waiting" });
   const [lost, setLost] = useState(false);
 
@@ -138,6 +140,21 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
       )}
     </div>
   );
+}
+
+/**
+ * A returning Learner's page that lands where the Scene runs starts with
+ * Pip asleep (D7): the director is told once, with the first snapshot, and
+ * the first activity wakes him.
+ */
+function useDozeOnReturn(snapshot: Snapshot | null, stopped: boolean): void {
+  const send = usePipInput();
+  const told = useRef(false);
+  useEffect(() => {
+    if (told.current || snapshot === null) return;
+    told.current = true;
+    if (!stopped && hasProgress(snapshot)) send({ type: "doze" });
+  }, [snapshot, stopped, send]);
 }
 
 const NO_STATIONS: readonly SceneStation[] = [];

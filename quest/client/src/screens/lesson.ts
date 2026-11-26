@@ -34,6 +34,25 @@ export function summaryOf(
   return null;
 }
 
+/** Whether the Learner has been here before: a step finished, or a Lesson under way or complete. */
+export function hasProgress(snapshot: Snapshot): boolean {
+  const { lesson } = snapshot;
+  return (
+    snapshot.learner.card.length > 0 ||
+    lesson.phase !== "overview" ||
+    lesson.resumable ||
+    snapshot.course.levels.some((l) => l.lessons.some((s) => s.complete))
+  );
+}
+
+/** The last Lesson in course order the Learner has completed, or null. */
+export function lastFinished(snapshot: Snapshot): LessonSummary | null {
+  const done = snapshot.course.levels.flatMap((l) =>
+    l.lessons.filter((s) => s.complete),
+  );
+  return done.at(-1) ?? null;
+}
+
 /** The phase's path: the engine owns the place, the route follows it. */
 export function pathOf(lesson: ActiveLesson): string {
   if (lesson.phase === "overview") return `/lesson/${lesson.id}`;

@@ -66,6 +66,13 @@ function easing(value: string): Easing {
   return [x1, y1, x2, y2];
 }
 
+/** One time token as it applies to the page now, in seconds; 0 where it is missing. */
+export function tokenSeconds(name: `--${string}`): number {
+  return seconds(
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim(),
+  );
+}
+
 /** The motion tokens as they apply to the page now. */
 export function motionTokens(): MotionTokens {
   const style = getComputedStyle(document.documentElement);

@@ -4,9 +4,10 @@
 // things fall on the page, what lies under a point of the page, and what
 // Pip is doing and where; the screens tell Pip where to go and what to do.
 // One per page's Scene, as the Journey path is.
-import { useContext } from "react";
+import { useCallback, useContext } from "react";
 import type { LessonId } from "@quest/contract";
 import { SceneContext, type SceneHub } from "../context";
+import type { SpotId } from "./layout";
 import type { WorkshopPlaceId } from "./places";
 
 /** Something the renderer places on the page: a place, Pip, or a Lesson's card. */
@@ -36,7 +37,8 @@ export type WorkshopPicker = (clientX: number, clientY: number) => WorkshopPick;
 export type PipCommand =
   | {
       type: "goTo";
-      to: { place: WorkshopPlaceId } | { floor: { x: number; z: number } };
+      /** A spot of the room (a Level's place or one of the others) or a point of its floor. */
+      to: { spot: SpotId } | { floor: { x: number; z: number } };
       pace?: "walk" | "run" | "auto";
     }
   | { type: "greet" }
@@ -55,10 +57,21 @@ export type PipActivity =
   | "greeting"
   | "celebrating";
 
-/** What Pip is doing, and the place he stands at, or null between places. */
+/** What Pip is doing, and the spot he stands at, or null between spots. */
 export interface PipStatus {
   activity: PipActivity;
-  at: WorkshopPlaceId | null;
+  at: SpotId | null;
+}
+
+/**
+ * Where a screen puts the workshop's parts that ride on the Scene (Pip's
+ * bubble and toolbar, the place tags, Explore): an element of its own on
+ * the page, and how much of the workshop it holds: the whole room, or Pip's
+ * buttons alone in the screen's flow.
+ */
+export interface DeckHost {
+  element: HTMLElement;
+  kind: "room" | "inline";
 }
 
 /** One of Pip's feet in a probe's frame: where the model draws it, in the world, and whether his gait stands it on the floor. */
@@ -111,6 +124,11 @@ export interface Workshop {
   ready: () => boolean;
   setReady: (ready: boolean) => void;
   subscribeReady: (fn: () => void) => () => void;
+  /** The screen's place for the workshop's parts, or null where none is on show. */
+  host: () => DeckHost | null;
+  /** Sets the host until the returned release is called. */
+  setHost: (host: DeckHost) => () => void;
+  subscribeHost: (fn: () => void) => () => void;
   /** The probe set to measure Pip's motion, or null; only a test sets one. */
   probe?: () => PipProbe | null;
   setProbe?: (probe: PipProbe | null) => void;
@@ -161,7 +179,9 @@ export function createWorkshop(): Workshop {
   let status = IDLE;
   let ready = false;
   let probe: PipProbe | null = null;
+  let host: DeckHost | null = null;
   const drawn = listeners<[]>();
+  const hosts = listeners<[]>();
   const commands = listeners<[PipCommand]>();
   const statuses = listeners<[]>();
   const readies = listeners<[]>();
@@ -196,6 +216,17 @@ export function createWorkshop(): Workshop {
       readies.emit();
     },
     subscribeReady: readies.on,
+    host: () => host,
+    setHost: (next) => {
+      host = next;
+      hosts.emit();
+      return () => {
+        if (host !== next) return;
+        host = null;
+        hosts.emit();
+      };
+    },
+    subscribeHost: hosts.on,
     probe: () => probe,
     setProbe: (next) => {
       probe = next;
@@ -218,4 +249,19 @@ export function workshopOf(hub: SceneHub): Workshop {
 /** The workshop of the Scene around the caller. */
 export function useWorkshop(): Workshop {
   return workshopOf(useContext(SceneContext));
+}
+
+/**
+ * A ref for the element a screen keeps for the workshop's parts: while it
+ * is on the page, the renderer draws them there (`kind` says how many).
+ */
+export function useDeckHost(
+  kind: DeckHost["kind"],
+): (element: HTMLElement | null) => (() => void) | undefined {
+  const workshop = useWorkshop();
+  return useCallback(
+    (element: HTMLElement | null) =>
+      element === null ? undefined : workshop.setHost({ element, kind }),
+    [workshop, kind],
+  );
 }

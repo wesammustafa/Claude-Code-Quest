@@ -3,12 +3,11 @@
 // own director and Reaction map, unchanged: every mode plays, every
 // Reaction plays once with each part at its share of the map's intensity
 // (a soft one never half-raises the arms or half-shows a mouth), the gaze
-// eases over the rig's 150 ms, he walks while he travels the path, turned
-// toward where he goes, reduced motion holds the still pose, and the
-// phone tier holds each mode's first frame and draws only while something
-// moves.
+// eases over the rig's 150 ms, reduced motion holds the still pose, and
+// the phone tier holds each mode's first frame and draws only while
+// something moves.
 import type { QuestEvent } from "@quest/contract";
-import { Quaternion, Vector3, type Object3D } from "three";
+import { Quaternion, type Object3D } from "three";
 import { beforeEach, describe, expect, test } from "vitest";
 import type { PipMode, PipModel } from "../../../../pip/contract";
 import { PIP_MODES } from "../../../../pip/contract";
@@ -22,15 +21,8 @@ import {
   MAX_STEP,
   NOD_BOB,
   PipDrive,
-  WALK_BLEND_S,
-  WALK_CADENCE,
-  WALK_FOOT_PACE,
-  WALK_GAZE,
-  WALK_TURN,
-  WALK_TURN_S,
   frameStep,
   reactionShares,
-  walkCadence,
 } from "./drive";
 import { parsePipModel, type PipModel3D } from "./load";
 
@@ -387,181 +379,5 @@ describe("the phone tier's hold", () => {
     drive.update(1.1);
     expect(pose(model.scene)).not.toBe(first);
     expect(drive.moving()).toBe(true);
-  });
-});
-
-describe("the walk", () => {
-  /** A driver on the desktop tier (its mode loops), in idle, settled. */
-  function standing(start: Parameters<typeof director>[0] = {}) {
-    const drive = new PipDrive(model.scene, model.clips);
-    const pipModel = director(start).d.model();
-    drive.set(pipModel, false);
-    drive.update(1);
-    return { drive, pipModel };
-  }
-  /** The feet and legs, which only the walk moves. */
-  const stride = () =>
-    ["FootLeft", "FootRight", "LegLeft", "LegRight", "Body"]
-      .map((n) => {
-        const o = node(n);
-        return [...o.position.toArray(), ...o.quaternion.toArray()]
-          .map((v) => v.toFixed(4))
-          .join(",");
-      })
-      .join(" ");
-  /** Runs the driver for `s` seconds in 60 fps frames. */
-  const run = (drive: PipDrive, s: number) => {
-    for (let t = 0; t < s - 1e-9; t += 1 / 60) drive.update(1 / 60);
-  };
-
-  test("he walks while he travels, and stands in his mode again once he arrives", () => {
-    const { drive } = standing();
-    const atRest = stride();
-    expect(drive.state()).toMatchObject({ walk: 0, walkShare: 0 });
-    drive.walk(1);
-    run(drive, WALK_BLEND_S);
-    expect(drive.state()).toMatchObject({
-      mode: "idle",
-      walk: 1,
-      walkShare: 1,
-    });
-    expect(drive.moving()).toBe(true);
-    // His feet step: each frame of the stride puts them somewhere new.
-    const seen = new Set<string>();
-    for (let i = 0; i < 6; i++) {
-      run(drive, 0.05);
-      seen.add(stride());
-    }
-    expect(seen.size).toBe(6);
-    expect(seen.has(atRest)).toBe(false);
-    // Arrived: the walk blends out over WALK_BLEND_S and he stands in idle.
-    drive.walk(0);
-    run(drive, WALK_BLEND_S / 2);
-    expect(drive.state().walkShare).toBeGreaterThan(0);
-    expect(drive.state().walk).toBe(1);
-    run(drive, Math.max(WALK_BLEND_S, WALK_TURN_S));
-    expect(drive.state()).toMatchObject({
-      mode: "idle",
-      walk: 0,
-      walkShare: 0,
-      turn: 0,
-    });
-    expect(stride()).toBe(atRest);
-  });
-
-  test("he turns three quarters toward where he walks, the sign following the way, and back to the camera on arrival", () => {
-    const { drive } = standing();
-    const up = new Quaternion();
-    drive.walk(1);
-    drive.update(WALK_TURN_S / 2);
-    const half = drive.state().turn;
-    expect(half).toBeGreaterThan(0);
-    expect(half).toBeLessThan(WALK_TURN);
-    run(drive, WALK_TURN_S);
-    expect(drive.state().turn).toBeCloseTo(WALK_TURN, 9);
-    expect(WALK_TURN).toBeGreaterThanOrEqual((50 * Math.PI) / 180);
-    expect(WALK_TURN).toBeLessThanOrEqual((70 * Math.PI) / 180);
-    // Right is +y: his face, toward +z, turns toward the page's right, +x.
-    expect(model.scene.quaternion.angleTo(up)).toBeCloseTo(WALK_TURN, 6);
-    const face = node("Head").getWorldDirection(new Vector3());
-    expect(face.x).toBeGreaterThan(0.5);
-    drive.walk(-1);
-    run(drive, WALK_TURN_S);
-    expect(drive.state().turn).toBeCloseTo(-WALK_TURN, 9);
-    expect(node("Head").getWorldDirection(new Vector3()).x).toBeLessThan(-0.5);
-    drive.walk(0);
-    run(drive, WALK_TURN_S);
-    expect(drive.state().turn).toBe(0);
-    expect(model.scene.quaternion.angleTo(up)).toBeCloseTo(0, 9);
-  });
-
-  test("the gaze looks where he walks, and back where the director asks once he arrives", () => {
-    const drive = new PipDrive(model.scene, model.clips);
-    const pipModel = { ...director().d.model(), gaze: { x: 0.6, y: -0.2 } };
-    drive.set(pipModel, false);
-    drive.update(1);
-    expect(drive.state().gaze).toEqual({ x: 0.6, y: -0.2 });
-    drive.walk(1);
-    run(drive, GAZE_EASE_S);
-    expect(drive.state().gazeTo).toEqual(WALK_GAZE);
-    expect(drive.state().gaze.x).toBeCloseTo(WALK_GAZE.x, 6);
-    // The pointer moving while he walks waits for his arrival.
-    drive.set({ ...pipModel, gaze: { x: -0.5, y: 0 } }, false);
-    drive.update(0.05);
-    expect(drive.state().gazeTo).toEqual(WALK_GAZE);
-    drive.walk(0);
-    run(drive, GAZE_EASE_S);
-    expect(drive.state().gaze).toEqual({ x: -0.5, y: 0 });
-  });
-
-  test("a Reaction mid-walk plays on his upper body while his legs keep walking", () => {
-    const { drive } = standing();
-    drive.walk(1);
-    run(drive, 0.2);
-    drive.react({ id: "r", kind: "celebration", intensity: 1 });
-    run(drive, BLEND_S + 0.05);
-    expect(drive.state()).toMatchObject({
-      walk: 1,
-      walkShare: 1,
-      reaction: { kind: "celebration" },
-    });
-    const a = stride();
-    run(drive, 0.1);
-    expect(stride()).not.toBe(a);
-  });
-
-  test("on the phone tier his mode holds still, but he walks", () => {
-    const drive = new PipDrive(model.scene, model.clips);
-    drive.set(director().d.model(), true);
-    drive.update(1);
-    expect(drive.moving()).toBe(false);
-    drive.walk(-1);
-    run(drive, 0.2);
-    const a = stride();
-    run(drive, 0.1);
-    expect(stride()).not.toBe(a);
-    expect(drive.moving()).toBe(true);
-    drive.walk(0);
-    run(drive, 0.5);
-    expect(drive.moving()).toBe(false);
-  });
-
-  test("he steps as fast as the ground goes by him, so his planted foot keeps up, within bounds", async () => {
-    // At the clip's own cadence his planted foot slides back across the
-    // page at WALK_FOOT_PACE heights a second.
-    expect(walkCadence(WALK_FOOT_PACE)).toBeCloseTo(1, 9);
-    expect(walkCadence(WALK_FOOT_PACE * 1.5)).toBeCloseTo(1.5, 9);
-    // Never so fast the steps blur, nor so slow he wades.
-    expect(walkCadence(WALK_FOOT_PACE * 40)).toBe(WALK_CADENCE.max);
-    expect(walkCadence(0)).toBe(WALK_CADENCE.min);
-    expect(WALK_CADENCE.max).toBeLessThanOrEqual(2);
-    // The clip runs at that cadence: twice as fast, twice as far through it
-    // (both past the walk's blend in), each on a model of its own.
-    const fast = standing().drive;
-    fast.walk(1, WALK_FOOT_PACE * 2);
-    run(fast, 0.3);
-    expect(fast.state().cadence).toBeCloseTo(2, 9);
-    const walked = stride();
-    model = await parsePipModel(bytes());
-    const slow = standing().drive;
-    slow.walk(1, WALK_FOOT_PACE);
-    run(slow, 0.6);
-    expect(slow.state().cadence).toBeCloseTo(1, 9);
-    expect(stride()).toBe(walked);
-  });
-
-  test("under reduced motion he never walks or turns", () => {
-    const drive = new PipDrive(model.scene, model.clips);
-    const { d } = director({ screen: "map", reducedMotion: true });
-    drive.set(d.model(), false);
-    drive.update(0);
-    const held = pose(model.scene);
-    drive.walk(1);
-    for (let i = 0; i < 5; i++) {
-      drive.update(0.1);
-      expect(pose(model.scene)).toBe(held);
-    }
-    expect(drive.state()).toMatchObject({ walk: 0, walkShare: 0, turn: 0 });
-    expect(drive.moving()).toBe(false);
   });
 });

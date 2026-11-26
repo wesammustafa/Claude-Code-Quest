@@ -18,6 +18,10 @@ export const PANE_COLUMN = "grid gap-5 px-5 pt-8 pb-8 [&>*]:min-w-0";
 export const WIDE =
   "mx-auto grid max-w-wide gap-5.5 px-6 pt-9 pb-24 max-sm:px-5";
 
+/** The Learning journey over the workshop room: its phone gutter is the page's 16 px. */
+export const ROOM_WIDE =
+  "mx-auto grid max-w-wide gap-5.5 px-6 pt-9 pb-24 max-sm:px-4";
+
 /** A calm, centred moment: Welcome, Lesson complete. */
 export const MOMENT =
   "mx-auto grid min-h-(--moment-height) max-w-hero content-center justify-items-center gap-4 px-5 pt-8 pb-24 text-center";
