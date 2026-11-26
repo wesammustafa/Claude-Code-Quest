@@ -57,6 +57,12 @@ interface Props {
   stations: readonly SceneStation[];
   /** A desktop sways gently over the whole room. */
   sway: boolean;
+  /**
+   * Tells today's Journey stage where Pip's feet stand, for the 2D Pip it
+   * floats there: only while the Scene draws no 3D Pip, who stands in the
+   * room himself.
+   */
+  feet: boolean;
 }
 
 /**
@@ -70,11 +76,12 @@ interface Props {
  * stands by a new navigation or at the cap. On the Journey, a new Station
  * walks Pip there over --duration-walk, the camera gliding with him, and
  * the pull-back or a new place glides over --duration-slow. Each frame it
- * tells the page where the places, the cards and Pip's feet fall (the
- * workshop's anchors, and today's Journey stage), and it answers the
- * page's pick while it is mounted.
+ * tells the page where the places and the cards fall (the workshop's
+ * anchors, beside the 3D Pip's own, and today's Journey stage), with Pip's
+ * feet on the stage when asked, and it answers the page's pick while it is
+ * mounted.
  */
-export function CameraRig({ screen, stations, sway }: Props): null {
+export function CameraRig({ screen, stations, sway, feet }: Props): null {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
   const invalidate = useThree((s) => s.invalidate);
@@ -227,8 +234,18 @@ export function CameraRig({ screen, stations, sway }: Props): null {
     if (sway && framing.kind === "room")
       shot.pose.position.x += Math.sin(clock.elapsedTime * SWAY_RATE) * SWAY;
     aim(camera, shot.pose, size);
-    const told = tellPage(camera, size, placeIds, cards, shot.pose.pip);
-    workshop.setAnchors(told.anchors);
+    const told = tellPage(
+      camera,
+      size,
+      placeIds,
+      cards,
+      feet ? shot.pose.pip : null,
+    );
+    // The 3D Pip publishes his own anchor; the room's leave it be.
+    const pip = workshop.anchors().pip;
+    workshop.setAnchors(
+      pip === undefined ? told.anchors : { ...told.anchors, pip },
+    );
     if (!sameView(sent.current, told.view)) {
       sent.current = told.view;
       path.setView(told.view);

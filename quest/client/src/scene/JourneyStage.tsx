@@ -14,7 +14,7 @@ import { cx } from "../lib/cx";
 import { useMount } from "../mount/context";
 import { BOX, PipRenderer } from "../pip/PipRenderer";
 import { usePipFollowsPointer, usePipModel } from "../pip/PipStage";
-import { usePipStandsDown, useScenePip } from "./context";
+import { useScenePip } from "./context";
 import {
   pinchWhole,
   stationAt,
@@ -50,9 +50,8 @@ interface Props {
  * back to the whole Level or goes back in, as the control in its corner
  * does. Pip floats over it at the point the Scene draws his feet (9.4),
  * while every screen's own Pip stands down; with the mount's 3D Pip (seam
- * S13) the Scene's renderer holds Pip instead, so the stage floats none and
- * the two never show together: while it holds him, the stage leaves the
- * same box empty at the same point, and he stands in it, on the path. The
+ * S13) the Scene's renderer holds Pip instead, standing him in the room,
+ * so the stage floats none and the two never show together. The
  * Stations' marks are for the pointer alone: the list's links are the
  * keyboard and screen reader path, so the band is hidden from assistive
  * technology but for its control.
@@ -161,7 +160,7 @@ export function JourneyStage({ lessons, home, link }: Props): ReactNode {
         >
           <div aria-hidden="true" className="absolute inset-0">
             <Stations path={path} lessons={lessons} />
-            {floats ? <FloatingPip path={path} /> : <PipSpot path={path} />}
+            {floats && <FloatingPip path={path} />}
           </div>
           <div className="absolute top-2 right-2">
             <Button
@@ -285,38 +284,6 @@ function FloatingPip({ path }: { path: JourneyPath }): ReactNode {
       <PipRenderer
         model={{ ...model, size: "beside" }}
         className={BOX.beside}
-      />
-    </div>
-  );
-}
-
-/**
- * The 3D Pip's box on the path, larger than the 2D Pip's beside box (76 px)
- * so his steps read as he walks: 100 px where the stage is tall (lg), 92 px
- * below. The largest that keeps the Station's beacon tip in sight above him
- * on a desktop and, at 390 px, his antennas clear of the stage's control as
- * the path's bends lift him mid-walk.
- */
-export const STAGE_PIP_BOX = "size-23 lg:size-25";
-
-/**
- * The 3D Pip's place on the path (seam S13): while the Scene's renderer
- * holds Pip, an empty box at the point the 2D Pip would stand (his feet at
- * its bottom centre), at STAGE_PIP_BOX's size, which the renderer stands
- * him in over every other screen box.
- */
-function PipSpot({ path }: { path: JourneyPath }): ReactNode {
-  return usePipStandsDown() ? <StoodDownSpot path={path} /> : null;
-}
-
-function StoodDownSpot({ path }: { path: JourneyPath }): ReactNode {
-  const box = useFeetBox(path);
-  return (
-    <div ref={box} hidden className="pointer-events-none absolute top-0 left-0">
-      <span
-        data-pip-stood-down="beside"
-        data-pip-stage=""
-        className={cx("relative inline-block shrink-0", STAGE_PIP_BOX)}
       />
     </div>
   );

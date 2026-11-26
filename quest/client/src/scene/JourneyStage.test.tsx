@@ -15,10 +15,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { fullCourse, overview, snapshotOf } from "../../e2e/snapshots";
 import { renderMounted } from "../../test/mounted";
 import type { SceneMount, SceneProps } from "../mount/types";
-import { BOX } from "../pip/PipRenderer";
 import { SceneContext } from "./context";
-import { STAGE_PIP_BOX, WHOLE_LEVEL } from "./JourneyStage";
-import { findPipSpot } from "./pip-spot";
+import { WHOLE_LEVEL } from "./JourneyStage";
 import { journeyPathOf, type JourneyPath, type StationPoint } from "./path";
 import { resetTierProbes } from "./tier";
 
@@ -416,32 +414,19 @@ describe("the Journey path, with the Scene drawing", () => {
     expect(document.querySelector('[data-pip="beside"]')).not.toBeNull();
   });
 
-  test("while the 3D Pip's renderer holds Pip, the stage leaves an empty box where the Scene puts his feet, larger than the 2D Pip's, and the renderer stands him there", async () => {
+  test("while the 3D Pip's renderer holds Pip, standing him in the room, the stage leaves no box for him and the screen's own Pip stands down: one Pip", async () => {
     const { path } = await onPath({ pip: true, holds: true });
     expect(document.querySelector("[data-scene-pip]")).toBeNull();
     expect(screenPip()).toBeNull();
-    const spot = document.querySelector<HTMLElement>("[data-pip-stage]");
-    expect(spot).toHaveAttribute("data-pip-stood-down", "beside");
-    expect(spot).toHaveClass(...STAGE_PIP_BOX.split(" "));
-    expect(spot).not.toHaveClass(BOX.beside);
-    expect(spot?.closest("[aria-hidden]")).not.toBeNull();
-    // The Next card's empty box is there too: the stage's comes first.
-    expect(document.querySelectorAll("[data-pip-stood-down]")).toHaveLength(2);
-    expect(findPipSpot()).toBe(spot);
-    const placed = () => spot?.parentElement;
-    expect(placed()?.hidden).toBe(false);
-    expect(placed()?.style.transform).toBe(
-      "translate(100px, 230px) translate(-50%, -100%)",
-    );
-    // It follows the point as the Scene moves it, and hides with it.
+    expect(document.querySelector("[data-pip-stage]")).toBeNull();
+    // The Next card's empty box is the only one left.
+    expect(document.querySelectorAll("[data-pip-stood-down]")).toHaveLength(1);
+    // A point for his feet changes nothing: he is in the room.
     act(() => {
       path.setView({ points: POINTS, pip: { x: 200, y: 230 } });
     });
-    expect(placed()?.style.transform).toContain("translate(200px, 230px)");
-    act(() => {
-      path.setView({ points: POINTS, pip: null });
-    });
-    expect(placed()?.hidden).toBe(true);
+    expect(document.querySelector("[data-pip-stage]")).toBeNull();
+    expect(document.querySelector("[data-scene-pip]")).toBeNull();
   });
 
   test("the other Levels keep today's screen: no band, and the screen's own Pip", async () => {

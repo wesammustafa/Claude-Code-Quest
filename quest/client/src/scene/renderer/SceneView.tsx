@@ -1,5 +1,11 @@
-import { Canvas, useFrame, type CameraProps } from "@react-three/fiber";
 import {
+  Canvas,
+  useFrame,
+  useThree,
+  type CameraProps,
+} from "@react-three/fiber";
+import {
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -9,12 +15,15 @@ import {
   type ReactNode,
 } from "react";
 import type { SceneProps, ScreenOnShow } from "../../mount/types";
+import { SceneContext } from "../context";
+import { journeyPathOf } from "../path";
 import { pixelRatioCap } from "../tier";
+import { pipOnScreen } from "../workshop/goal";
 import { workshopPlaces } from "../workshop/places";
 import { CameraRig } from "./CameraRig";
 import { FOV } from "./camera";
 import { SceneBadges } from "./badges/SceneBadges";
-import { ScenePip } from "./pip/ScenePip";
+import { WorkshopPip } from "./pip/WorkshopPip";
 import { WorkshopLamps, WorkshopRoom } from "./workshop/WorkshopRoom";
 
 /** The camera's lens; the rig sets where it stands. One object, so a new render of the canvas never sets it again. */
@@ -57,7 +66,8 @@ function useFollowed<T>(value: T): Followed<T> {
  * the Tab order, drawing the workshop room (the warm workshop, D3) with
  * its light baked into its colours, so no tier needs a shadow map, and a
  * card for every Lesson at its Level's place; the light here is for the 3D
- * Badges and, with the mount's `pip`, the 3D Pip (seam S13). A desktop
+ * Badges and, with the mount's `pip`, the 3D Pip (seam S13), the one Pip
+ * of every screen the Scene runs on, standing in the room. A desktop
  * draws every frame, with antialiasing and a gentle sway over the whole
  * room; a phone draws at a capped pixel ratio, and only when something
  * changes; stopped, it draws nothing. The screen is followed rather than
@@ -138,6 +148,7 @@ export function SceneView({
           screen={shown}
           stations={stations}
           sway={tier === "desktop"}
+          feet={!pip}
         />
         <WorkshopLamps look={look} />
         <SceneBadges theme={theme} />
@@ -145,6 +156,7 @@ export function SceneView({
         {pip && (
           <FollowedPip
             screen={shown}
+            stations={stations}
             tier={tier}
             theme={theme}
             shadow={look.shadow}
@@ -156,21 +168,40 @@ export function SceneView({
   );
 }
 
-/** The 3D Pip on the followed screen: only it renders again when the screen changes. */
+/**
+ * The 3D Pip on the followed screen, walked to the goal it gives him (D5):
+ * only this renders again when the screen, or the Lesson the Journey stands
+ * at, changes. Where the Scene stops he leaves the room, so the screen's
+ * own Pip is the one, and the frame the stopped Scene keeps is drawn again
+ * without him, so it never shows him beside that Pip when the Scene comes
+ * back.
+ */
 function FollowedPip({
   screen,
+  stations,
   tier,
   theme,
   shadow,
 }: {
   screen: Followed<ScreenOnShow>;
+  stations: SceneProps["stations"];
   tier: SceneProps["tier"];
   theme: SceneProps["theme"];
   shadow: string;
 }): ReactNode {
   const current = useSyncExternalStore(screen.subscribe, screen.get);
+  const path = journeyPathOf(useContext(SceneContext));
+  const at = useSyncExternalStore(path.subscribe, path.at);
+  const pip = pipOnScreen(current, at, stations);
+  const get = useThree((s) => s.get);
+  useLayoutEffect(() => {
+    if (pip.inRoom) return;
+    const { gl, scene, camera } = get();
+    gl.render(scene, camera);
+  }, [pip.inRoom, get]);
+  if (!pip.inRoom) return null;
   return (
-    <ScenePip screen={current} tier={tier} theme={theme} shadow={shadow} />
+    <WorkshopPip goal={pip.goal} tier={tier} theme={theme} shadow={shadow} />
   );
 }
 

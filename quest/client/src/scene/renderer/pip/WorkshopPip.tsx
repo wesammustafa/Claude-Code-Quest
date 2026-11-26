@@ -1,12 +1,13 @@
-// The workshop's Pip (D6): the 3D Pip standing in the room, in its own
-// world, rather than at the screen's Pip box as ScenePip stands him. He
-// loads his model as ScenePip does, and holds Pip (S12's useScenePip) only
-// once it has loaded and been drawn, so the screen's own Pip shows until
-// then and the two never draw together. The one director still plays his
-// modes and Reactions through the guide's driver; his legs are his own:
-// he walks and runs where the screen's goal and the workshop's commands
-// send him, round the furniture, and the stride lays his steps over the
-// driver's pose. He tells the director only that he travels, and that the
+// The workshop's Pip (D6, seam S13): the 3D Pip standing in the room, in
+// its own world, not in a box of the screen's. He loads his model after
+// the Scene has drawn, and holds Pip (S12's useScenePip) only once it has
+// passed its contract, loaded and been drawn, so the screen's own Pip
+// shows until then, and wherever it fails, and the two never draw
+// together. Where the Scene stops he is not mounted at all (SceneView).
+// The one director still plays his modes and Reactions through the
+// guide's driver; his legs are his own: he walks and runs where the
+// screen's goal and the workshop's commands send him, round the
+// furniture, and the stride lays his steps over the driver's pose. He tells the director only that he travels, and that the
 // Learner greeted him, and tells the screens what he is doing, where he
 // stands, and where his head is on the page.
 import { useFrame, useThree } from "@react-three/fiber";
@@ -163,7 +164,8 @@ function InRoom({
     invalidate();
   }, [driver, pip, hold, invalidate]);
 
-  // A Reaction plays once per ID in this tab, as ScenePip plays it.
+  // A Reaction plays once per ID in this tab, as on the Rive rig: one the
+  // screen's Pip already played never plays again here.
   const reaction = pip.reaction;
   useLayoutEffect(() => {
     if (reaction !== null) reactionLedger.arrive(reaction.id);
