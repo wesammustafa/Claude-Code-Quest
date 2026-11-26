@@ -26,7 +26,7 @@ describe("motionTokens", () => {
       base: 0.22,
       slow: 0.36,
       moment: 0.56,
-      walk: 0.8,
+      walk: 1.2,
       stagger: 0.04,
       saysDelay: 0.08,
       rise: 8,
