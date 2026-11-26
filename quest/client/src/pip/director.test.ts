@@ -1031,15 +1031,19 @@ describe("following the pointer", () => {
     expect(levelup.director.send(point(left)).gaze).toEqual(FORWARD);
   });
 
-  test("off while Pip is off-screen, a Panel is open or the lesson page is", () => {
-    for (const input of [
-      { type: "onScreen", visible: false },
-      { type: "pageInert", inert: true },
-      { type: "pagePanel", open: true },
-    ] as const) {
-      const { director } = welcome();
-      director.send(input);
-      expect(director.send(point(left)).gaze).toEqual(FORWARD);
+  test("off while Pip is off-screen, a Panel is open, the lesson page is or the connection is lost, travelling or not", () => {
+    for (const moving of [false, true]) {
+      for (const input of [
+        { type: "onScreen", visible: false },
+        { type: "pageInert", inert: true },
+        { type: "pagePanel", open: true },
+        { type: "connection", lost: true },
+      ] as const) {
+        const { director } = welcome();
+        if (moving) director.send({ type: "travel", moving });
+        director.send(input);
+        expect(director.send(point(left)).gaze).toEqual(FORWARD);
+      }
     }
   });
 

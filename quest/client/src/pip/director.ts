@@ -174,7 +174,12 @@ export type DirectorInput =
    * activity that plays a Greeting.
    */
   | { type: "greet" }
-  /** Pip set off across the Scene, or arrived: activity, and while he travels he neither rests nor sleeps. */
+  /**
+   * Pip set off across the Scene, or arrived: activity, and while he travels
+   * he neither rests nor sleeps. Only an arrival ends a travel, so the
+   * renderer tells it through usePipTravel, which sends the arrival when the
+   * renderer unmounts too.
+   */
   | { type: "travel"; moving: boolean }
   /** Where the page's gaze targets sit now, relative to Pip. */
   | {
@@ -331,6 +336,10 @@ const active = (s: DirectorState, now: number): DirectorState => ({
  * still show, come through the snapshot (useMilestone in live/LiveProvider).
  */
 const unseen = (s: DirectorState) => s.hidden || s.offScreen;
+
+/** What rests Pip unless he is travelling: the lesson page open, Pip unseen, the connection lost. */
+const restsUnlessTravelling = (s: DirectorState) =>
+  s.pagePanelOpen || unseen(s) || s.connectionLost;
 
 const glanceReady = (s: DirectorState, now: number) =>
   s.lastGlanceAt === null || now - s.lastGlanceAt >= GLANCE_INTERVAL_MS;
@@ -641,12 +650,7 @@ export function directorReduce(
  */
 export function modeAt(s: DirectorState, now: number): PipMode {
   if (s.reducedMotion) return "rest";
-  if (
-    !s.travelling &&
-    (s.pagePanelOpen || s.hidden || s.offScreen || s.connectionLost)
-  ) {
-    return "rest";
-  }
+  if (!s.travelling && restsUnlessTravelling(s)) return "rest";
   if (s.checking) return "thinking";
   if (s.travelling) return "idle";
   return s.dozing || now - s.lastActivityAt >= IDLE_SLEEP_MS ? "sleep" : "idle";
@@ -680,8 +684,9 @@ interface Follow {
  * Where Pip follows the pointer now, or null when he doesn't: it moved in
  * the last 2 s, on a screen that follows it (on the Lesson overview and the
  * step only with some pull, near him and off the content), no Reaction is
- * playing, no Panel is open, and Pip is awake and seen (Rest covers reduced
- * motion, the lesson page open, the page hidden, Pip off-screen).
+ * playing, no Panel is open, and Pip is awake and seen. Rest covers reduced
+ * motion; the lesson page open, the page hidden, Pip off-screen and a lost
+ * connection stop it too while he travels, when they do not rest him.
  */
 function following(s: DirectorState, now: number): Follow | null {
   const pointer = s.pointer;
@@ -696,7 +701,13 @@ function following(s: DirectorState, now: number): Follow | null {
   if (s.playing !== null && now - s.playing.startedAt < REACTION_PLAYS_MS)
     return null;
   const mode = modeAt(s, now);
-  if (s.pageInert || mode === "rest" || mode === "sleep") return null;
+  if (
+    s.pageInert ||
+    restsUnlessTravelling(s) ||
+    mode === "rest" ||
+    mode === "sleep"
+  )
+    return null;
   return { at: pointer.at, pull };
 }
 

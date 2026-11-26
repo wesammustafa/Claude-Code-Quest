@@ -19,6 +19,7 @@ import {
   usePipInput,
   usePipModel,
   usePipStep,
+  usePipTravel,
 } from "./PipStage";
 
 /** The director's model, as text the test reads. */
@@ -248,6 +249,61 @@ describe("Pip's stage in the app", () => {
       screen.getByRole("button", { name: "panel" }).click();
     });
     expect(current().mode).toBe("idle");
+  });
+
+  test("Pip's travel holds off Rest until he arrives or what reports it unmounts", () => {
+    function Walker({ moving }: { moving: boolean }) {
+      usePipTravel(moving);
+      return null;
+    }
+    function Scene() {
+      const tell = usePipInput();
+      const [drawn, setDrawn] = useState(true);
+      const [moving, setMoving] = useState(true);
+      return (
+        <>
+          {drawn && <Walker moving={moving} />}
+          <button
+            type="button"
+            onClick={() => {
+              tell({ type: "pagePanel", open: true });
+            }}
+          >
+            panel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMoving(!moving);
+            }}
+          >
+            walk
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDrawn(false);
+            }}
+          >
+            stop
+          </button>
+        </>
+      );
+    }
+    stageAt("/lesson/b-1/step", <Scene />);
+    const press = (name: string) => {
+      act(() => {
+        screen.getByRole("button", { name }).click();
+      });
+    };
+    press("panel");
+    expect(current().mode).toBe("idle");
+    press("walk");
+    expect(current().mode).toBe("rest");
+    press("walk");
+    expect(current().mode).toBe("idle");
+    press("stop");
+    expect(current().mode).toBe("rest");
   });
 
   test("Copy turns Pip's gaze to the command, then back to rest", async () => {

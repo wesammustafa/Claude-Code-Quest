@@ -64,7 +64,7 @@ describe("the workshop's places", () => {
     const core = stations
       .filter((s) => s.level === "beginner" && !s.optional)
       .map((s) => s.lesson);
-    // Core Lessons first, then the labs, however the Stations come.
+    // Core Lessons first, then the labs, even with the Stations reversed.
     const noticeboard = workshopPlaces([...stations].reverse()).find(
       (p) => p.id === "noticeboard",
     );

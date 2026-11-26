@@ -70,7 +70,11 @@ export interface Workshop {
   pick: (clientX: number, clientY: number) => WorkshopPick;
   /** Registers the renderer's pick until the returned release is called. */
   setPick: (picker: WorkshopPicker) => () => void;
-  /** Tells the renderer's listeners; with none, the command is dropped, never queued. */
+  /**
+   * Tells the renderer's listeners; with none, the command is dropped, never
+   * queued. So the renderer listens before it sets ready, and a screen sends
+   * only once ready is true.
+   */
   send: (command: PipCommand) => void;
   onCommand: (fn: (command: PipCommand) => void) => () => void;
   status: () => PipStatus;

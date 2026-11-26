@@ -106,6 +106,23 @@ export function usePipStep(step: string | null, hintReady: boolean): void {
 }
 
 /**
+ * Tells the director whether Pip is travelling across the Scene. The travel
+ * ends when the caller unmounts as well as when `moving` turns false, so a
+ * renderer that stops mid-walk (the Workspace, the still image, a lost
+ * context) never leaves Pip unable to rest or sleep.
+ */
+export function usePipTravel(moving: boolean): void {
+  const send = usePipInput();
+  useEffect(() => {
+    if (!moving) return;
+    send({ type: "travel", moving: true });
+    return () => {
+      send({ type: "travel", moving: false });
+    };
+  }, [send, moving]);
+}
+
+/**
  * Has the page's Pip follow the mouse: where it moves goes to the director
  * at most once per animation frame, and nothing runs while it is still or
  * Pip holds still. The director decides whether Pip follows it.
