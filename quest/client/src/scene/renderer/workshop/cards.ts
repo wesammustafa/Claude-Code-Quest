@@ -115,7 +115,7 @@ export const SURFACES: Readonly<
   },
   // Its front looks into the room, toward -x: its right, seen from there, is +z.
   organizer: {
-    centre: [6.27, 0.86, -2.2],
+    centre: [6.3, 0.86, -2.2],
     right: [0, 0, 1],
     up: [0, 1, 0],
     out: [-1, 0, 0],

@@ -32,6 +32,7 @@ import {
   poseOf,
   sameFraming,
   sameView,
+  type PathState,
 } from "./camera";
 import { tellPage, toldCards } from "./workshop/anchors";
 import { floorHit, pickOf } from "./workshop/pick";
@@ -61,13 +62,17 @@ interface Props {
 /**
  * The Scene's camera in the workshop (the warm workshop, D5): it frames the
  * whole room, a Level's place (beside a screen's panel on a Lesson's
- * overview) or close on a place, as each screen asks. A screen change is a
- * move between framings, registered with S11 through `useSceneMove`: within
- * the cap, eased by the tokens, started before the new screen's first frame
- * and ended where it stands by a new navigation or at the cap. A new Lesson
- * on the Journey glides to its place. Each frame it tells the page where
- * the places and the cards fall (the workshop's anchors, and today's
- * Journey stage), and it answers the page's pick while it is mounted.
+ * overview) or close on a place, as each screen asks, and on today's
+ * Journey stage the card of Pip's Station, or its whole place pulled back,
+ * in the stage's band. A screen change is a move between framings,
+ * registered with S11 through `useSceneMove`: within the cap, eased by the
+ * tokens, started before the new screen's first frame and ended where it
+ * stands by a new navigation or at the cap. On the Journey, a new Station
+ * walks Pip there over --duration-walk, the camera gliding with him, and
+ * the pull-back or a new place glides over --duration-slow. Each frame it
+ * tells the page where the places, the cards and Pip's feet fall (the
+ * workshop's anchors, and today's Journey stage), and it answers the
+ * page's pick while it is mounted.
  */
 export function CameraRig({ screen, stations, sway }: Props): null {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
@@ -89,9 +94,17 @@ export function CameraRig({ screen, stations, sway }: Props): null {
     invalidate();
   }, [cards, invalidate]);
 
+  const pathNow = useCallback(
+    (): PathState => ({
+      at: path.at(),
+      whole: path.whole(),
+      band: path.band(),
+    }),
+    [path],
+  );
   const framingNow = useCallback(
-    () => framingFor(shown.current, path.at(), stations),
-    [path, stations],
+    () => framingFor(shown.current, pathNow(), places),
+    [pathNow, places],
   );
 
   const start = useCallback(
@@ -105,7 +118,7 @@ export function CameraRig({ screen, stations, sway }: Props): null {
 
   const onMove = useCallback<SceneMove>(
     (change: ScreenChange) => {
-      const plan = planMove(change, path.at(), stations);
+      const plan = planMove(change, pathNow(), places);
       // Coming back from a Lesson's screens, the Journey stands at its Lesson.
       if (plan.at !== null) path.setAt(plan.at);
       shown.current = change.to;
@@ -125,24 +138,35 @@ export function CameraRig({ screen, stations, sway }: Props): null {
       });
       return "under";
     },
-    [path, stations, moves, framingNow, size, canvas, start, invalidate],
+    [path, pathNow, places, moves, framingNow, size, canvas, start, invalidate],
   );
   useSceneMove(onMove);
 
-  // A new Lesson on the Journey glides to its place over --duration-slow.
-  // Anything else that changes the framing outside a screen change (a new
-  // screen with screen transitions off) shows it at once: no move.
+  // On the Journey, a new Station on the stage walks Pip there over
+  // --duration-walk; the pull-back, the way back in and a new place glide
+  // over --duration-slow. Anything else that changes the framing outside a
+  // screen change (the stage's band appearing as the Journey opens, or
+  // going, a new screen with screen transitions off) shows it at once.
   useEffect(() => {
     let last = framingNow();
     const offPath = path.subscribe(() => {
       const next = framingNow();
       if (
         !sameFraming(last, next) &&
+        (last.kind === "stage") === (next.kind === "stage") &&
         shown.current.screen === "map" &&
         !canvas.hasAttribute(MOVING)
       ) {
         const tokens = motionTokens();
-        start(tokens.slow * MS_PER_SECOND, tokens.inOut, false);
+        const walks =
+          last.kind === "stage" &&
+          next.kind === "stage" &&
+          last.card.lesson !== next.card.lesson;
+        start(
+          (walks ? tokens.walk : tokens.slow) * MS_PER_SECOND,
+          tokens.inOut,
+          false,
+        );
       }
       last = next;
       invalidate();
@@ -203,7 +227,7 @@ export function CameraRig({ screen, stations, sway }: Props): null {
     if (sway && framing.kind === "room")
       shot.pose.position.x += Math.sin(clock.elapsedTime * SWAY_RATE) * SWAY;
     aim(camera, shot.pose, size);
-    const told = tellPage(camera, size, placeIds, cards);
+    const told = tellPage(camera, size, placeIds, cards, shot.pose.pip);
     workshop.setAnchors(told.anchors);
     if (!sameView(sent.current, told.view)) {
       sent.current = told.view;

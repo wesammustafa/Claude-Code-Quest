@@ -353,8 +353,12 @@ export function roomGeometry(look: SceneLook): BufferGeometry {
     ]),
     box(paint, metal, [0.25, 0.935, 0.5], [0.4, 0.03, 0.06], [0, 0.4, 0]),
     box(paint, accent, [0.55, 0.935, 0.45], [0.3, 0.03, 0.05], [0, -0.3, 0]),
-    // The shelf on the back wall, with what the group has mended.
-    box(paint, wood, [2.7, 0.9, -4.72], [3.0, 1.8, 0.5]),
+    // The open shelf on the back wall, with what the group has mended on it.
+    box(paint, shade(wood, 0.78), [2.7, 0.9, -4.94], [3.0, 1.8, 0.06]),
+    ...[1.25, 4.15].map((x) =>
+      box(paint, wood, [x, 0.9, -4.72], [0.1, 1.8, 0.5]),
+    ),
+    box(paint, shade(wood, 0.85), [2.7, 0.05, -4.72], [2.8, 0.1, 0.5]),
     ...[0.55, 1.15, 1.75].map((y) =>
       box(paint, mix(wood, paper, 0.25), [2.7, y, -4.67], [2.8, 0.05, 0.45]),
     ),
@@ -382,8 +386,8 @@ export function roomGeometry(look: SceneLook): BufferGeometry {
       paint,
       mix(wood, paper, 0.55),
       [-5.6, 0.72, 2.15],
-      0.72,
-      0.72,
+      0.65,
+      0.65,
       0.07,
       12,
     ),

@@ -1,85 +1,113 @@
 // Where the Scene's camera stands in the workshop for each screen (the warm
-// workshop, D5), and how it moves between them. Plain math over Three.js's
+// workshop, D5), and how it moves between them; while today's Journey shows
+// its stage band (09 9.3), the camera frames its Stations' cards in the
+// band, and Pip's feet in front of them. Plain math over Three.js's
 // vectors, with no renderer, so a test holds each framing, pose and move.
 import { PerspectiveCamera, Vector3 } from "three";
 import type { LessonId } from "@quest/contract";
-import type {
-  SceneStation,
-  ScreenChange,
-  ScreenOnShow,
-} from "../../mount/types";
-import { lessonOfScreen, type PathView } from "../path";
+import type { ScreenChange, ScreenOnShow } from "../../mount/types";
+import { lessonOfScreen, type Band, type PathView } from "../path";
 import { sceneStops } from "../SceneLayer";
-import {
-  placeOfLesson,
-  workshopPlaces,
-  type WorkshopPlaceId,
-} from "../workshop/places";
+import { SPOTS } from "../workshop/layout";
+import type { WorkshopPlace, WorkshopPlaceId } from "../workshop/places";
+import { placedCards, SURFACES, type PlacedCard } from "./workshop/cards";
 
 /** The camera's vertical field of view, in degrees. */
 export const FOV = 45;
 
-/** Where the camera stands, what it looks at, and where on the page that point falls, as a shift from the page's centre in CSS pixels. */
+/**
+ * Where the camera stands, what it looks at, and where on the page that
+ * point falls, as a shift from the page's centre in CSS pixels; and where
+ * Pip's feet stand in the framing, for the Journey's stage, or null.
+ */
 export interface Pose {
   position: Vector3;
   look: Vector3;
   shift: { x: number; y: number };
+  pip: Vector3 | null;
+}
+
+/** The Journey's state, as the camera reads it: the Lesson it stands at, whether its stage is pulled back to the whole Level, and the stage's band on the page while it shows. */
+export interface PathState {
+  at: LessonId | null;
+  whole: boolean;
+  band: Band | null;
 }
 
 /**
  * What the camera frames: the whole room; a Level's place, with or without
  * room kept free for the screen's panel beside it (or below it, on a narrow
- * page); or close on a place.
+ * page); close on a place; or, while today's Journey shows its stage, the
+ * card of the Lesson Pip stands at, or its whole place pulled back, framed
+ * in the stage's band with Pip's feet in front of the card.
  */
 export type Framing =
   | { kind: "room" }
   | { kind: "place"; place: WorkshopPlaceId; panel: boolean }
-  | { kind: "close"; place: WorkshopPlaceId };
+  | { kind: "close"; place: WorkshopPlaceId }
+  | { kind: "stage"; card: PlacedCard; whole: boolean; band: Band };
 
 const ROOM_WIDE: Framing = { kind: "room" };
 
+/** The place that holds a Lesson's card, or null for a Lesson the places do not hold. */
+function placeHolding(
+  places: readonly WorkshopPlace[],
+  lesson: LessonId | null,
+): WorkshopPlace | null {
+  if (lesson === null) return null;
+  return places.find((p) => p.cards.some((c) => c.lesson === lesson)) ?? null;
+}
+
 /** The place of a Lesson's card, framed as asked, or the whole room for a Lesson with no card. */
 function atLesson(
-  stations: readonly SceneStation[],
+  places: readonly WorkshopPlace[],
   lesson: LessonId | null,
   frame: (place: WorkshopPlaceId) => Framing,
 ): Framing {
-  const place = lesson === null ? null : placeOfLesson(stations, lesson);
-  return place === null ? ROOM_WIDE : frame(place);
+  const place = placeHolding(places, lesson);
+  return place === null ? ROOM_WIDE : frame(place.id);
 }
 
 /**
  * The framing a screen shows (D5): the Journey frames the place of the
- * Lesson it stands at (`at`), else the first place with a card still to do;
- * a Lesson's overview frames its Lesson's place beside the panel, and its
- * step, where the Scene stops, keeps that; Lesson complete comes close on
- * the place; every other screen shows the whole room.
+ * Lesson it stands at, else the first place with a card still to do, and
+ * while its stage shows, that Lesson's card in the stage's band, or the
+ * whole place pulled back; a Lesson's overview frames its Lesson's place
+ * beside the panel, and its step, where the Scene stops, keeps that; Lesson
+ * complete comes close on the place; every other screen shows the whole
+ * room.
  */
 export function framingFor(
   screen: ScreenOnShow,
-  at: LessonId | null,
-  stations: readonly SceneStation[],
+  path: PathState,
+  places: readonly WorkshopPlace[],
 ): Framing {
   switch (screen.screen) {
     case "map": {
-      const place =
-        (at === null ? null : placeOfLesson(stations, at)) ??
-        workshopPlaces(stations).find((p) => p.next !== null)?.id ??
-        null;
-      return place === null
-        ? ROOM_WIDE
-        : { kind: "place", place, panel: false };
+      const holding = placeHolding(places, path.at);
+      const place = holding ?? places.find((p) => p.next !== null) ?? null;
+      if (place === null) return ROOM_WIDE;
+      const card =
+        holding === null || path.band === null
+          ? undefined
+          : placedCards(
+              holding.id,
+              holding.cards.map((c) => c.lesson),
+            ).find((c) => c.lesson === path.at);
+      return card === undefined || path.band === null
+        ? { kind: "place", place: place.id, panel: false }
+        : { kind: "stage", card, whole: path.whole, band: path.band };
     }
     case "intro":
     case "step":
     case "levelup":
-      return atLesson(stations, lessonOfScreen(screen), (place) => ({
+      return atLesson(places, lessonOfScreen(screen), (place) => ({
         kind: "place",
         place,
         panel: true,
       }));
     case "complete":
-      return atLesson(stations, lessonOfScreen(screen), (place) => ({
+      return atLesson(places, lessonOfScreen(screen), (place) => ({
         kind: "close",
         place,
       }));
@@ -88,11 +116,22 @@ export function framingFor(
   }
 }
 
-/** Whether two framings frame the same. */
+/** Whether two framings frame the same: the stage's band moving on the page, as it scrolls, is the same framing. */
 export function sameFraming(a: Framing, b: Framing): boolean {
-  if (a.kind === "room" || b.kind === "room") return a.kind === b.kind;
-  if (a.kind !== b.kind || a.place !== b.place) return false;
-  return a.kind !== "place" || b.kind !== "place" || a.panel === b.panel;
+  switch (a.kind) {
+    case "room":
+      return b.kind === "room";
+    case "place":
+      return b.kind === "place" && a.place === b.place && a.panel === b.panel;
+    case "close":
+      return b.kind === "close" && a.place === b.place;
+    case "stage":
+      return (
+        b.kind === "stage" &&
+        a.card.lesson === b.card.lesson &&
+        a.whole === b.whole
+      );
+  }
 }
 
 /**
@@ -104,22 +143,24 @@ export function sameFraming(a: Framing, b: Framing): boolean {
  */
 export function planMove(
   change: Pick<ScreenChange, "from" | "to" | "reduced">,
-  at: LessonId | null,
-  stations: readonly SceneStation[],
+  path: PathState,
+  places: readonly WorkshopPlace[],
 ): { at: LessonId | null; travel: boolean } {
   const left = lessonOfScreen(change.from);
   const back =
-    change.to.screen === "map" &&
-    left !== null &&
-    stations.some((s) => s.lesson === left)
+    change.to.screen === "map" && placeHolding(places, left) !== null
       ? left
       : null;
   const travel =
     !change.reduced &&
     !sceneStops(change.to.screen) &&
     !sameFraming(
-      framingFor(change.from, at, stations),
-      framingFor(change.to, back ?? at, stations),
+      framingFor(change.from, path, places),
+      framingFor(
+        change.to,
+        back === null ? path : { ...path, at: back },
+        places,
+      ),
     );
   return { at: back, travel };
 }
@@ -134,7 +175,7 @@ export interface Viewport {
 const NARROW = 0.9;
 
 /** Whether a page is narrow: its panel goes below, and the room is framed closer. */
-export const isNarrow = (viewport: Viewport): boolean =>
+const isNarrow = (viewport: Viewport): boolean =>
   viewport.width < viewport.height * NARROW;
 
 /** The share of a wide page the Scene keeps on its left beside a panel, and of a narrow one on its top above it. */
@@ -199,6 +240,56 @@ const PLACE_VIEWS: Readonly<Record<WorkshopPlaceId, View>> = {
 /** How much of its place's view the close framing shows. */
 const CLOSE = 0.72;
 
+/** What a framing sees on a page of one shape: a View with its narrow page's parts taken in. */
+type Seen = Omit<View, "narrow">;
+
+const seenOn = (view: View, narrow: boolean): Seen =>
+  narrow ? { ...view, ...view.narrow } : view;
+
+/**
+ * How much round a card the Journey's stage shows: a little either side,
+ * and from under Pip's feet to over his head or the top of the card's
+ * surface, whichever is higher, with this margin, so every card of a place
+ * is framed alike.
+ */
+const CARD_ACROSS = 2.4;
+const CARD_MARGIN = 0.3;
+/** How tall Pip stands, to his antennas' tips, in the Scene's units. */
+const PIP_TALL = 1.1;
+/** The share of the stage's band a framing fills, which keeps every Station's mark wholly on it. */
+const BAND_FILL = 0.9;
+
+/** Where Pip stands at a card on the Journey's stage: on the line of his place's spot, square in front of the card. */
+function pipFootAt(card: PlacedCard): Vector3 {
+  const { stand } = SPOTS[card.place];
+  const [rx, , rz] = SURFACES[card.place].right;
+  const along = (card.at[0] - stand.x) * rx + (card.at[2] - stand.z) * rz;
+  return new Vector3(stand.x + rx * along, 0, stand.z + rz * along);
+}
+
+/**
+ * The stage's view of a card: from its place's side, turned square to the
+ * card's row, so the card and Pip's feet in front of it fall in one column
+ * of the page, and high enough to hold both.
+ */
+function cardView(card: PlacedCard, narrow: boolean): Seen {
+  const surface = SURFACES[card.place];
+  const [fx, fy, fz] = seenOn(PLACE_VIEWS[card.place], narrow).from;
+  const [rx, ry, rz] = surface.right;
+  const along = fx * rx + fy * ry + fz * rz;
+  const foot = pipFootAt(card);
+  const top = Math.max(
+    PIP_TALL,
+    surface.centre[1] + (surface.height / 2) * Math.abs(surface.up[1]),
+  );
+  return {
+    look: [(card.at[0] + foot.x) / 2, top / 2, (card.at[2] + foot.z) / 2],
+    from: unit(fx - rx * along, fy - ry * along, fz - rz * along),
+    width: CARD_ACROSS,
+    height: top + 2 * CARD_MARGIN,
+  };
+}
+
 /** The camera's focal length in CSS pixels for a page of `height`. */
 const focal = (height: number) =>
   height / 2 / Math.tan(((FOV / 2) * Math.PI) / 180);
@@ -206,16 +297,39 @@ const focal = (height: number) =>
 /** The camera's pose for a framing on a page of this size. */
 export function poseOf(framing: Framing, viewport: Viewport): Pose {
   const narrow = isNarrow(viewport);
-  const view = framing.kind === "room" ? ROOM_VIEW : PLACE_VIEWS[framing.place];
-  const scale = framing.kind === "close" ? CLOSE : 1;
-  // The part of the page the framing fills: all of it, or what a panel leaves.
-  const panel = framing.kind === "place" && framing.panel;
-  const region = {
-    width: panel && !narrow ? viewport.width * BESIDE_PANEL : viewport.width,
-    height: panel && narrow ? viewport.height * ABOVE_PANEL : viewport.height,
-  };
+  let seen: Seen;
+  let scale = 1;
+  // The part of the page the framing fills, and its centre's shift from the page's.
+  let region: { width: number; height: number };
+  let shift: Pose["shift"];
+  if (framing.kind === "stage") {
+    const { band, card } = framing;
+    seen = framing.whole
+      ? seenOn(PLACE_VIEWS[card.place], narrow)
+      : cardView(card, narrow);
+    region = { width: band.width * BAND_FILL, height: band.height * BAND_FILL };
+    shift = {
+      x: band.left + band.width / 2 - viewport.width / 2,
+      y: band.top + band.height / 2 - viewport.height / 2,
+    };
+  } else {
+    seen = seenOn(
+      framing.kind === "room" ? ROOM_VIEW : PLACE_VIEWS[framing.place],
+      narrow,
+    );
+    if (framing.kind === "close") scale = CLOSE;
+    // All of the page, or what a panel leaves.
+    const panel = framing.kind === "place" && framing.panel;
+    region = {
+      width: panel && !narrow ? viewport.width * BESIDE_PANEL : viewport.width,
+      height: panel && narrow ? viewport.height * ABOVE_PANEL : viewport.height,
+    };
+    shift = {
+      x: (region.width - viewport.width) / 2,
+      y: (region.height - viewport.height) / 2,
+    };
+  }
   const f = focal(viewport.height);
-  const seen = narrow ? { ...view, ...view.narrow } : view;
   const distance = Math.max(
     (seen.width * scale * f) / Math.max(1, region.width),
     (seen.height * scale * f) / Math.max(1, region.height),
@@ -224,15 +338,13 @@ export function poseOf(framing: Framing, viewport: Viewport): Pose {
   return {
     position: new Vector3(...seen.from).multiplyScalar(distance).add(look),
     look,
-    shift: {
-      x: (region.width - viewport.width) / 2,
-      y: (region.height - viewport.height) / 2,
-    },
+    shift,
+    pip: framing.kind === "stage" ? pipFootAt(framing.card) : null,
   };
 }
 
-/** Two poses mixed: `t` 0 is `a`, 1 is `b`. */
-export function mixPoses(a: Pose, b: Pose, t: number): Pose {
+/** Two poses mixed: `t` 0 is `a`, 1 is `b`; Pip walks from `a`'s feet to `b`'s, or stands at `b`'s. */
+function mixPoses(a: Pose, b: Pose, t: number): Pose {
   return {
     position: a.position.clone().lerp(b.position, t),
     look: a.look.clone().lerp(b.look, t),
@@ -240,6 +352,10 @@ export function mixPoses(a: Pose, b: Pose, t: number): Pose {
       x: a.shift.x + (b.shift.x - a.shift.x) * t,
       y: a.shift.y + (b.shift.y - a.shift.y) * t,
     },
+    pip:
+      a.pip === null || b.pip === null
+        ? (b.pip?.clone() ?? null)
+        : a.pip.clone().lerp(b.pip, t),
   };
 }
 
@@ -346,12 +462,7 @@ export function sameView(a: PathView | null, b: PathView): boolean {
     Math.abs(p.x - q.x) < STILL_PX && Math.abs(p.y - q.y) < STILL_PX;
   if (a.pip === null || b.pip === null) {
     if (a.pip !== b.pip) return false;
-  } else if (
-    !near(a.pip, b.pip) ||
-    a.pip.walk !== b.pip.walk ||
-    Math.abs((a.pip.pace ?? 0) - (b.pip.pace ?? 0)) >= STILL_PX
-  )
-    return false;
+  } else if (!near(a.pip, b.pip)) return false;
   return a.points.every((p, i) => {
     const q = b.points[i];
     return (

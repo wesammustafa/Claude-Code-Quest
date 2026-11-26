@@ -1,9 +1,10 @@
 // Where the workshop's named things fall on the page in a frame (the warm
 // workshop, D8): each place and each Lesson's card, as the aimed camera
 // draws them, for the screens' tags and links over the Scene, and the
-// cards as today's Journey stage reads its Stations. Projection only, with
-// no renderer, so a test holds it with a camera of its own.
-import { Vector3, type Camera } from "three";
+// cards and Pip's feet as today's Journey stage reads its Stations and its
+// Pip. Projection only, with no renderer, so a test holds it with a camera
+// of its own.
+import { Vector3, type Camera, type Vector3Like } from "three";
 import type { PathView, StationPoint } from "../../path";
 import type { Anchor, AnchorId, Anchors } from "../../workshop/store";
 import type { WorkshopPlace, WorkshopPlaceId } from "../../workshop/places";
@@ -30,12 +31,13 @@ export interface Told {
   view: PathView;
 }
 
-/** Where each place and card falls on the page through `camera`, and whether it is in view. */
+/** Where each place and card, and Pip's feet on the Journey's stage (`pip`, or null), fall on the page through `camera`, and whether each is in view. */
 export function tellPage(
   camera: Camera,
   page: PageBox,
   places: readonly WorkshopPlaceId[],
   cards: readonly ToldCard[],
+  pip: Vector3Like | null = null,
 ): Told {
   const v = new Vector3();
   const toPage = (p: readonly [number, number, number]): Anchor => {
@@ -75,7 +77,13 @@ export function tellPage(
       lit: card.complete,
     });
   }
-  return { anchors, view: { points, pip: null } };
+  let feet: PathView["pip"] = null;
+  if (pip !== null) {
+    const { x, y } = toPage([pip.x, pip.y, pip.z]);
+    // Behind the camera, his feet are drawn nowhere.
+    if (v.z < 1) feet = { x, y };
+  }
+  return { anchors, view: { points, pip: feet } };
 }
 
 /** Every place's cards, in the places' order and each place's own, with each Lesson's state. */
