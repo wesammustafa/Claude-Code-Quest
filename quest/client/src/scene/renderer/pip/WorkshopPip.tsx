@@ -35,6 +35,7 @@ import {
 import modelUrl from "../../../../pip/model/pip.glb?url";
 import { PipDrive, frameStep } from "./drive";
 import { loadPipModel, type PipModel3D } from "./load";
+import type { Side } from "./motion/gait";
 import { workshopNav } from "./motion/nav";
 import { StridePose } from "./motion/pose";
 import { Walker, activityOf, placeOf } from "./motion/walker";
@@ -244,6 +245,7 @@ function InRoom({
   /** Seconds left to wait for the director's Greeting after telling it of a greet. */
   const greetAnswer = useRef(0);
   const [head] = useState(() => new Vector3());
+  const [feetAt] = useState(() => [new Vector3(), new Vector3()] as const);
 
   useFrame((state, delta) => {
     const place = root.current;
@@ -251,9 +253,9 @@ function InRoom({
     const dt = frameStep(delta, wasMoving.current);
     clock.current += dt;
 
-    // The clips first, from rest for the parts the stride moves; then the
-    // walk; then the stride over both.
-    stride.reset();
+    // The clips first, over what the stride moved given back; the walk
+    // clip off; then the stride over them.
+    stride.restore();
     driver.walk(0);
     driver.update(dt);
     const frame = walker.update(dt);
@@ -299,7 +301,7 @@ function InRoom({
       }),
       at: placeOf(walker.at),
     });
-    publishHead(workshop, stride.headWorld(head), state);
+    publishHead(workshop, stride.headWorld(head), holding.current, state);
 
     const probe = workshop.probe?.();
     if (probe) {
@@ -312,7 +314,10 @@ function InRoom({
         speed: Math.hypot(vel.x, vel.z),
         airborne: frame.out.airborne,
         facing: yaw,
-        feet: [probeFoot(left), probeFoot(right)],
+        feet: [
+          drawnFoot(stride, left, feetAt[0]),
+          drawnFoot(stride, right, feetAt[1]),
+        ],
       });
     }
 
@@ -349,6 +354,11 @@ function Hold({ onHold }: { onHold: (held: boolean) => void }): null {
   return null;
 }
 
+/** A ray passes through his shadow. */
+function noHit(): void {
+  // Nothing of him is hit here.
+}
+
 /** His shadow, laid on the floor: the guide's ellipse in a group that lays it down. */
 function floorShadow(
   theme: SceneTheme,
@@ -356,6 +366,8 @@ function floorShadow(
 ): { group: Group; mesh: Mesh } {
   const mesh = shadowMesh(theme, colour);
   mesh.position.set(0, 0, 0);
+  // Inside his picked root, yet a tap on the floor round his feet is the floor's.
+  mesh.raycast = noHit;
   const group = new Group();
   group.name = "PipFloorShadow";
   group.rotation.x = -Math.PI / 2;
@@ -365,19 +377,23 @@ function floorShadow(
   return { group, mesh };
 }
 
-const probeFoot = (foot: { pos: Vector3; planted: boolean }): ProbeFoot => ({
-  x: foot.pos.x,
-  y: foot.pos.y,
-  z: foot.pos.z,
-  planted: foot.planted,
-});
+/** A foot for the probe: where the model draws it, so a slide the stride lets through shows, and whether the gait stands it. */
+function drawnFoot(
+  stride: StridePose,
+  foot: { side: Side; planted: boolean },
+  at: Vector3,
+): ProbeFoot {
+  stride.footWorld(foot.side, at);
+  return { x: at.x, y: at.y, z: at.z, planted: foot.planted };
+}
 
 const onPage = new Vector3();
 
-/** Publishes where his head falls on the page, beside the room's own anchors. */
+/** Publishes where his head falls on the page, beside the room's own anchors; hidden until he shows. */
 function publishHead(
   workshop: Workshop,
   headWorld: Vector3,
+  shown: boolean,
   state: {
     camera: Parameters<Vector3["project"]>[0];
     size: { width: number; height: number; left: number; top: number };
@@ -390,7 +406,12 @@ function publishHead(
     pip: {
       x: size.left + ((p.x + 1) / 2) * size.width,
       y: size.top + ((1 - p.y) / 2) * size.height,
-      visible: p.z > -1 && p.z < 1 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1,
+      visible:
+        shown &&
+        p.z > -1 &&
+        p.z < 1 &&
+        Math.abs(p.x) <= 1 &&
+        Math.abs(p.y) <= 1,
     },
   });
 }

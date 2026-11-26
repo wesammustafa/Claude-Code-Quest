@@ -129,7 +129,6 @@ export class Gait {
   /** 0 to 1 over a full cycle of two steps: the left foot lifts at 0, the right at 0.5. */
   phase = 0;
   runWeight = 0;
-  stepCount = 0;
   readonly scale: number;
   private moving = false;
   private swayNow = 0;
@@ -154,21 +153,6 @@ export class Gait {
       };
     };
     this.feet = [make(1), make(-1)];
-  }
-
-  /** Puts each foot under its hip at once: a jump cut. */
-  snap(root: { pos: Vector3; yaw: number }): void {
-    for (const f of this.feet) {
-      const p = restSpot(root, f.side, this.scale);
-      f.pos.copy(p);
-      f.from.copy(p);
-      f.target.copy(p);
-      f.yaw = f.fromYaw = f.targetYaw = root.yaw;
-      f.pitch = 0;
-      f.planted = true;
-      f.settle = null;
-    }
-    this.moving = false;
   }
 
   update(dt: number, root: RootState): GaitOutput {
@@ -230,7 +214,6 @@ export class Gait {
           f.yaw = f.targetYaw;
           f.pitch = 0;
           landed.push(f.side);
-          this.stepCount += 1;
           this.landingKick = 1;
         }
       }
@@ -380,7 +363,6 @@ export class Gait {
         f.yaw = root.yaw;
         f.pitch = 0;
         landed.push(f.side);
-        this.stepCount += 1;
       }
     }
   }

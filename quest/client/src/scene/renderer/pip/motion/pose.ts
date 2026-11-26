@@ -1,19 +1,34 @@
 // Pip's stride over the guide's driver (D6): a pass after PipDrive each
-// frame. The driver plays the director's mode and Reaction from the clips;
-// this pass then stands him in the room and lays the steps over that pose,
+// frame, which gives back what it moved before the driver runs again. The
+// driver plays the director's mode and Reaction from the clips; this pass
+// then stands him in the room and lays the steps over that pose,
 // as much as he moves: his feet where the gait planted them, his legs after
 // them, his arms swinging against them, his body bobbing, leaning into the
 // run and swaying over the standing foot, and his antennas lagging the
 // bounce. Standing still, the clips' pose shows whole, so a Greeting plays
 // as the driver plays it; while he travels he looks where he goes, and
 // standing, the director's gaze holds. Pure three.js, with no WebGL.
-import { Euler, MathUtils, Quaternion, Vector3, type Object3D } from "three";
+import {
+  Euler,
+  MathUtils,
+  Matrix4,
+  Quaternion,
+  Vector3,
+  type Object3D,
+} from "three";
 import {
   PIP_MODEL_GAZE,
   PIP_MODEL_HEAD,
   PIP_MODEL_STRIDE,
 } from "../../../../../pip/model/contract";
-import type { Gait, GaitOutput, RootState } from "./gait";
+import {
+  restSpot,
+  wrapAngle,
+  type Gait,
+  type GaitOutput,
+  type RootState,
+  type Side,
+} from "./gait";
 
 type Part = (typeof PIP_MODEL_STRIDE)[number];
 
@@ -34,11 +49,30 @@ export interface StrideFrame {
   reacting: boolean;
 }
 
+/** The parts whose place the stride moves; it turns every part. */
+const PLACED: ReadonlySet<Part> = new Set<Part>([
+  "Hop",
+  "Body",
+  "LegLeft",
+  "LegRight",
+  "FootLeft",
+  "FootRight",
+]);
+
+/** He stirs once he goes this fast, in his heights a second, or turns this fast, in radians a second. */
+const STIRS = { speed: 1e-3, turn: 1e-2 } as const;
+
+/** Within this of the gait's, in his heights, the clips' feet hand over at once: the gait's own settling reach. */
+const FEET_MEET = 0.03;
+
+const footOf = (side: Side) => (side === 1 ? "FootLeft" : "FootRight");
+
 /** How far the travelling gaze turns: about 60 degrees to either side, and up or down a little. */
 const GAZE_REACH = { yaw: 1.05, up: 0.5, down: 0.45 } as const;
 
 const UP = new Vector3(0, 1, 0);
 const v = new Vector3();
+const v2 = new Vector3();
 const q = new Quaternion();
 const q2 = new Quaternion();
 const e = new Euler();
@@ -54,6 +88,13 @@ export class StridePose {
   /** The gaze node as the driver turned it this frame. */
   private readonly gazeFrom = new Quaternion();
   private readonly head: Object3D;
+  /** Where the gait stands each foot this frame, in the body's frame: the left, then the right. */
+  private readonly feetAt = [new Vector3(), new Vector3()] as const;
+  /** Where the clips' feet stand this frame, in the body's frame: as the clips alone stand him, as far off rest as the gait stood them. */
+  private readonly feetHeld = [new Vector3(), new Vector3()] as const;
+  /** The body as the clips alone place it this frame, before the stride. */
+  private readonly clipBody = new Matrix4();
+  private readonly clipBodyQ = new Quaternion();
   private bodyW = 0;
   private footW = 0;
   private lean = 0;
@@ -76,9 +117,9 @@ export class StridePose {
         s: node.scale.clone(),
       });
       this.clip.set(name, {
-        p: new Vector3(),
-        q: new Quaternion(),
-        s: new Vector3(),
+        p: node.position.clone(),
+        q: node.quaternion.clone(),
+        s: node.scale.clone(),
       });
     }
     const gaze = model.getObjectByName(PIP_MODEL_GAZE);
@@ -109,18 +150,26 @@ export class StridePose {
   }
 
   /**
-   * Before the driver: every part this pass moves back at rest, so a part
-   * no clip keys starts each frame from rest, never from the last frame's
-   * stride.
+   * Before the driver: what this pass moved last frame back as the clips
+   * left it (at rest before the first frame), so the stride never builds
+   * on itself. Not to rest: the mixer writes a part only when its clip's
+   * value changes, so a part a held pose keeps still (sleep's arms, or
+   * every part on the phone, whose mixer clock stands) would show rest.
+   * Only what the stride writes comes back: each part's turn, the places
+   * of Hop, Body, the legs and feet, and Hop's squash. In the model those
+   * are keyed by a clip that always plays (a mode, the still pose or the
+   * walk) or by none, so no Reaction starting or stopping writes them
+   * between frames; an arm's place, which only Reactions key, the mixer
+   * puts back itself when one stops.
    */
-  reset(): void {
+  restore(): void {
     for (const name of PIP_MODEL_STRIDE) {
       const node = this.node(name);
-      const rest = this.restOf(name);
-      node.position.copy(rest.p);
-      node.quaternion.copy(rest.q);
-      node.scale.copy(rest.s);
+      const clip = this.clipOf(name);
+      node.quaternion.copy(clip.q);
+      if (PLACED.has(name)) node.position.copy(clip.p);
     }
+    this.node("Hop").scale.copy(this.clipOf("Hop").s);
   }
 
   /** How much of the pose is the stride's now: 0 standing, 1 on the move. */
@@ -145,11 +194,14 @@ export class StridePose {
 
     container.position.set(root.pos.x, 0, root.pos.z);
     container.quaternion.setFromAxisAngle(UP, root.yaw);
+    const body = this.node("Body");
+    container.updateMatrixWorld(true);
+    this.clipBody.copy(body.matrixWorld);
+    body.getWorldQuaternion(this.clipBodyQ);
     const scale = gait.scale;
     const speed = Math.hypot(root.vel.x, root.vel.z) / scale;
     const k = (rate: number) => 1 - Math.exp(-rate * dt);
     this.bodyW += (Math.min(1, speed / 0.3) - this.bodyW) * k(8);
-    this.footW += (out.stepping - this.footW) * k(out.stepping > 0 ? 30 : 5);
     const bw = this.bodyW;
     const rw = out.runWeight;
 
@@ -182,7 +234,6 @@ export class StridePose {
     q.setFromEuler(e.set(this.lean * bw, 0, this.bank * bw));
     this.node("Lean").quaternion.multiply(q);
 
-    const body = this.node("Body");
     body.position.x += out.sway / scale;
     const twist =
       0.12 * (out.swingLeft - out.swingRight) * 0.5 * (1 + rw * 0.5);
@@ -216,39 +267,80 @@ export class StridePose {
     neck.quaternion.multiply(q);
 
     // The feet: planted in the world, brought into the body's frame; each
-    // leg's stub follows its foot.
+    // leg's stub follows its foot. Standing, the clips have them back:
+    // each where the clips alone would stand it, never riding the stride's
+    // lean and bob as those fade, and as far off its rest as the gait
+    // stood it (the gait leaves a foot a little off rather than shuffle
+    // it), so handing a foot over never slides it, and a Reaction's hop
+    // still lifts them. They are the gait's from the moment he moves or
+    // turns, before its first step: at once where the clips' feet stand by
+    // the gait's, as they do from a stand, else eased in, as from a hop.
     container.updateMatrixWorld(true);
     body.getWorldQuaternion(bodyQ).invert();
-    for (const foot of gait.feet) {
-      const left = foot.side === 1;
-      const footName = left ? "FootLeft" : "FootRight";
-      const legName = left ? "LegLeft" : "LegRight";
+    const feet = [
+      [gait.feet[0], this.feetAt[0], this.feetHeld[0]],
+      [gait.feet[1], this.feetAt[1], this.feetHeld[1]],
+    ] as const;
+    let apart = 0;
+    for (const [foot, at, held] of feet) {
+      at.copy(foot.pos);
+      body.worldToLocal(at);
+      held
+        .copy(this.clipOf(footOf(foot.side)).p)
+        .applyMatrix4(this.clipBody)
+        .add(foot.pos)
+        .sub(restSpot(root, foot.side, scale));
+      body.worldToLocal(held);
+      apart = Math.max(apart, at.distanceTo(held));
+    }
+    const stirs =
+      out.stepping > 0 ||
+      speed > STIRS.speed ||
+      Math.abs(root.yawRate) > STIRS.turn;
+    if (!stirs) this.footW -= this.footW * k(5);
+    else if (apart < FEET_MEET * scale) this.footW = 1;
+    else this.footW += (1 - this.footW) * k(30);
+    for (const [foot, at, held] of feet) {
+      const footName = footOf(foot.side);
+      const legName = foot.side === 1 ? "LegLeft" : "LegRight";
       const node = this.node(footName);
       const footClip = this.clipOf(footName);
-      v.copy(foot.pos);
-      body.worldToLocal(v);
-      node.position.copy(footClip.p).lerp(v, this.footW);
+      node.position.copy(held).lerp(at, this.footW);
       q.setFromAxisAngle(UP, foot.yaw);
       q2.setFromEuler(e.set(foot.pitch, 0, 0));
       q.multiply(q2).premultiply(bodyQ);
-      node.quaternion.copy(footClip.q).slerp(q, this.footW);
+      q2.setFromAxisAngle(UP, wrapAngle(foot.yaw - root.yaw))
+        .multiply(this.clipBodyQ)
+        .multiply(footClip.q)
+        .premultiply(bodyQ);
+      node.quaternion.copy(q2).slerp(q, this.footW);
 
+      // Each leg after its foot: the gait's from rest, the clips' from theirs.
       const leg = this.node(legName);
       const legRest = this.restOf(legName);
       const legClip = this.clipOf(legName);
-      const d = v.sub(this.restOf(footName).p);
+      const off = held.sub(footClip.p);
+      const d = v.copy(at).sub(this.restOf(footName).p);
       leg.position
         .set(
           legRest.p.x + d.x * 0.8,
           legRest.p.y + d.y * 0.55,
           legRest.p.z + d.z * 0.7,
         )
-        .lerp(legClip.p, 1 - this.footW);
+        .lerp(
+          v2.set(
+            legClip.p.x + off.x * 0.8,
+            legClip.p.y + off.y * 0.55,
+            legClip.p.z + off.z * 0.7,
+          ),
+          1 - this.footW,
+        );
       q.setFromEuler(e.set(MathUtils.clamp(d.z * 3.2, -0.6, 0.6), 0, 0));
+      q2.setFromEuler(e.set(MathUtils.clamp(off.z * 3.2, -0.6, 0.6), 0, 0));
       leg.quaternion
         .copy(legRest.q)
         .multiply(q)
-        .slerp(legClip.q, 1 - this.footW);
+        .slerp(q2.premultiply(legClip.q), 1 - this.footW);
     }
 
     // The antennas lag his bounce and his turns.
@@ -313,5 +405,10 @@ export class StridePose {
   /** Where his head is in the world. */
   headWorld(target: Vector3): Vector3 {
     return this.head.getWorldPosition(target);
+  }
+
+  /** Where a foot is drawn in the world (side 1 his left), as the model shows it after the stride. */
+  footWorld(side: Side, target: Vector3): Vector3 {
+    return this.node(footOf(side)).getWorldPosition(target);
   }
 }

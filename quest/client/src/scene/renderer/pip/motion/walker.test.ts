@@ -5,7 +5,7 @@
 // sends him back to the screen's goal; and what he is doing reads from his
 // legs first, then from the director.
 import { describe, expect, test } from "vitest";
-import { SPOTS } from "../../../workshop/layout";
+import { SPOTS, type FloorPoint } from "../../../workshop/layout";
 import { wrapAngle } from "./gait";
 import { workshopNav } from "./nav";
 import { Walker, activityOf, yawTo } from "./walker";
@@ -16,6 +16,20 @@ function run(walker: Walker, seconds: number) {
   const frames = [];
   for (let i = 0; i < seconds * 60; i++) frames.push(walker.update(DT));
   return frames;
+}
+
+/** The frame the greet comes due, within `seconds`: how far he is off facing `camera` then, and whether he moves. */
+function untilGreet(walker: Walker, camera: FloorPoint, seconds: number) {
+  for (let i = 0; i < seconds * 60; i++) {
+    const f = walker.update(DT);
+    if (f.greet)
+      return {
+        frame: i,
+        off: Math.abs(wrapAngle(f.root.yaw - yawTo(f.root.pos, camera))),
+        moving: f.moving,
+      };
+  }
+  return null;
 }
 
 describe("Pip's walk in the workshop", () => {
@@ -42,17 +56,27 @@ describe("Pip's walk in the workshop", () => {
     const walker = new Walker(workshopNav(), "noticeboard");
     const camera = { x: 0, z: 9 };
     walker.greet(camera);
-    const frames = run(walker, 1.5);
-    const due = frames.findIndex((f) => f.greet);
-    expect(due).toBeGreaterThan(0);
-    expect(frames.filter((f) => f.greet)).toHaveLength(1);
-    const yaw = frames[due]?.root.yaw ?? NaN;
+    const due = untilGreet(walker, camera, 1.5);
+    expect(due?.frame).toBeGreaterThan(0);
+    expect(due?.off).toBeLessThan(0.7);
+    expect(run(walker, 1.5).filter((f) => f.greet)).toHaveLength(0);
     const toCamera = yawTo(walker.motor.root.pos, camera);
-    expect(Math.abs(wrapAngle(yaw - toCamera))).toBeLessThan(0.7);
     expect(Math.abs(wrapAngle(walker.motor.root.yaw - toCamera))).toBeLessThan(
       0.05,
     );
     expect(walker.at, "a greet keeps him at his place").toBe("noticeboard");
+  });
+
+  test("greeted as he runs away from the Learner, he brakes and turns round before the greet is due", () => {
+    const walker = new Walker(workshopNav(), { x: -5, z: 3.6 });
+    walker.goTo({ floor: { x: 6, z: 3.6 } }, "run");
+    run(walker, 2);
+    expect(walker.motor.currentSpeed).toBeGreaterThan(2);
+    const camera = { x: -30, z: 3.6 };
+    walker.greet(camera);
+    const due = untilGreet(walker, camera, 2.5);
+    expect(due?.moving).toBe(false);
+    expect(due?.off).toBeLessThan(0.7);
   });
 
   test("steers only while Explore is on, stops on no steer, and goes back to the goal when it ends", () => {

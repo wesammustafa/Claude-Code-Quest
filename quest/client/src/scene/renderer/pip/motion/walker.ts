@@ -19,7 +19,10 @@ export const MOVING = 0.1;
 const RUNNING = 0.5;
 /** A greet waits for his turn to the Learner until he faces them within this, in radians... */
 const GREET_TURN = 0.7;
-/** ...or until this many seconds have passed. */
+/**
+ * ...or once he has stood this many seconds: greeted at a run, he brakes
+ * first and only then turns round, so the wait starts once he stands.
+ */
 const GREET_WAIT = 0.8;
 /** On the move he looks at the corner ahead, at about this height. */
 const LOOK_HEIGHT = 0.6;
@@ -158,9 +161,10 @@ export class Walker {
     }
     const out = this.gait.update(dt, root);
 
+    const moving = motor.currentSpeed > MOVING * motor.scale;
     let greet = false;
     if (this.greeting !== null) {
-      this.greeting.waited += dt;
+      if (!moving) this.greeting.waited += dt;
       const off =
         motor.faceYaw === null
           ? 0
@@ -171,7 +175,6 @@ export class Walker {
       }
     }
 
-    const moving = motor.currentSpeed > MOVING * motor.scale;
     const corner = moving ? motor.heading() : null;
     const look =
       corner === null ? null : this.ahead.set(corner.x, LOOK_HEIGHT, corner.z);

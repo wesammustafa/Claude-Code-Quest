@@ -61,7 +61,7 @@ export interface PipStatus {
   at: WorkshopPlaceId | null;
 }
 
-/** One of Pip's feet in a probe's frame: where its sole is (y its lift) and whether it stands. */
+/** One of Pip's feet in a probe's frame: where the model draws it, in the world, and whether his gait stands it on the floor. */
 export interface ProbeFoot {
   x: number;
   y: number;
