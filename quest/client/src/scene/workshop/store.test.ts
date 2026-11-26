@@ -36,6 +36,16 @@ describe("the workshop's state", () => {
     expect(workshop.anchors()).toEqual({ "card:b-1": at });
   });
 
+  test("holds the probe set to measure Pip's motion until it is cleared", () => {
+    const workshop = createWorkshop();
+    expect(workshop.probe?.()).toBeNull();
+    const probe = vi.fn();
+    workshop.setProbe?.(probe);
+    expect(workshop.probe?.()).toBe(probe);
+    workshop.setProbe?.(null);
+    expect(workshop.probe?.()).toBeNull();
+  });
+
   test("picks nothing until a renderer registers its pick, and nothing once it lets go", () => {
     const workshop = createWorkshop();
     expect(workshop.pick(10, 20)).toBeNull();

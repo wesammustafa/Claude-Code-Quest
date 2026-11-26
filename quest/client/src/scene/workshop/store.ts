@@ -61,6 +61,33 @@ export interface PipStatus {
   at: WorkshopPlaceId | null;
 }
 
+/** One of Pip's feet in a probe's frame: where its sole is (y its lift) and whether it stands. */
+export interface ProbeFoot {
+  x: number;
+  y: number;
+  z: number;
+  planted: boolean;
+}
+
+/** One frame of Pip's walk, in the Scene's units, for measuring his motion. */
+export interface ProbeFrame {
+  /** Seconds of his motion since he was first drawn. */
+  t: number;
+  x: number;
+  z: number;
+  /** Units a second. */
+  speed: number;
+  /** Both feet off the floor. */
+  airborne: boolean;
+  /** His turn about the vertical, in radians: 0 faces +z, toward the room's front. */
+  facing: number;
+  /** His left foot, then his right. */
+  feet: readonly [ProbeFoot, ProbeFoot];
+}
+
+/** What measures Pip's motion: the renderer calls it with each frame it draws. */
+export type PipProbe = (frame: ProbeFrame) => void;
+
 export interface Workshop {
   anchors: () => Anchors;
   /** Publishes the anchors drawn; telling no one when none moved by half a CSS pixel or more, or came, went or changed view. */
@@ -84,6 +111,9 @@ export interface Workshop {
   ready: () => boolean;
   setReady: (ready: boolean) => void;
   subscribeReady: (fn: () => void) => () => void;
+  /** The probe set to measure Pip's motion, or null; only a test sets one. */
+  probe?: () => PipProbe | null;
+  setProbe?: (probe: PipProbe | null) => void;
 }
 
 /** Anchors closer than this, in CSS pixels, to the last ones published count as unmoved. */
@@ -130,6 +160,7 @@ export function createWorkshop(): Workshop {
   let picker: WorkshopPicker | null = null;
   let status = IDLE;
   let ready = false;
+  let probe: PipProbe | null = null;
   const drawn = listeners<[]>();
   const commands = listeners<[PipCommand]>();
   const statuses = listeners<[]>();
@@ -165,6 +196,10 @@ export function createWorkshop(): Workshop {
       readies.emit();
     },
     subscribeReady: readies.on,
+    probe: () => probe,
+    setProbe: (next) => {
+      probe = next;
+    },
   };
 }
 
