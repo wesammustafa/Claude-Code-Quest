@@ -78,10 +78,11 @@ What only you can judge: whether the connection earns its place for *your* group
 Real servers run real code with your permissions. Connect only ones you trust.
 
 1. `claude mcp add --scope project <name> -- <command and args>` writes `.mcp.json`. `--scope local`, the default, keeps it to you, in this project; `--scope user` makes it yours in every project. When names clash, local beats project, and project beats user.
-2. `/mcp` shows each server, its status and its tools, and lets you sign in to servers that need it.
-3. A project server asks for approval the first time, so a folder someone sends you can't approve its own servers.
-4. Many services also have a command-line tool. If one exists, it's often the simpler way in.
-5. In the Desktop app, connectors are managed in its settings. Connectors you add in claude.ai are available in Claude Code when you sign in with your claude.ai account.
+2. `claude mcp list` names every server configured for this project, each with a health status such as connected, needs authentication or failed to connect. `claude mcp get <name>` shows one server's configuration and whether Claude Code connected to it. `claude mcp remove <name>` takes it out again. See [Managing your servers](https://code.claude.com/docs/en/mcp#managing-your-servers).
+3. `/mcp` shows each server, its status and its tools, and lets you sign in to servers that need it.
+4. A project server asks for approval the first time, so a folder someone sends you can't approve its own servers.
+5. Many services also have a command-line tool. If one exists, it's often the simpler way in.
+6. In the Desktop app, connectors are managed in its settings. Connectors you add in claude.ai are available in Claude Code when you sign in with your claude.ai account.
 
 See [Connect Claude Code to tools via MCP](https://code.claude.com/docs/en/mcp), [Configure permissions](https://code.claude.com/docs/en/permissions) and [Security](https://code.claude.com/docs/en/security).
 

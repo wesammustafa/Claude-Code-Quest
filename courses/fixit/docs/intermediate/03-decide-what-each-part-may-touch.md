@@ -1,6 +1,6 @@
 # Decide what each part may touch
 
-<sub>**Intermediate** · Lesson 3 of 6 · about 30 minutes · Needs: [Turn a repeated job into a skill](02-turn-a-repeated-job-into-a-skill.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Lesson 3 of 6 · about 30 minutes · Needs: [Turn a repeated job into a skill](02-turn-a-repeated-job-into-a-skill.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
 
 ## Goal
 
@@ -73,6 +73,8 @@ Two protections, two different boundaries.
    Ask Claude for a guard that blocks any edit putting Priya's number (555-0187) on a public page, lets the venue's public number through, and blocks if it can't check. Claude writes the script and tests it before it registers it. The test is a shell command, so your ask rule shows it to you first. You judge the script by probing, not by reading it.
 
    The check runs your guard on test edits: 555-0187 written into the March guide or edited into it, which must be blocked, and 555-0100 there or 555-0187 in a private note, which must go through.
+
+   Then type `/hooks`, which lists the hooks this session runs, each with the file it came from. Yours should be on `Edit` and `Write`, in the shared settings, where Sam's sessions read it too. A guard that isn't registered never runs, and nothing tells you: the list is how you see it took effect.
 3. **Probe it yourself.** Make Claude try to break the rule, and watch the guard stop it: ask for Priya's number on the March guide, for access questions. Then make sure the normal job still works: the same kind of line, with the library's public number. It goes through.
 
    One question for you, not graded: your guard blocks 555-0187. What does it do with 555-0175, a number from the roster? Ask Claude to try your guard on it. Keep the answer in mind for the capstone.
@@ -100,6 +102,7 @@ Real Claude Code reads the same files. Edit them in any editor, or ask Claude to
 3. When you choose "Yes, and don't ask again" for a command, Claude Code saves an allow rule to `.claude/settings.local.json`. In a Git repository it reads and writes that file at the repository root, so a session you start in a subfolder saves the rule for the whole repository; a file an older version left in the subfolder is still read as well. Read it from time to time.
 4. Hooks are set in the same settings files, under `"hooks"`; `/hooks` shows them. A script must be executable on macOS and Linux (`chmod +x`). Claude Code normally picks up an edit to a settings file while it runs; if a change doesn't show, restart `claude`.
 5. The sandbox runs on macOS, Linux and WSL 2, not on native Windows.
+6. `/add-dir <path>`, or `claude --add-dir <path>` when you start, extends where Claude may read and edit files. It doesn't make that folder a second configuration root: its `CLAUDE.md`, `.claude/rules/` and hooks don't load, so the rules and guards in force are still the ones from the folder you started in. Its skills, commands and subagents do load. `permissions.additionalDirectories` in settings keeps a folder across sessions, and grants file access only. See [Additional directories grant file access, not configuration](https://code.claude.com/docs/en/permissions#additional-directories-grant-file-access-not-configuration).
 
 See [Configure permissions](https://code.claude.com/docs/en/permissions), [Sandboxing](https://code.claude.com/docs/en/sandboxing) and the [Hooks guide](https://code.claude.com/docs/en/hooks-guide).
 
