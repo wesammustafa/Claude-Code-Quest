@@ -146,8 +146,8 @@ const NO_STATIONS: readonly SceneStation[] = [];
  * Every Lesson of the course as its Station, in the snapshot's order, from
  * its `LessonSummary.optional` and `complete` alone; the same array until
  * one of those changes, so a new snapshot draws nothing new. An optional
- * Lesson (a lab) is marked so: the Beginner landscape draws no Station for
- * it, since it sits beside the path.
+ * Lesson (a lab) is marked so: its card comes after its Level's core
+ * Lessons' at their place, and looks its own.
  */
 function useStations(snapshot: Snapshot | null): readonly SceneStation[] {
   const key =

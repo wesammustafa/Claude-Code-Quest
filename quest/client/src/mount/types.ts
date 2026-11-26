@@ -82,35 +82,63 @@ export type SceneTheme = "light" | "dark";
  * mount sets them so text over the Scene keeps its contrast in that theme.
  */
 export interface SceneLook {
-  /** The sky and the far distance, which the ground fades into. */
+  /** What shows past the room's walls: the page's own background. */
   sky: string;
+  /** The light the 3D Badges take from below. */
   ground: string;
   /** The light's colour. */
   light: string;
   /**
-   * The light's intensities, in Three.js's units (π lights a face fully):
-   * `ambient` falls from the whole sky, `key` from one side, where the
-   * slopes catch it.
+   * The 3D Badges' light, in Three.js's units (π lights a face fully):
+   * `ambient` falls from the whole sky, `key` from one side.
    */
   ambient: number;
   key: number;
-  /** Pip's soft ground shadow, laid over the ground at its own opacity. */
+  /** The soft shadows on the floor, under Pip and the furniture, laid over it at their own opacity. */
   shadow: string;
-  /** The landscapes' own colours, baked under the same light. */
-  landscape: LandscapeLook;
+  /** The workshop room's own colours, baked under its own light. */
+  workshop: WorkshopLook;
 }
 
-/** The colours of a Level's landscape in one theme, as CSS hex colours; the hills are the look's `ground`. */
-export interface LandscapeLook {
-  /** The low ground round the path. */
-  meadow: string;
-  path: string;
-  /** The Stations' plinths and unlit beacons, rocks and tree trunks. */
-  stone: string;
-  /** A lit Station's beacon and the ring at its foot, drawn unshaded. */
-  lit: string;
-  /** The trees' crowns. */
-  foliage: string;
+/**
+ * The workshop room's colours in one theme, as CSS hex colours, and the
+ * light they are baked under: the look's `light` from above and one side,
+ * bounced off the floor, and the hanging lamps' glow round each lamp.
+ */
+export interface WorkshopLook {
+  /**
+   * The room's light, in Three.js's units (π lights a face fully):
+   * `ambient` falls from everywhere, `key` from the windows' side, and
+   * `lamp` is how strongly the lamps light what is near them (0 for none).
+   */
+  ambient: number;
+  key: number;
+  lamp: number;
+  /** The floor's planks. */
+  floor: string;
+  /** The walls; their panelling is mixed from it and `wood`. */
+  wall: string;
+  /** The furniture's wood; its legs and frames are a darker shade of it. */
+  wood: string;
+  /** The armchair, the rug's border and the red things on the bench. */
+  fabric: string;
+  /** The kit organizer and the lamps' shades. */
+  teal: string;
+  /** The plants. */
+  leaf: string;
+  /** The window panes, drawn unshaded: the day outside, or the evening. */
+  window: string;
+  /** The lamps' bulbs, drawn unshaded, and the colour of the light they cast. */
+  glow: string;
+  /** A Lesson's card, and the lines written on it. */
+  paper: string;
+  ink: string;
+  /** A complete Lesson's card; the pin that holds it is a deeper shade of it. */
+  done: string;
+  /** An optional Lesson's card. */
+  optional: string;
+  /** The mark on a place's next card. */
+  next: string;
 }
 
 /**

@@ -1,131 +1,168 @@
-// Where the Scene's camera stands for each place (09 9.3, ticket 52), and
-// how it moves between them. Plain math over Three.js's vectors, with no
-// renderer, so a test holds each pose and move.
+// Where the Scene's camera stands in the workshop for each screen (the warm
+// workshop, D5), and how it moves between them; while today's Journey shows
+// its stage band (09 9.3), the camera frames its Stations' cards in the
+// band, and Pip's feet in front of them. Plain math over Three.js's
+// vectors, with no renderer, so a test holds each framing, pose and move.
 import { PerspectiveCamera, Vector3 } from "three";
 import type { LessonId } from "@quest/contract";
-import type {
-  SceneStation,
-  ScreenChange,
-  ScreenOnShow,
-} from "../../mount/types";
-import {
-  lessonOfScreen,
-  type Band,
-  type PathView,
-  type StationPoint,
-} from "../path";
+import type { ScreenChange, ScreenOnShow } from "../../mount/types";
+import { lessonOfScreen, type Band, type PathView } from "../path";
 import { sceneStops } from "../SceneLayer";
-import { BEACON_HEIGHT, beginnerLayout, pathPoint } from "./beginner";
+import { SPOTS } from "../workshop/layout";
+import type { WorkshopPlace, WorkshopPlaceId } from "../workshop/places";
+import { placedCards, SURFACES, type PlacedCard } from "./workshop/cards";
 
 /** The camera's vertical field of view, in degrees. */
 export const FOV = 45;
 
-/** Where the camera stands, what it looks at, and where on the page that point falls, as a shift from the page's centre in CSS pixels. */
+/**
+ * Where the camera stands, what it looks at, and where on the page that
+ * point falls, as a shift from the page's centre in CSS pixels; and where
+ * Pip's feet stand in the framing, for the Journey's stage, or null.
+ */
 export interface Pose {
   position: Vector3;
   look: Vector3;
   shift: { x: number; y: number };
+  pip: Vector3 | null;
 }
 
-/**
- * The place the camera frames: a Station of the Journey's path, the whole
- * Level, a dive into a Station behind its Lesson's screens, or the meadow
- * every other screen sits over.
- */
-export type Place =
-  | { kind: "station"; at: number; band: Band }
-  | { kind: "whole"; band: Band }
-  | { kind: "dive"; at: number }
-  | { kind: "meadow" };
-
-/** The Journey's state, as the camera reads it. */
+/** The Journey's state, as the camera reads it: the Lesson it stands at, whether its stage is pulled back to the whole Level, and the stage's band on the page while it shows. */
 export interface PathState {
   at: LessonId | null;
   whole: boolean;
   band: Band | null;
 }
 
-/** The Beginner Level's Stations in path order, from the stations the Scene is told: its core Lessons, since a lab sits beside the path. */
-export function beginnerStations(
-  stations: readonly SceneStation[],
-): readonly SceneStation[] {
-  return stations.filter((s) => s.level === "beginner" && !s.optional);
+/**
+ * What the camera frames: the whole room; a Level's place, with or without
+ * room kept free for the screen's panel beside it (or below it, on a narrow
+ * page); close on a place; or, while today's Journey shows its stage, the
+ * card of the Lesson Pip stands at, or its whole place pulled back, framed
+ * in the stage's band with Pip's feet in front of the card.
+ */
+export type Framing =
+  | { kind: "room" }
+  | { kind: "place"; place: WorkshopPlaceId; panel: boolean }
+  | { kind: "close"; place: WorkshopPlaceId }
+  | { kind: "stage"; card: PlacedCard; whole: boolean; band: Band };
+
+const ROOM_WIDE: Framing = { kind: "room" };
+
+/** The place that holds a Lesson's card, or null for a Lesson the places do not hold. */
+function placeHolding(
+  places: readonly WorkshopPlace[],
+  lesson: LessonId | null,
+): WorkshopPlace | null {
+  if (lesson === null) return null;
+  return places.find((p) => p.cards.some((c) => c.lesson === lesson)) ?? null;
 }
 
-/** The place a screen shows, given the Journey's state and the Beginner Stations. */
-export function placeFor(
-  screen: ScreenOnShow,
-  path: PathState,
-  stations: readonly SceneStation[],
-): Place {
-  const ids = beginnerStations(stations).map((s) => s.lesson);
-  if (screen.screen === "map" && path.band !== null) {
-    if (path.whole) return { kind: "whole", band: path.band };
-    const at = path.at === null ? -1 : ids.indexOf(path.at);
-    return { kind: "station", at: Math.max(0, at), band: path.band };
-  }
-  const lesson = lessonOfScreen(screen);
-  const at = lesson === null ? -1 : ids.indexOf(lesson);
-  if (at >= 0) return { kind: "dive", at };
-  return { kind: "meadow" };
+/** The place of a Lesson's card, framed as asked, or the whole room for a Lesson with no card. */
+function atLesson(
+  places: readonly WorkshopPlace[],
+  lesson: LessonId | null,
+  frame: (place: WorkshopPlaceId) => Framing,
+): Framing {
+  const place = placeHolding(places, lesson);
+  return place === null ? ROOM_WIDE : frame(place.id);
 }
 
 /**
- * What a screen change asks of the camera (09 9.3): the Station Pip
- * stands at when the Journey comes back from a Lesson's screens, and
- * whether the camera travels. It travels into a Station's Lesson and back
- * out to the Journey; into the Workspace the Scene stops, so the change is
- * the screens' own; under reduced motion it never travels; between two
- * screens over the meadow nothing moves.
+ * The framing a screen shows (D5): the Journey frames the place of the
+ * Lesson it stands at, else the first place with a card still to do, and
+ * while its stage shows, that Lesson's card in the stage's band, or the
+ * whole place pulled back; a Lesson's overview frames its Lesson's place
+ * beside the panel, and its step, where the Scene stops, keeps that; Lesson
+ * complete comes close on the place; every other screen shows the whole
+ * room.
+ */
+export function framingFor(
+  screen: ScreenOnShow,
+  path: PathState,
+  places: readonly WorkshopPlace[],
+): Framing {
+  switch (screen.screen) {
+    case "map": {
+      const holding = placeHolding(places, path.at);
+      const place = holding ?? places.find((p) => p.next !== null) ?? null;
+      if (place === null) return ROOM_WIDE;
+      const card =
+        holding === null || path.band === null
+          ? undefined
+          : placedCards(
+              holding.id,
+              holding.cards.map((c) => c.lesson),
+            ).find((c) => c.lesson === path.at);
+      return card === undefined || path.band === null
+        ? { kind: "place", place: place.id, panel: false }
+        : { kind: "stage", card, whole: path.whole, band: path.band };
+    }
+    case "intro":
+    case "step":
+    case "levelup":
+      return atLesson(places, lessonOfScreen(screen), (place) => ({
+        kind: "place",
+        place,
+        panel: true,
+      }));
+    case "complete":
+      return atLesson(places, lessonOfScreen(screen), (place) => ({
+        kind: "close",
+        place,
+      }));
+    default:
+      return ROOM_WIDE;
+  }
+}
+
+/** Whether two framings frame the same: the stage's band moving on the page, as it scrolls, is the same framing. */
+export function sameFraming(a: Framing, b: Framing): boolean {
+  switch (a.kind) {
+    case "room":
+      return b.kind === "room";
+    case "place":
+      return b.kind === "place" && a.place === b.place && a.panel === b.panel;
+    case "close":
+      return b.kind === "close" && a.place === b.place;
+    case "stage":
+      return (
+        b.kind === "stage" &&
+        a.card.lesson === b.card.lesson &&
+        a.whole === b.whole
+      );
+  }
+}
+
+/**
+ * What a screen change asks of the camera (09 9.3): the Lesson the Journey
+ * stands at when it comes back from that Lesson's screens, and whether the
+ * camera travels. It travels when the framing changes; into the Workspace
+ * the Scene stops, so the change is the screens' own; under reduced motion
+ * it never travels.
  */
 export function planMove(
   change: Pick<ScreenChange, "from" | "to" | "reduced">,
-  lessons: readonly LessonId[],
+  path: PathState,
+  places: readonly WorkshopPlace[],
 ): { at: LessonId | null; travel: boolean } {
-  const lessonOf = (screen: ScreenOnShow) => {
-    const lesson = lessonOfScreen(screen);
-    return lesson !== null && lessons.includes(lesson) ? lesson : null;
-  };
-  const back = lessonOf(change.from);
-  const at = change.to.screen === "map" ? back : null;
-  const onPath = (screen: ScreenOnShow) =>
-    screen.screen === "map" || lessonOf(screen) !== null;
+  const left = lessonOfScreen(change.from);
+  const back =
+    change.to.screen === "map" && placeHolding(places, left) !== null
+      ? left
+      : null;
   const travel =
     !change.reduced &&
     !sceneStops(change.to.screen) &&
-    (onPath(change.from) || onPath(change.to));
-  return { at, travel };
-}
-
-/**
- * The Station Pip stands at for a place: its own for a Station's view or a
- * dive, else `at`, the Journey's (the first before it names one).
- */
-export function pipStation(place: Place, at: number): number {
-  return place.kind === "station" || place.kind === "dive"
-    ? place.at
-    : Math.max(0, at);
-}
-
-/** A place on the Journey and the Station Pip stands at there. */
-export interface Standing {
-  place: Place;
-  pip: number;
-}
-
-/**
- * What a change of place on the Journey's stage, outside a screen change,
- * asks of the camera (09 9.3): Pip walks to a new Station, in a Station's
- * view or the whole Level's, over --duration-walk; the pull-back and the
- * way back in glide over --duration-slow; anything else (the band
- * appearing, a place off the path) shows at once.
- */
-export function glideOf(from: Standing, to: Standing): "walk" | "pull" | null {
-  const onPath = (p: Place) => p.kind === "station" || p.kind === "whole";
-  if (!onPath(from.place) || !onPath(to.place)) return null;
-  if (to.pip !== from.pip) return "walk";
-  if (to.place.kind !== from.place.kind) return "pull";
-  return null;
+    !sameFraming(
+      framingFor(change.from, path, places),
+      framingFor(
+        change.to,
+        back === null ? path : { ...path, at: back },
+        places,
+      ),
+    );
+  return { at: back, travel };
 }
 
 /** The page's size in CSS pixels. */
@@ -134,113 +171,180 @@ export interface Viewport {
   height: number;
 }
 
-/** How far up the camera looks down on each place, in radians. */
-const ELEVATION = { station: 0.42, whole: 0.62, dive: 0.38 } as const;
-/** How much of the path the views frame across their band, in scene units. */
-const STATION_WIDTH = 15;
-const WHOLE_MARGIN = 4;
-/** The share of the band the framed width fills. */
-const FILL = 0.92;
-/** How close the dive comes to its beacon. */
-const DIVE_DISTANCE = 4.2;
-/** Where the meadow view stands and looks: over the near ground, toward the path. */
-const MEADOW = {
-  position: new Vector3(0, 3.4, 15),
-  look: new Vector3(0, 0.4, -6),
-} as const;
+/** A page narrower than this share of its height (a phone held upright) keeps a screen's panel below the Scene, not beside it. */
+const NARROW = 0.9;
+
+/** Whether a page is narrow: its panel goes below, and the room is framed closer. */
+const isNarrow = (viewport: Viewport): boolean =>
+  viewport.width < viewport.height * NARROW;
+
+/** The share of a wide page the Scene keeps on its left beside a panel, and of a narrow one on its top above it. */
+const BESIDE_PANEL = 0.6;
+const ABOVE_PANEL = 0.5;
+
+type V3 = readonly [number, number, number];
+
+/**
+ * How a framing sees what it frames: the point it looks at, the way back
+ * from that point to the camera, and how much round it must show across
+ * and up, in the Scene's units; a narrow page shows less across, and may
+ * look down more steeply, so the room fills its height.
+ */
+interface View {
+  look: V3;
+  from: V3;
+  width: number;
+  height: number;
+  narrow: { look: V3; from: V3; width: number };
+}
+
+const unit = (x: number, y: number, z: number): V3 => {
+  const l = Math.hypot(x, y, z);
+  return [x / l, y / l, z / l];
+};
+
+/** The whole room, from over its open front. */
+const ROOM_VIEW: View = {
+  look: [0.5, 1.15, -0.7],
+  from: unit(0, 0.42, 1),
+  width: 13.4,
+  height: 6.8,
+  narrow: { look: [0, 0.8, -1.4], from: unit(0, 0.7, 1), width: 6.8 },
+};
+
+/** Each place, seen from the room, with Pip's spot in front of it in view. */
+const PLACE_VIEWS: Readonly<Record<WorkshopPlaceId, View>> = {
+  noticeboard: {
+    look: [-3.2, 1.55, -4.1],
+    from: unit(0.22, 0.36, 1),
+    width: 5.2,
+    height: 4,
+    narrow: { look: [-3.3, 1.5, -4.2], from: unit(0.18, 0.4, 1), width: 3.9 },
+  },
+  organizer: {
+    look: [5.85, 0.95, -2.0],
+    from: unit(-1, 0.4, 0.42),
+    width: 4.6,
+    height: 3.5,
+    narrow: { look: [6.0, 0.95, -2.1], from: unit(-1, 0.4, 0.3), width: 3.1 },
+  },
+  "release-desk": {
+    look: [4.55, 0.85, 2.3],
+    from: unit(-0.35, 0.8, 0.9),
+    width: 4.4,
+    height: 3.3,
+    narrow: { look: [4.5, 0.85, 2.1], from: unit(-0.25, 0.8, 0.9), width: 3 },
+  },
+};
+
+/** How much of its place's view the close framing shows. */
+const CLOSE = 0.72;
+
+/** What a framing sees on a page of one shape: a View with its narrow page's parts taken in. */
+type Seen = Omit<View, "narrow">;
+
+const seenOn = (view: View, narrow: boolean): Seen =>
+  narrow ? { ...view, ...view.narrow } : view;
+
+/**
+ * How much round a card the Journey's stage shows: a little either side,
+ * and from under Pip's feet to over his head or the top of the card's
+ * surface, whichever is higher, with this margin, so every card of a place
+ * is framed alike.
+ */
+const CARD_ACROSS = 2.4;
+const CARD_MARGIN = 0.3;
+/** How tall Pip stands, to his antennas' tips, in the Scene's units. */
+const PIP_TALL = 1.1;
+/** The share of the stage's band a framing fills, which keeps every Station's mark wholly on it. */
+const BAND_FILL = 0.9;
+
+/** Where Pip stands at a card on the Journey's stage: on the line of his place's spot, square in front of the card. */
+function pipFootAt(card: PlacedCard): Vector3 {
+  const { stand } = SPOTS[card.place];
+  const [rx, , rz] = SURFACES[card.place].right;
+  const along = (card.at[0] - stand.x) * rx + (card.at[2] - stand.z) * rz;
+  return new Vector3(stand.x + rx * along, 0, stand.z + rz * along);
+}
+
+/**
+ * The stage's view of a card: from its place's side, turned square to the
+ * card's row, so the card and Pip's feet in front of it fall in one column
+ * of the page, and high enough to hold both.
+ */
+function cardView(card: PlacedCard, narrow: boolean): Seen {
+  const surface = SURFACES[card.place];
+  const [fx, fy, fz] = seenOn(PLACE_VIEWS[card.place], narrow).from;
+  const [rx, ry, rz] = surface.right;
+  const along = fx * rx + fy * ry + fz * rz;
+  const foot = pipFootAt(card);
+  const top = Math.max(
+    PIP_TALL,
+    surface.centre[1] + (surface.height / 2) * Math.abs(surface.up[1]),
+  );
+  return {
+    look: [(card.at[0] + foot.x) / 2, top / 2, (card.at[2] + foot.z) / 2],
+    from: unit(fx - rx * along, fy - ry * along, fz - rz * along),
+    width: CARD_ACROSS,
+    height: top + 2 * CARD_MARGIN,
+  };
+}
 
 /** The camera's focal length in CSS pixels for a page of `height`. */
 const focal = (height: number) =>
   height / 2 / Math.tan(((FOV / 2) * Math.PI) / 180);
 
-/** The camera's distance from `look` that fits `width` and `depth` of the ground across `band`. */
-function fit(
-  viewport: Viewport,
-  band: Band,
-  width: number,
-  depth: number,
-  elevation: number,
-): number {
+/** The camera's pose for a framing on a page of this size. */
+export function poseOf(framing: Framing, viewport: Viewport): Pose {
+  const narrow = isNarrow(viewport);
+  let seen: Seen;
+  let scale = 1;
+  // The part of the page the framing fills, and its centre's shift from the page's.
+  let region: { width: number; height: number };
+  let shift: Pose["shift"];
+  if (framing.kind === "stage") {
+    const { band, card } = framing;
+    seen = framing.whole
+      ? seenOn(PLACE_VIEWS[card.place], narrow)
+      : cardView(card, narrow);
+    region = { width: band.width * BAND_FILL, height: band.height * BAND_FILL };
+    shift = {
+      x: band.left + band.width / 2 - viewport.width / 2,
+      y: band.top + band.height / 2 - viewport.height / 2,
+    };
+  } else {
+    seen = seenOn(
+      framing.kind === "room" ? ROOM_VIEW : PLACE_VIEWS[framing.place],
+      narrow,
+    );
+    if (framing.kind === "close") scale = CLOSE;
+    // All of the page, or what a panel leaves.
+    const panel = framing.kind === "place" && framing.panel;
+    region = {
+      width: panel && !narrow ? viewport.width * BESIDE_PANEL : viewport.width,
+      height: panel && narrow ? viewport.height * ABOVE_PANEL : viewport.height,
+    };
+    shift = {
+      x: (region.width - viewport.width) / 2,
+      y: (region.height - viewport.height) / 2,
+    };
+  }
   const f = focal(viewport.height);
-  const across = (width * f) / Math.max(1, band.width * FILL);
-  const down =
-    (depth * Math.sin(elevation) * f) / Math.max(1, band.height * FILL);
-  return Math.max(across, down);
-}
-
-/** The shift that puts the look point at the band's centre. */
-function shiftTo(viewport: Viewport, band: Band): Pose["shift"] {
+  const distance = Math.max(
+    (seen.width * scale * f) / Math.max(1, region.width),
+    (seen.height * scale * f) / Math.max(1, region.height),
+  );
+  const look = new Vector3(...seen.look);
   return {
-    x: band.left + band.width / 2 - viewport.width / 2,
-    y: band.top + band.height / 2 - viewport.height / 2,
+    position: new Vector3(...seen.from).multiplyScalar(distance).add(look),
+    look,
+    shift,
+    pip: framing.kind === "stage" ? pipFootAt(framing.card) : null,
   };
 }
 
-/** A camera `distance` back from `look`, raised by `elevation`, looking toward the far hills. */
-function from(look: Vector3, distance: number, elevation: number): Vector3 {
-  return new Vector3(
-    look.x,
-    look.y + Math.sin(elevation) * distance,
-    look.z + Math.cos(elevation) * distance,
-  );
-}
-
-/** Where a Station's beacon floats. */
-export function beaconOf(at: number): Vector3 {
-  const foot = beginnerLayout().stations[at] ?? new Vector3();
-  const capstone = at === beginnerLayout().stations.length - 1;
-  return foot.clone().setY(foot.y + BEACON_HEIGHT * (capstone ? 1.3 : 1));
-}
-
-/** The camera's pose for a place on a page of this size. */
-export function poseOf(place: Place, viewport: Viewport): Pose {
-  const layout = beginnerLayout();
-  switch (place.kind) {
-    case "station": {
-      const look = (layout.stations[place.at] ?? layout.centre)
-        .clone()
-        .setY(0.6);
-      const d = fit(viewport, place.band, STATION_WIDTH, 3, ELEVATION.station);
-      return {
-        position: from(look, d, ELEVATION.station),
-        look,
-        shift: shiftTo(viewport, place.band),
-      };
-    }
-    case "whole": {
-      const look = layout.centre.clone().setY(0.4);
-      const d = fit(
-        viewport,
-        place.band,
-        layout.span.width + WHOLE_MARGIN,
-        layout.span.depth + WHOLE_MARGIN,
-        ELEVATION.whole,
-      );
-      return {
-        position: from(look, d, ELEVATION.whole),
-        look,
-        shift: shiftTo(viewport, place.band),
-      };
-    }
-    case "dive": {
-      const look = beaconOf(place.at);
-      return {
-        position: from(look, DIVE_DISTANCE, ELEVATION.dive),
-        look,
-        shift: { x: 0, y: 0 },
-      };
-    }
-    case "meadow":
-      return {
-        position: MEADOW.position.clone(),
-        look: MEADOW.look.clone(),
-        shift: { x: 0, y: 0 },
-      };
-  }
-}
-
-/** Two poses mixed: `t` 0 is `a`, 1 is `b`. */
-export function mixPoses(a: Pose, b: Pose, t: number): Pose {
+/** Two poses mixed: `t` 0 is `a`, 1 is `b`; Pip walks from `a`'s feet to `b`'s, or stands at `b`'s. */
+function mixPoses(a: Pose, b: Pose, t: number): Pose {
   return {
     position: a.position.clone().lerp(b.position, t),
     look: a.look.clone().lerp(b.look, t),
@@ -248,12 +352,11 @@ export function mixPoses(a: Pose, b: Pose, t: number): Pose {
       x: a.shift.x + (b.shift.x - a.shift.x) * t,
       y: a.shift.y + (b.shift.y - a.shift.y) * t,
     },
+    pip:
+      a.pip === null || b.pip === null
+        ? (b.pip?.clone() ?? null)
+        : a.pip.clone().lerp(b.pip, t),
   };
-}
-
-/** Where Pip stands at a Station: on the path just in front of its plinth. */
-export function pipFootAt(share: number): Vector3 {
-  return pathPoint(share).add(new Vector3(0, 0.05, 0.95));
 }
 
 /** A move under way: from the pose it started at, over `ms`, eased by `ease`. */
@@ -262,8 +365,6 @@ interface Move {
   start: number;
   ms: number;
   ease: (t: number) => number;
-  /** Pip's place along the path when it started, as a share of the path. */
-  pipFrom: number;
   /** A move between screens, which S11's change ends at the cap, as against a glide on the Journey. */
   between: boolean;
 }
@@ -271,16 +372,6 @@ interface Move {
 /** What the camera shows in one frame. */
 export interface Shot {
   pose: Pose;
-  /** Pip's place along the path, as a share of it. */
-  pip: number;
-  /**
-   * Which way across the page Pip walks the path in this move (-1 left, 1
-   * right), or 0 while he stands. The camera never turns about the vertical,
-   * so the page's right is the scene's +x.
-   */
-  walk: -1 | 0 | 1;
-  /** How fast Pip goes along the path now, in shares of it per second (+ toward its end). */
-  pace: number;
   /** A move between screens is still under way. */
   between: boolean;
   /** A move is under way, so another frame is needed. */
@@ -289,9 +380,9 @@ export interface Shot {
 
 /**
  * The camera's moves (09 9.1, 9.3): each starts from where the camera
- * stands, even mid-move, and goes to its place's pose as that place stands
- * in each frame, so the Journey's band can scroll under it. A new move
- * replaces the one in flight; a move ended early stays where it stood.
+ * stands, even mid-move, and goes to its framing's pose as that stands in
+ * each frame, so a page resized mid-move still lands. A new move replaces
+ * the one in flight; one ended early starts the next from where it stood.
  */
 export interface CameraMoves {
   /** Starts a move from the last frame's pose; none before the first frame. */
@@ -303,85 +394,39 @@ export interface CameraMoves {
   ) => void;
   /** Ends the move in flight where it stands at `now`, toward `target`. */
   end: (now: number, target: Pose) => void;
-  /** The frame at `now` toward `target`, Pip walking toward `pipGoal`. */
-  frame: (now: number, target: Pose, pipGoal: number) => Shot;
+  /** The frame at `now` toward `target`. */
+  frame: (now: number, target: Pose) => Shot;
 }
-
-const MS_PER_SECOND = 1000;
-/** The half step of the central difference a move's speed is read with, in milliseconds. */
-const RATE_STEP_MS = 1;
 
 export function createCameraMoves(): CameraMoves {
   let live: Pose | null = null;
-  let pip = 0;
   let move: Move | null = null;
   const at = (m: Move, now: number) => {
     if (m.ms <= 0) return 1;
     return m.ease(Math.min(1, Math.max(0, (now - m.start) / m.ms)));
   };
-  // How fast the eased share runs at `now`, per second: a central difference.
-  const rate = (m: Move, now: number) =>
-    m.ms <= 0
-      ? 0
-      : ((at(m, now + RATE_STEP_MS) - at(m, now - RATE_STEP_MS)) /
-          (2 * RATE_STEP_MS)) *
-        MS_PER_SECOND;
   return {
     start: (now, ms, ease, between) => {
       if (live === null) return;
-      move = { from: live, start: now, ms, ease, pipFrom: pip, between };
+      move = { from: live, start: now, ms, ease, between };
     },
     end: (now, target) => {
       if (move === null) return;
       live = mixPoses(move.from, target, at(move, now));
       move = null;
     },
-    frame: (now, target, pipGoal) => {
+    frame: (now, target) => {
       if (move !== null && now - move.start >= move.ms) move = null;
-      const m = move;
-      const t = m === null ? 1 : at(m, now);
-      const pose = m === null ? target : mixPoses(m.from, target, t);
+      const pose =
+        move === null ? target : mixPoses(move.from, target, at(move, now));
       live = pose;
-      pip = m === null ? pipGoal : m.pipFrom + (pipGoal - m.pipFrom) * t;
       return {
         pose,
-        pip,
-        walk: m === null ? 0 : walkWay(m.pipFrom, pipGoal),
-        pace: m === null ? 0 : (pipGoal - m.pipFrom) * rate(m, now),
         between: move?.between === true,
         moving: move !== null,
       };
     },
   };
-}
-
-/**
- * The easing of Pip's walk from `from` to `goal` over `seconds`: the
- * token's own `base` from a stand; while he already walks toward `goal` at
- * `pace` (shares per second), one that sets off at that speed, so a new
- * Station chosen on the way carries him on rather than stopping him first.
- */
-export function walkEase(
-  base: readonly [number, number, number, number],
-  pace: number,
-  from: number,
-  goal: number,
-  seconds: number,
-): readonly [number, number, number, number] {
-  const ahead = goal - from;
-  if (ahead === 0 || pace * ahead <= 0) return base;
-  // The curve's slope as it sets off is y1 / x1, in units of the whole move.
-  const slope = (pace * seconds) / ahead;
-  return [CARRY_X1, Math.min(1, CARRY_X1 * slope), base[2], base[3]];
-}
-
-/** How far along the time a carried walk's first control point sits: room for a slope up to 4. */
-const CARRY_X1 = 0.25;
-
-/** Which way across the page Pip walks from one place on the path to another: 0 when they are the same. */
-export function walkWay(from: number, to: number): -1 | 0 | 1 {
-  if (from === to) return 0;
-  return pathPoint(to).x >= pathPoint(from).x ? 1 : -1;
 }
 
 /** Puts the camera at a pose: its look point at the pose's shift from the page's centre. */
@@ -407,61 +452,6 @@ export function aim(
   camera.updateMatrixWorld();
 }
 
-/** A Station's reach for a tap, at the least: a 44 px target (WCAG 2.5.8's enhanced size). */
-const MIN_REACH_PX = 22;
-/** How far round a beacon a tap reaches, in scene units. */
-const REACH = 1.1;
-
-/** How far ahead along the path Pip's pace is read, in seconds of his walk. */
-const PACE_STEP_S = 1 / 60;
-
-/**
- * Where every Station and Pip's feet fall on the page, as the aimed camera
- * draws them, which way he walks, and how fast he goes over the ground on
- * the page: his feet's travel with the camera held, whether the camera
- * follows him (a Station's view) or stands (the whole Level's).
- */
-export function viewOf(
-  camera: PerspectiveCamera,
-  viewport: Viewport,
-  stations: readonly { lesson: LessonId; lit: boolean }[],
-  pipShare: number,
-  walk: -1 | 0 | 1 = 0,
-  pace = 0,
-): PathView {
-  const v = new Vector3();
-  const right = new Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
-  const toPage = (p: Vector3) => {
-    v.copy(p).project(camera);
-    return {
-      x: ((v.x + 1) / 2) * viewport.width,
-      y: ((1 - v.y) / 2) * viewport.height,
-      front: v.z < 1,
-    };
-  };
-  const points: StationPoint[] = [];
-  stations.forEach(({ lesson, lit }, i) => {
-    const beacon = beaconOf(i);
-    const c = toPage(beacon);
-    if (!c.front) return;
-    const edge = toPage(beacon.addScaledVector(right, REACH));
-    points.push({
-      lesson,
-      x: c.x,
-      y: c.y,
-      r: Math.max(MIN_REACH_PX, Math.hypot(edge.x - c.x, edge.y - c.y)),
-      lit,
-    });
-  });
-  const foot = toPage(pipFootAt(pipShare));
-  if (!foot.front) return { points, pip: null };
-  const at = { x: foot.x, y: foot.y };
-  if (walk === 0) return { points, pip: at };
-  const ahead = toPage(pipFootAt(pipShare + pace * PACE_STEP_S));
-  const px = Math.hypot(ahead.x - foot.x, ahead.y - foot.y) / PACE_STEP_S;
-  return { points, pip: { ...at, walk, pace: px } };
-}
-
 /** A drawn point moves less than this, in CSS pixels, and the page is not told again. */
 const STILL_PX = 0.25;
 
@@ -472,12 +462,7 @@ export function sameView(a: PathView | null, b: PathView): boolean {
     Math.abs(p.x - q.x) < STILL_PX && Math.abs(p.y - q.y) < STILL_PX;
   if (a.pip === null || b.pip === null) {
     if (a.pip !== b.pip) return false;
-  } else if (
-    !near(a.pip, b.pip) ||
-    a.pip.walk !== b.pip.walk ||
-    Math.abs((a.pip.pace ?? 0) - (b.pip.pace ?? 0)) >= STILL_PX
-  )
-    return false;
+  } else if (!near(a.pip, b.pip)) return false;
   return a.points.every((p, i) => {
     const q = b.points[i];
     return (

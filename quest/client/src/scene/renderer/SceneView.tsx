@@ -10,17 +10,15 @@ import {
 } from "react";
 import type { SceneProps, ScreenOnShow } from "../../mount/types";
 import { pixelRatioCap } from "../tier";
+import { workshopPlaces } from "../workshop/places";
 import { CameraRig } from "./CameraRig";
 import { FOV } from "./camera";
-import { Landscape, litStations } from "./Landscape";
 import { SceneBadges } from "./badges/SceneBadges";
 import { ScenePip } from "./pip/ScenePip";
+import { WorkshopLamps, WorkshopRoom } from "./workshop/WorkshopRoom";
 
 /** The camera's lens; the rig sets where it stands. One object, so a new render of the canvas never sets it again. */
-const CAMERA: CameraProps = { fov: FOV, near: 0.1, far: 160 };
-
-/** How far the fog starts and where it hides the hills in the look's sky. */
-const FOG = [30, 110] as const;
+const CAMERA: CameraProps = { fov: FOV, near: 0.1, far: 80 };
 
 /** A followed value: read it with `get`, hear it change with `subscribe`. */
 interface Followed<T> {
@@ -56,11 +54,12 @@ function useFollowed<T>(value: T): Followed<T> {
 
 /**
  * The Scene's renderer (seam S12): one canvas, `aria-hidden` and never in
- * the Tab order, drawing the Beginner landscape (ticket 52) with its light
- * baked into its colours, so it needs no shadow map; the light here is for
- * the 3D Badges and, with the mount's `pip`, the 3D Pip (seam S13). A
- * desktop draws every frame, with antialiasing and a slow sway over the
- * meadow; a phone draws at a capped pixel ratio, and only when something
+ * the Tab order, drawing the workshop room (the warm workshop, D3) with
+ * its light baked into its colours, so no tier needs a shadow map, and a
+ * card for every Lesson at its Level's place; the light here is for the 3D
+ * Badges and, with the mount's `pip`, the 3D Pip (seam S13). A desktop
+ * draws every frame, with antialiasing and a gentle sway over the whole
+ * room; a phone draws at a capped pixel ratio, and only when something
  * changes; stopped, it draws nothing. The screen is followed rather than
  * rendered, so a screen change re-renders nothing in the canvas: the
  * camera rig and the 3D Pip read it. A lost WebGL context hands over to
@@ -94,8 +93,10 @@ export function SceneView({
     [],
   );
   const shown = useFollowed<ScreenOnShow>(screen);
-  const lit = litStations(stations)
-    .map((on) => (on ? "1" : "0"))
+  const places = useMemo(() => workshopPlaces(stations), [stations]);
+  // Each card complete or not, in the places' order, for checks to read.
+  const lit = places
+    .flatMap((p) => p.cards.map((c) => (c.complete ? "1" : "0")))
     .join("");
   // The same element while nothing it draws changes, so React leaves the canvas alone.
   return useMemo(
@@ -126,19 +127,19 @@ export function SceneView({
         }}
       >
         <color attach="background" args={[look.sky]} />
-        <fog attach="fog" args={[look.sky, ...FOG]} />
         <hemisphereLight args={[look.light, look.ground, look.ambient]} />
         <directionalLight
           color={look.light}
           position={[8, 5, 2]}
           intensity={look.key}
         />
-        <Landscape look={look} lit={lit} />
+        <WorkshopRoom look={look} places={places} />
         <CameraRig
           screen={shown}
           stations={stations}
           sway={tier === "desktop"}
         />
+        <WorkshopLamps look={look} />
         <SceneBadges theme={theme} />
         <FirstFrame onReady={onReady} />
         {pip && (
@@ -151,7 +152,7 @@ export function SceneView({
         )}
       </Canvas>
     ),
-    [frameloop, lit, tier, look, theme, pip, shown, stations, onReady],
+    [frameloop, lit, tier, look, theme, pip, shown, stations, places, onReady],
   );
 }
 
