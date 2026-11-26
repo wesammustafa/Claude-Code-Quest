@@ -8,11 +8,12 @@ import {
   useState,
   type ComponentType,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { cx } from "../lib/cx";
 import { motionReduced, usePageHidden, useResolvedTheme } from "../lib/page";
 import { afterFirstPaint } from "../lib/paint";
-import type { LevelId, Snapshot } from "@quest/contract";
+import type { LessonId, LevelId, Snapshot } from "@quest/contract";
 import type {
   SceneMount,
   SceneProps,
@@ -27,6 +28,8 @@ import { SceneContext } from "./context";
 import { lessonOfScreen } from "./path";
 import { useSceneTier } from "./tier";
 import { cardPinsOf } from "./workshop/pin";
+import { placeOfLesson } from "./workshop/places";
+import { workshopOf } from "./workshop/store";
 import { usePipInView } from "./workshop/seen";
 
 /** The screens the Scene stops on: a Lesson's step, a Step-down included (09 9.2). */
@@ -67,13 +70,23 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
   const hidden = usePageHidden();
   const snapshot = useCourseSnapshot();
   const lesson = snapshot?.lesson ?? null;
-  const stations = useStagedStations(useStations(snapshot), screen);
   const stopped = sceneStops(screen.screen);
   const [loaded, setLoaded] = useState<Loaded>({ state: "waiting" });
   const [lost, setLost] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const pipFailed = usePipModelFailed(root);
   // Where the Scene draws, or will once it loads, it stages a first
   // completion: the card's pin, then Pip's Celebration.
-  useStagesCompletion(tier !== "still" && !lost && loaded.state !== "failed");
+  const stages = tier !== "still" && !lost && loaded.state !== "failed";
+  useStagesCompletion(stages);
+  // Where its Pip will hold Pip, the pin waits for him to stand at the
+  // card, so the Celebration that follows it plays on him, in view, and
+  // never on the screen's own Pip.
+  const stations = useStagedStations(
+    useStations(snapshot),
+    screen,
+    stages && scene.pip === true && !pipFailed,
+  );
   usePipInView();
 
   const wanted = tier !== "still" && !stopped && !lost;
@@ -111,6 +124,7 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
 
   return (
     <div
+      ref={root}
       data-scene=""
       data-scene-tier={tier}
       {...(stopped ? { "data-scene-stopped": "" } : {})}
@@ -201,20 +215,49 @@ function useStagesCompletion(on: boolean): void {
 }
 
 /**
+ * Whether the room's Pip failed to load (his model or its contract): the
+ * renderer marks its canvas so, and the screen's own Pip stays the one.
+ */
+function usePipModelFailed(root: RefObject<HTMLElement | null>): boolean {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const at = root.current;
+    if (at === null) return;
+    const read = () => {
+      setFailed(at.querySelector('[data-scene-pip="failed"]') !== null);
+    };
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(at, {
+      subtree: true,
+      childList: true,
+      attributeFilter: ["data-scene-pip"],
+    });
+    return () => {
+      watch.disconnect();
+    };
+  }, [root]);
+  return failed;
+}
+
+/**
  * The Stations as the renderer draws them, and the card's pin (09 9.3; the
  * warm workshop, D5, D10). A Lesson completed in this tab, on its own
  * screens, stays unlit from its completion; so does one whose Badge reveal
  * starts, which only the tab that won its lesson.completed milestone plays,
- * once the save has landed. At the reveal's end or skip its card pins: the
- * moment runs over --duration-moment (at once under reduced motion), then
- * the director hears `pinned` and Pip celebrates. Leaving that Lesson's
- * screens lights it with no pin and no Celebration. A Lesson already
- * complete when the page first hears of it, as after a reload or on a
- * replay, is lit at once.
+ * once the save has landed. At the reveal's end or skip its card pins, and
+ * where `waitsForPip`, not before the Scene holds Pip and he stands at the
+ * card's place: a renderer still loading, as after a reload or a direct
+ * entry to a step, brings him in from the room's edge. The moment runs
+ * over --duration-moment (at once under reduced motion), then the director
+ * hears `pinned` and Pip celebrates. Leaving that Lesson's screens lights
+ * it with no pin and no Celebration. A Lesson already complete when the
+ * page first hears of it, as after a reload or on a replay, is lit at once.
  */
 function useStagedStations(
   stations: readonly SceneStation[],
   screen: ScreenOnShow,
+  waitsForPip: boolean,
 ): readonly SceneStation[] {
   const [before, setBefore] = useState(stations);
   const [held, setHeld] = useState<string | null>(null);
@@ -230,12 +273,52 @@ function useStagedStations(
     if (done !== undefined) setHeld(done.lesson);
   }
   if (held !== null && on !== held) setHeld(null);
-  const pins = cardPinsOf(useContext(SceneContext));
+  const hub = useContext(SceneContext);
+  const pins = cardPinsOf(hub);
   const send = usePipInput();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onNow = useRef(on);
+  /** A Lesson whose reveal has ended, its pin waiting for the Scene's Pip at its place. */
+  const due = useRef<LessonId | null>(null);
+  const waits = useRef(waitsForPip);
+  const placed = useRef(stations);
+  useEffect(() => {
+    placed.current = stations;
+  }, [stations]);
+  const pinDue = useCallback(() => {
+    const lesson = due.current;
+    if (lesson === null) return;
+    if (waits.current) {
+      const place = placeOfLesson(placed.current, lesson);
+      const at = workshopOf(hub).status().at;
+      if (!hub.holdsPip() || (place !== null && at !== place)) return;
+    }
+    due.current = null;
+    setHeld((h) => (h === lesson ? null : h));
+    const ms = motionReduced() ? 0 : tokenMs("--duration-moment");
+    if (timer.current !== null) clearTimeout(timer.current);
+    pins.set({ lesson, startedAt: performance.now(), ms });
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      pins.set(null);
+      send({ type: "pinned" });
+    }, ms);
+  }, [hub, pins, send]);
+  useEffect(() => {
+    waits.current = waitsForPip;
+    pinDue();
+  }, [waitsForPip, pinDue]);
+  useEffect(() => {
+    const stopHold = hub.subscribe(pinDue);
+    const stopStatus = workshopOf(hub).subscribeStatus(pinDue);
+    return () => {
+      stopHold();
+      stopStatus();
+    };
+  }, [hub, pinDue]);
   useEffect(() => {
     onNow.current = on;
+    if (due.current !== on) due.current = null;
     if (pins.now()?.lesson === on) return;
     // A pin left behind with its Lesson's screens ends unplayed.
     if (timer.current !== null) clearTimeout(timer.current);
@@ -245,6 +328,7 @@ function useStagedStations(
   useEffect(
     () => () => {
       if (timer.current !== null) clearTimeout(timer.current);
+      due.current = null;
       pins.set(null);
     },
     [pins],
@@ -255,15 +339,8 @@ function useStagedStations(
       setHeld(event.lesson);
       return;
     }
-    setHeld((h) => (h === event.lesson ? null : h));
-    const ms = motionReduced() ? 0 : tokenMs("--duration-moment");
-    if (timer.current !== null) clearTimeout(timer.current);
-    pins.set({ lesson: event.lesson, startedAt: performance.now(), ms });
-    timer.current = setTimeout(() => {
-      timer.current = null;
-      pins.set(null);
-      send({ type: "pinned" });
-    }, ms);
+    due.current = event.lesson;
+    pinDue();
   });
   return useMemo(
     () =>
