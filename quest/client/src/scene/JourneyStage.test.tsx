@@ -439,6 +439,7 @@ describe("the Journey path, with the Scene drawing", () => {
       BEGINNER.map((lesson, i) => ({
         lesson,
         level: "beginner",
+        optional: false,
         complete: i < 3,
       })),
     );

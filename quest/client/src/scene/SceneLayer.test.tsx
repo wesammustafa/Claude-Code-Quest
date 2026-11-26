@@ -282,7 +282,7 @@ describe("the Scene, on", () => {
     }
   });
 
-  test("draws a Station for each core Lesson, none for a lab beside the path", async () => {
+  test("tells the renderer every Lesson as its Station, a lab marked optional", async () => {
     const heard: Heard = { props: [], mounts: 0 };
     const withLab = {
       ...course,
@@ -297,7 +297,10 @@ describe("the Scene, on", () => {
       scene: sceneWith(heard),
     });
     await drawn(heard);
-    expect(last(heard)?.stations.map((s) => s.lesson)).toEqual(["b-1"]);
+    expect(last(heard)?.stations).toEqual([
+      { lesson: "b-1", level: "beginner", optional: false, complete: false },
+      { lesson: "b-2", level: "beginner", optional: true, complete: false },
+    ]);
   });
 
   test("the frame keeps its background until the Scene has drawn, then paints none", async () => {

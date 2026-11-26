@@ -113,10 +113,15 @@ export interface LandscapeLook {
   foliage: string;
 }
 
-/** A Lesson as the Scene's Station for it: its Level and whether it is complete, the snapshot's `LessonSummary.complete`. */
+/**
+ * A Lesson as the Scene's Station for it: its Level, whether it is optional
+ * (a lab), and whether it is complete, the snapshot's `LessonSummary`
+ * `optional` and `complete`.
+ */
 export interface SceneStation {
   lesson: LessonId;
   level: LevelId;
+  optional: boolean;
   complete: boolean;
 }
 

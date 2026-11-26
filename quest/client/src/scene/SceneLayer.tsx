@@ -143,30 +143,33 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
 const NO_STATIONS: readonly SceneStation[] = [];
 
 /**
- * Every core Lesson of the course as its Station, from the snapshot's
- * `LessonSummary.complete` alone; the same array until a Lesson's complete
- * changes, so a new snapshot draws nothing new. An optional Lesson (a lab)
- * sits beside the path, so it has no Station.
+ * Every Lesson of the course as its Station, in the snapshot's order, from
+ * its `LessonSummary.optional` and `complete` alone; the same array until
+ * one of those changes, so a new snapshot draws nothing new. An optional
+ * Lesson (a lab) is marked so: the Beginner landscape draws no Station for
+ * it, since it sits beside the path.
  */
 function useStations(snapshot: Snapshot | null): readonly SceneStation[] {
   const key =
     snapshot?.course.levels
-      .map((level) =>
-        level.lessons
-          .filter((l) => !l.optional)
-          .map((l) => `${level.id}:${l.id}:${l.complete ? "1" : "0"}`)
-          .join(","),
+      .flatMap((level) =>
+        level.lessons.map(
+          (l) =>
+            `${level.id}:${l.id}:${l.optional ? "1" : "0"}:${l.complete ? "1" : "0"}`,
+        ),
       )
-      .join(";") ?? "";
+      .join(",") ?? "";
   return useMemo(
     () =>
       key === ""
         ? NO_STATIONS
-        : key.split(/[;,]/).map((entry) => {
-            const [level = "", id = "", done = "0"] = entry.split(":");
+        : key.split(",").map((entry) => {
+            const [level = "", id = "", lab = "0", done = "0"] =
+              entry.split(":");
             return {
               level: level as LevelId,
               lesson: id,
+              optional: lab === "1",
               complete: done === "1",
             };
           }),

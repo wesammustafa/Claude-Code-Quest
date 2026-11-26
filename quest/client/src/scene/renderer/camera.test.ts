@@ -29,9 +29,10 @@ const STATIONS: SceneStation[] = [
   ...BEGINNER.map((lesson, i) => ({
     lesson,
     level: "beginner" as const,
+    optional: false,
     complete: i < 2,
   })),
-  { lesson: "i-1", level: "intermediate", complete: false },
+  { lesson: "i-1", level: "intermediate", optional: false, complete: false },
 ];
 const VIEWPORT = { width: 1440, height: 900 };
 const BAND: Band = { left: 170, top: 300, width: 1100, height: 320 };

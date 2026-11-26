@@ -45,11 +45,11 @@ export interface PathState {
   band: Band | null;
 }
 
-/** The Beginner Level's Stations in path order, from the stations the Scene is told. */
+/** The Beginner Level's Stations in path order, from the stations the Scene is told: its core Lessons, since a lab sits beside the path. */
 export function beginnerStations(
   stations: readonly SceneStation[],
 ): readonly SceneStation[] {
-  return stations.filter((s) => s.level === "beginner");
+  return stations.filter((s) => s.level === "beginner" && !s.optional);
 }
 
 /** The place a screen shows, given the Journey's state and the Beginner Stations. */

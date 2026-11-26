@@ -26,7 +26,8 @@ const station = (
   lesson: string,
   complete: boolean,
   level: SceneStation["level"] = "beginner",
-): SceneStation => ({ lesson, level, complete });
+  optional = false,
+): SceneStation => ({ lesson, level, optional, complete });
 
 describe("the Beginner landscape", () => {
   test("has six Stations along its path, left to right, on the ground", () => {
@@ -47,6 +48,16 @@ describe("the Beginner landscape", () => {
       ]),
     ).toEqual([true, false, true, false, false, false]);
     expect(litStations([])).toEqual([false, false, false, false, false, false]);
+  });
+
+  test("draws no Station for a lab, which sits beside the path", () => {
+    expect(
+      litStations([
+        station("b-1", false),
+        station("b-lab", true, "beginner", true),
+        station("b-2", true),
+      ]),
+    ).toEqual([false, true, false, false, false, false]);
   });
 
   test("bakes a colour into every face of the ground and the path, inside the displayable range", () => {
