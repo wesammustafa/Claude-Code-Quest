@@ -60,8 +60,10 @@ const TAP_SLOP_PX = 10;
 /** How far a tag keeps from the window's edges, in CSS pixels: the page's phone gutter. */
 const EDGE_PX = 16;
 
+/** SURFACE without its border colour and shadow, for a part that sets its own: cx only joins, so two of one property would clash. */
+const PANEL = "rounded-lg border bg-surface";
 /** A surface over the Scene: the page's card, so no word sits on the canvas. */
-const SURFACE = "rounded-lg border border-line bg-surface shadow-md";
+const SURFACE = `${PANEL} border-line shadow-md`;
 /** Pip's controls: a 44 px target at the least. */
 const TOOL = "min-h-11";
 
@@ -456,11 +458,12 @@ function PlaceTag({
 }): ReactNode {
   const snapshot = useCourseSnapshot();
   const ref = useAnchored<HTMLDivElement>(place.id, onScreen);
-  const done = place.next === null;
-  const lesson =
-    place.next ??
-    place.cards.filter((c) => !c.optional).at(-1)?.lesson ??
-    place.cards.at(-1)?.lesson;
+  // Complete as the Level is: every core Lesson done, a lab left or not.
+  const core = place.cards.filter((c) => !c.optional);
+  const done = core.length > 0 && core.every((c) => c.complete);
+  const lesson = done
+    ? core.at(-1)?.lesson
+    : (place.next ?? place.cards.at(-1)?.lesson);
   const title = summaryOf(snapshot, lesson)?.title;
   if (lesson === undefined || title === undefined) return null;
   const level = LEVEL_NAMES[place.level];
@@ -472,11 +475,11 @@ function PlaceTag({
         {...(next ? { "data-next": "" } : {})}
         {...(done ? { "data-done": "" } : {})}
         className={cx(
-          SURFACE,
+          PANEL,
           "pointer-events-auto absolute bottom-0 left-0 grid min-h-11 w-max max-w-56 -translate-x-1/2 content-center gap-0.5 px-3.5 py-2 text-left no-underline",
           "transition-[opacity,border-color] duration-(--duration-fast) ease-out hover:border-accent-mark",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-          next ? "border-accent-mark shadow-selected" : "border-line",
+          next ? "border-accent-mark shadow-selected" : "border-line shadow-md",
           quiet && "opacity-disabled",
         )}
       >
@@ -676,12 +679,13 @@ function SendMenu({
 }
 
 /**
- * Explore: Pip's steering keys and the stick move him while it is on, Esc
- * or Done leaves, and focus goes to Done as it opens and back to Explore
- * with Pip as it closes. The words name no key.
+ * Explore: Pip's steering keys, and on a touch screen the stick, move him
+ * while it is on; Esc or Done leaves, and focus goes to Done as it opens
+ * and back to Explore with Pip as it closes. The words name no key.
  */
 function ExploreBar({ onDone }: { onDone: () => void }): ReactNode {
   const workshop = useWorkshop();
+  const touch = useTouch();
   const bar = useRef<HTMLDivElement>(null);
   const done = useRef(onDone);
   useLayoutEffect(() => {
@@ -715,8 +719,29 @@ function ExploreBar({ onDone }: { onDone: () => void }): ReactNode {
           Done
         </Button>
       </div>
-      <Stick steer={workshop.send} />
+      {touch && <Stick steer={workshop.send} />}
     </>
+  );
+}
+
+/** A touch screen: a pointer that is a finger, where the stick steers Pip. */
+const TOUCH = "(any-pointer: coarse)";
+
+/** Whether the device has a touch pointer, following it as that changes. */
+function useTouch(): boolean {
+  return useSyncExternalStore(
+    (changed) => {
+      if (typeof window.matchMedia !== "function") return () => undefined;
+      const list = window.matchMedia(TOUCH);
+      list.addEventListener("change", changed);
+      return () => {
+        list.removeEventListener("change", changed);
+      };
+    },
+    () =>
+      typeof window.matchMedia === "function" &&
+      window.matchMedia(TOUCH).matches,
+    () => false,
   );
 }
 

@@ -76,11 +76,23 @@ function sceneWith(drawn: Drawn): SceneMount {
 /** Welcome over the room, with the deck drawn: a returning Learner (b-1 to b-3 done) unless `course` says. */
 async function onWelcome(course: CourseView = fullCourse) {
   const drawn: Drawn = { commands: [], pick: null, loads: 0 };
-  renderMounted("/", snapshotOf(overviewAt("b-4"), { course }), {
-    scene: sceneWith(drawn),
-  });
+  const mounted = renderMounted(
+    "/",
+    snapshotOf(overviewAt("b-4"), { course }),
+    { scene: sceneWith(drawn) },
+  );
   await screen.findByRole("toolbar", { name: "Pip" });
-  return drawn;
+  return Object.assign(drawn, { posts: mounted.posts });
+}
+
+/** A phone or tablet: a finger is one of the page's pointers. */
+function touchScreen() {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: query === "(any-pointer: coarse)",
+    media: query,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
 }
 
 const room = () => document.querySelector<HTMLElement>("main[data-room]");
@@ -153,6 +165,32 @@ describe("taps on the room", () => {
   });
 });
 
+describe("Welcome's card for a returning Learner", () => {
+  test("one who came in by a Lesson's own link, never welcomed, is welcomed back and continues to the next Lesson where it stands", async () => {
+    const drawn = await onWelcome();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Welcome back.",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Start the first lesson" }),
+    ).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /^Continue: Keep a session on track/,
+      }),
+    );
+    await waitFor(() => {
+      expect(drawn.posts.map((p) => p.action)).toContainEqual({
+        type: "lesson.open",
+        lesson: "b-4",
+      });
+    });
+    expect(drawn.posts.map((p) => p.action.type)).not.toContain(
+      "welcome.finish",
+    );
+  });
+});
+
 describe("the place tags", () => {
   test("each links to its place's next Lesson, the course's next marked", async () => {
     await onWelcome();
@@ -190,6 +228,39 @@ describe("the place tags", () => {
     expect(board?.getAttribute("href")).toBe("/lesson/b-capstone/");
     expect(board?.hasAttribute("data-done")).toBe(true);
     expect(board?.textContent).toContain("Beginner · complete");
+  });
+
+  test("a Level whose core Lessons are done is complete with a lab left, and its tag opens its last core Lesson, not the lab", async () => {
+    const first = fullCourse.levels[0]?.lessons[0];
+    if (first === undefined) throw new Error("fullCourse has no Lesson");
+    const lab = {
+      ...first,
+      id: "b-lab",
+      number: 1,
+      title: "A lab left to do",
+      optional: true,
+      complete: false,
+    };
+    const coreDone: CourseView = {
+      ...fullCourse,
+      levels: fullCourse.levels.map((level) =>
+        level.id === "beginner"
+          ? {
+              ...level,
+              complete: true,
+              lessons: [
+                ...level.lessons.map((l) => ({ ...l, complete: true })),
+                lab,
+              ],
+            }
+          : level,
+      ),
+      next: "i-1",
+    };
+    await onWelcome(coreDone);
+    const board = document.querySelector("a[data-place-tag=noticeboard]");
+    expect(board?.hasAttribute("data-done")).toBe(true);
+    expect(board?.getAttribute("href")).toBe("/lesson/b-capstone/");
   });
 });
 
@@ -230,9 +301,8 @@ describe("Explore", () => {
     fireEvent.click(screen.getByRole("button", { name: "Explore with Pip" }));
     expect(drawn.commands).toEqual([{ type: "explore", on: true }]);
     expect(screen.getByRole("button", { name: "Done" })).toHaveFocus();
-    expect(
-      screen.getByRole("application", { name: /^Steer Pip/ }),
-    ).toBeInTheDocument();
+    // A mouse and keys only: no stick.
+    expect(screen.queryByRole("application")).toBeNull();
     expect(key("ArrowUp")).toBe(false);
     expect(drawn.commands.at(-1)).toEqual({
       type: "steer",
@@ -257,6 +327,15 @@ describe("Explore", () => {
     const heard = drawn.commands.length;
     expect(key("ArrowUp")).toBe(true);
     expect(drawn.commands).toHaveLength(heard);
+  });
+
+  test("a touch screen steers with the stick", async () => {
+    touchScreen();
+    await onWelcome();
+    fireEvent.click(screen.getByRole("button", { name: "Explore with Pip" }));
+    expect(
+      screen.getByRole("application", { name: /^Steer Pip/ }),
+    ).toBeInTheDocument();
   });
 
   test("a key typed into a field is the field's", async () => {

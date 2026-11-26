@@ -102,15 +102,23 @@ function useFirstLesson(snapshot: Snapshot | null) {
   return { first, welcomed, see, title, finish, reopen };
 }
 
-/** The action that opens the course's next Lesson: Start the first lesson, or Continue with its title. */
+/**
+ * The action that opens the course's next Lesson: Start the first lesson on
+ * a first run, or Continue with its title for a Learner who is `returning`.
+ * A returning Learner never welcomed (who came in by a Lesson's own link)
+ * opens it with lesson.open, as a welcomed one does, so a Lesson under way
+ * keeps its place.
+ */
 function FirstLessonButton({
   lesson,
+  returning = lesson.welcomed,
 }: {
   lesson: ReturnType<typeof useFirstLesson>;
+  returning?: boolean;
 }) {
-  const { first, welcomed, title, finish, reopen } = lesson;
+  const { first, title, finish, reopen } = lesson;
   if (first === null) return null;
-  return welcomed ? (
+  return returning ? (
     <Button variant="primary" size="lg" iconEnd="arrow" {...reopen}>
       {title === undefined ? (
         "Continue"
@@ -268,6 +276,7 @@ function RoomWelcome() {
   const back = snapshot !== null && hasProgress(snapshot);
   const finished = snapshot === null ? null : lastFinished(snapshot);
   const lesson = useFirstLesson(snapshot);
+  const returning = back || lesson.welcomed;
   const host = useDeckHost("room");
   // The 3D Pip stands in the room once he holds Pip; until then, and on
   // the still image, the card shows the screen's own.
@@ -280,7 +289,7 @@ function RoomWelcome() {
       <section
         aria-label="Welcome"
         data-welcome-card=""
-        className={`${BOX} relative z-10 w-full max-w-sheet gap-3.5 p-5.5 shadow-md lg:max-w-96 xl:max-w-sheet`}
+        className="relative z-10 grid w-full max-w-sheet gap-3.5 rounded-lg border border-line bg-surface p-5.5 shadow-md lg:max-w-96 xl:max-w-sheet"
       >
         <div className="flex items-start gap-3">
           <div className="grid min-w-0 flex-1 gap-1.5">
@@ -288,10 +297,10 @@ function RoomWelcome() {
               {name === null ? "Welcome" : `Hi ${name}!`}
             </span>
             <PageTitle
-              title={back ? "Welcome back" : "Welcome"}
+              title={returning ? "Welcome back" : "Welcome"}
               className="text-3xl max-sm:text-2xl"
             >
-              {back ? "Welcome back." : "Learn Claude Code by using it."}
+              {returning ? "Welcome back." : "Learn Claude Code by using it."}
             </PageTitle>
           </div>
           {!inRoom && <Pip size="beside" />}
@@ -311,7 +320,9 @@ function RoomWelcome() {
           </p>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          {resuming === null && <FirstLessonButton lesson={lesson} />}
+          {resuming === null && (
+            <FirstLessonButton lesson={lesson} returning={returning} />
+          )}
           <SayHello />
           {back && finished !== null && (
             <ButtonLink
@@ -324,7 +335,7 @@ function RoomWelcome() {
           )}
         </div>
         <Link to="/journey" className={`${QUIET_LINK} justify-self-start`}>
-          {lesson.welcomed || back ? lesson.see : `${lesson.see} first`}
+          {returning ? lesson.see : `${lesson.see} first`}
         </Link>
         {waiting && (
           <p

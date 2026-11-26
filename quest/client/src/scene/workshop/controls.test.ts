@@ -30,6 +30,8 @@ describe("the live line", () => {
   test("says nothing when nothing worth saying changed", () => {
     expect(activityLine(at("walking"), at("walking"))).toBeNull();
     expect(activityLine(at("greeting"), at("idle"))).toBeNull();
+    // His bubble says hello; the live line does not say it again.
+    expect(activityLine(at("idle"), at("greeting"))).toBeNull();
   });
 });
 

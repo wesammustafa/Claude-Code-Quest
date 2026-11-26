@@ -30,7 +30,7 @@ import { JourneyStage } from "../scene/JourneyStage";
 import { stationForKey, useJourneyPath } from "../scene/path";
 import { useDeckHost } from "../scene/workshop/store";
 import { PageTitle } from "../shell/PageTitle";
-import { BOX, EYEBROW, ROOM_WIDE, WIDE } from "./layout";
+import { EYEBROW, ROOM_WIDE, WIDE } from "./layout";
 import { OpenLessonButton } from "./OpenLessonButton";
 import { pathOf, useCourseSnapshot } from "./lesson";
 import {
@@ -51,6 +51,8 @@ type ElectiveList =
  * No marks and nothing saved: an Elective is extra reading.
  */
 function Electives({ level }: { level: LevelId }) {
+  // Over the workshop room its buttons keep a 44 px target.
+  const tall = useRoom() ? "min-h-11" : "min-h-8";
   const [list, setList] = useState<ElectiveList>({ state: "closed" });
   const { open } = usePagePanel();
   const load = useCallback(() => {
@@ -81,7 +83,7 @@ function Electives({ level }: { level: LevelId }) {
       {list.state === "failed" && (
         <p className="flex flex-wrap items-center gap-2">
           <span>The Electives did not load.</span>
-          <Button size="sm" onClick={load}>
+          <Button size="sm" className={tall} onClick={load}>
             Retry
           </Button>
         </p>
@@ -97,7 +99,10 @@ function Electives({ level }: { level: LevelId }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-auto! min-h-8 py-1 text-left whitespace-normal! break-words"
+                  className={cx(
+                    "h-auto! py-1 text-left whitespace-normal! break-words",
+                    tall,
+                  )}
                   aria-haspopup="dialog"
                   onClick={() => {
                     open(page.path);
@@ -164,7 +169,13 @@ function JourneyHeader({
 }) {
   const room = useRoom();
   return (
-    <header className={room ? `${BOX} gap-2 px-5.5 py-5` : "grid gap-2"}>
+    <header
+      className={cx(
+        "grid gap-2",
+        room &&
+          "rounded-lg border border-line bg-surface px-5.5 py-5 shadow-sm",
+      )}
+    >
       <PageTitle
         title="Learning journey"
         className="text-3xl max-sm:text-2xl"

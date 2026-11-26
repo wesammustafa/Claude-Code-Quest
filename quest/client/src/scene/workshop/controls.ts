@@ -31,7 +31,8 @@ export const OTHER_SPOTS: readonly SpotId[] = [
 /**
  * What the live line says as Pip's status goes from `before` to `now`, or
  * null when nothing worth saying changed: he sets off, speeds up, arrives,
- * says hello, rests, falls asleep or wakes. Standing about says nothing.
+ * rests, falls asleep or wakes. Standing about says nothing, and so does a
+ * greeting: his bubble, a status line of its own, already says hello.
  */
 export function activityLine(before: PipStatus, now: PipStatus): string | null {
   if (before.activity === now.activity && before.at === now.at) return null;
@@ -41,7 +42,7 @@ export function activityLine(before: PipStatus, now: PipStatus): string | null {
     case "running":
       return before.activity === "running" ? null : "Pip is running";
     case "greeting":
-      return "Pip says hello";
+      return null;
     case "celebrating":
       return "Pip is celebrating";
     case "thinking":
