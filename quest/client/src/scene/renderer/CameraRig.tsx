@@ -213,10 +213,17 @@ export function CameraRig({ screen, stations, sway, feet }: Props): null {
       last = next;
       invalidate();
     });
+    // Welcome's card measured, moved or gone: a phone draws only on demand,
+    // so ask for the frame that keeps Pip clear of it.
+    const offCard = workshop.subscribeCard(() => {
+      last = framingNow();
+      invalidate();
+    });
     return () => {
       offPath();
       offScreen();
       offCommand();
+      offCard();
     };
   }, [path, screen, workshop, framingNow, canvas, start, invalidate]);
 

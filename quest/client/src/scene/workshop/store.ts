@@ -137,7 +137,9 @@ export interface Workshop {
   subscribeHost: (fn: () => void) => () => void;
   /** Welcome's card on the page, which the camera keeps Pip clear of, or null while none is measured. */
   card: () => Band | null;
+  /** Sets the card, telling the listeners when it moved, came or went. */
   setCard: (card: Band | null) => void;
+  subscribeCard: (fn: () => void) => () => void;
   /** The probe set to measure Pip's motion, or null; only a test sets one. */
   probe?: () => PipProbe | null;
   setProbe?: (probe: PipProbe | null) => void;
@@ -183,6 +185,16 @@ function sameAnchors(a: Anchors, b: Anchors): boolean {
   });
 }
 
+function sameBand(a: Band | null, b: Band | null): boolean {
+  if (a === null || b === null) return a === b;
+  return (
+    a.left === b.left &&
+    a.top === b.top &&
+    a.width === b.width &&
+    a.height === b.height
+  );
+}
+
 export function createWorkshop(): Workshop {
   let anchors = NO_ANCHORS;
   let picker: WorkshopPicker | null = null;
@@ -196,6 +208,7 @@ export function createWorkshop(): Workshop {
   const commands = listeners<[PipCommand]>();
   const statuses = listeners<[]>();
   const readies = listeners<[]>();
+  const cards = listeners<[]>();
   return {
     anchors: () => anchors,
     setAnchors: (next) => {
@@ -240,8 +253,11 @@ export function createWorkshop(): Workshop {
     subscribeHost: hosts.on,
     card: () => card,
     setCard: (next) => {
+      if (sameBand(card, next)) return;
       card = next;
+      cards.emit();
     },
+    subscribeCard: cards.on,
     probe: () => probe,
     setProbe: (next) => {
       probe = next;

@@ -36,6 +36,24 @@ describe("the workshop's state", () => {
     expect(workshop.anchors()).toEqual({ "card:b-1": at });
   });
 
+  test("tells its listeners when Welcome's card is measured, moves or goes, and not when it is measured where it stood", () => {
+    const workshop = createWorkshop();
+    const told = vi.fn();
+    const off = workshop.subscribeCard(told);
+    const card = { left: 16, top: 56, width: 358, height: 228 };
+    workshop.setCard(card);
+    expect(workshop.card()).toEqual(card);
+    workshop.setCard({ ...card });
+    expect(told).toHaveBeenCalledTimes(1);
+    workshop.setCard({ ...card, top: 40 });
+    workshop.setCard(null);
+    expect(workshop.card()).toBeNull();
+    expect(told).toHaveBeenCalledTimes(3);
+    off();
+    workshop.setCard(card);
+    expect(told).toHaveBeenCalledTimes(3);
+  });
+
   test("holds the probe set to measure Pip's motion until it is cleared", () => {
     const workshop = createWorkshop();
     expect(workshop.probe?.()).toBeNull();

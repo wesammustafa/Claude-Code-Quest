@@ -80,7 +80,7 @@ const standing = (
 /** Today's Journey stage's band, as the Journey lays it out on a desktop and on a phone. */
 /** The stage's band as the Journey lays it out at 1440 by 900, and on a phone. */
 const DESKTOP_BAND: Band = { left: 224, top: 387, width: 992, height: 320 };
-const PHONE_BAND: Band = { left: 16, top: 420, width: 358, height: 256 };
+const PHONE_BAND: Band = { left: 16, top: 322, width: 358, height: 256 };
 
 /** Welcome's card, as it lays out at a desktop's foot on the left and across a phone's top. */
 const DESKTOP_CARD: Band = { left: 24, top: 510, width: 432, height: 366 };

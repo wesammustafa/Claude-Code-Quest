@@ -487,6 +487,9 @@ export function clearMove(
   return from.reduce((a, b) => (size(b) < size(a) ? b : a));
 }
 
+/** The camera keepClear projects Pip through, aimed afresh at each call. */
+const clearCamera = new PerspectiveCamera(FOV, 1, 0.1, 100);
+
 /**
  * Welcome's room with Pip sent to `to`: the room's own pose when it draws
  * him whole on the page, clear of the card and over his toolbar; else that
@@ -500,12 +503,10 @@ function keepClear(
   card: Band | null,
   narrow: boolean,
 ): Pose {
-  const camera = new PerspectiveCamera(
-    FOV,
-    viewport.width / viewport.height,
-    0.1,
-    100,
-  );
+  // One camera for every call: the rig asks for this pose each frame.
+  const camera = clearCamera;
+  camera.aspect = viewport.width / viewport.height;
+  camera.updateProjectionMatrix();
   aim(camera, pose, viewport);
   const onPage = (y: number) => {
     const v = new Vector3(to.x, y, to.z).project(camera);

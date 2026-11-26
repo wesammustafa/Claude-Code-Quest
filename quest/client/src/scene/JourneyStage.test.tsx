@@ -449,6 +449,28 @@ describe("the Journey path, with the Scene drawing", () => {
     }
   });
 
+  test("a Level with no core Lesson, only labs, gets no stage on its tab", async () => {
+    const labsOnly = structuredClone(fullCourse);
+    const advanced = labsOnly.levels.find((l) => l.id === "advanced");
+    if (advanced === undefined) throw new Error("no Advanced Level");
+    for (const lesson of advanced.lessons) lesson.optional = true;
+    const heard: Heard = { props: [], path: null };
+    renderMounted("/journey/", snapshotOf(overview, { course: labsOnly }), {
+      scene: sceneWith(heard),
+    });
+    await waitFor(() => {
+      expect(stage()).not.toBeNull();
+    });
+    fireEvent.click(screen.getByRole("tab", { name: /Advanced/ }));
+    await waitFor(() => {
+      expect(stage()).toBeNull();
+    });
+    fireEvent.click(screen.getByRole("tab", { name: /Beginner/ }));
+    await waitFor(() => {
+      expect(stage()).not.toBeNull();
+    });
+  });
+
   test("the Stations are the snapshot's Lessons, lit from complete alone, the same until one changes", async () => {
     const { heard, page } = await onPath();
     const told = heard.props.at(-1)?.stations ?? [];
