@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { cx } from "../lib/cx";
+import { useMount } from "../mount/context";
 import type { CheckLineState } from "./check-line-state";
 import { Icon } from "./Icon";
 
@@ -58,7 +59,7 @@ const LOOKS: Record<
     said: "Not yet: ",
     mark: "bg-wait-soft text-wait",
     icon: "circle",
-    text: "font-semibold text-text",
+    text: "text-text",
     evidence: "border-wait",
   },
   pending: {
@@ -83,10 +84,11 @@ const stateOf = (line: CheckLine): CheckLineState =>
   line.state ?? (line.ok ? "pass" : "notYet");
 
 /**
- * The Check's lines, one to a row: met ones quiet, the rest amber and in
- * bold, never red, and a line still being checked in teal; any line may
- * show what the Check saw. They
- * arrive one after another, --stagger apart. Pip watches them as they arrive.
+ * The Check's lines: met ones quiet, the rest amber, never red, and a line
+ * still being checked in teal; any line may show what the Check saw. Where
+ * the mount turns the Scene on they take the warm workshop's look: one to
+ * a row, a Not yet line in bold. They arrive one after another, --stagger
+ * apart. Pip watches them as they arrive.
  * A line keeps its place (and does not arrive again) as its state and words
  * change; to stagger a new Check run's lines in again, the caller gives
  * CheckLines a new `key` for each run. A run of lines in one state is read
@@ -94,6 +96,7 @@ const stateOf = (line: CheckLine): CheckLineState =>
  * (ticket 348).
  */
 export function CheckLines({ lines }: CheckLinesProps) {
+  const warm = useMount().scene !== null;
   return (
     <ul data-pip-target="lines" className="grid gap-2.5">
       {lines.map((line, i) => {
@@ -106,7 +109,10 @@ export function CheckLines({ lines }: CheckLinesProps) {
             // A line keeps its place as its state and words change.
             key={i}
             data-state={look.data}
-            className="flex animate-line items-start gap-2.5 border-b border-line pb-2.5 text-sm last:border-b-0 last:pb-0 [animation-delay:calc(var(--i)*var(--stagger))]"
+            className={cx(
+              "flex animate-line items-start gap-2.5 text-sm [animation-delay:calc(var(--i)*var(--stagger))]",
+              warm && "border-b border-line pb-2.5 last:border-b-0 last:pb-0",
+            )}
             style={{ "--i": i } as CSSProperties}
           >
             <span className={cx(MARK, look.mark)}>
@@ -114,7 +120,14 @@ export function CheckLines({ lines }: CheckLinesProps) {
             </span>
             <div className="min-w-0 flex-1">
               {heads && <span className="sr-only">{look.said}</span>}
-              <span className={look.text}>{line.text}</span>
+              <span
+                className={cx(
+                  look.text,
+                  warm && state === "notYet" && "font-semibold",
+                )}
+              >
+                {line.text}
+              </span>
               {line.evidence !== undefined && (
                 <div className={cx(EVIDENCE, look.evidence)}>
                   {line.evidence}

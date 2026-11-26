@@ -1,6 +1,8 @@
 import { m } from "motion/react";
 import { useEffect, useRef, type ReactNode, type Ref } from "react";
+import { cx } from "../lib/cx";
 import { revealEntrance, useMotionTokens } from "../lib/motion";
+import { useMount } from "../mount/context";
 import { Button } from "./Button";
 import { Icon } from "./Icon";
 import { InlineText } from "./InlineText";
@@ -35,6 +37,16 @@ export const CONFIRM_EXACT =
  * its height and fades in, or only fades under reduced motion. The newest
  * open one is Pip's `hint` target.
  */
+/** A rung's look, and its number's: the Local app's, and the warm workshop's where the mount turns the Scene on. */
+const RUNG = {
+  rung: "border border-line bg-surface-2",
+  number: "text-muted",
+};
+const WARM_RUNG = {
+  rung: "bg-accent-soft",
+  number: "font-bold text-accent-text",
+};
+
 export function Hints({
   hints,
   shown,
@@ -46,6 +58,7 @@ export function Hints({
 }: HintsProps) {
   const open = hints.slice(0, shown);
   const entrance = revealEntrance(useMotionTokens());
+  const look = useMount().scene === null ? RUNG : WARM_RUNG;
   const question = useRef<HTMLParagraphElement>(null);
   const asking = confirm !== undefined;
   // The button that asked has gone: the question takes focus.
@@ -89,18 +102,25 @@ export function Hints({
               ref={newest ? newestRef : undefined}
               tabIndex={newest ? -1 : undefined}
               data-pip-target={newest ? "hint" : undefined}
-              className="flex w-full items-start gap-2.5 rounded-lg bg-accent-soft px-4.5 py-3.5 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
+              className={cx(
+                "flex w-full items-start gap-2.5 rounded-lg px-4.5 py-3.5 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus",
+                look.rung,
+              )}
             >
               <Icon name="bulb" className="mt-0.5 text-accent-text" />
               {typeof hint === "string" ? (
                 <p>
-                  <span className="font-semibold">{`Hint ${String(i + 1)}. `}</span>
+                  <span
+                    className={look.number}
+                  >{`Hint ${String(i + 1)}. `}</span>
                   <InlineText text={hint} />
                 </p>
               ) : (
                 // A drawn rung (the exact command, with Copy) is blocks, not a line.
                 <div className="grid min-w-0 flex-1 gap-2">
-                  <span className="font-semibold">{`Hint ${String(i + 1)}.`}</span>
+                  <span
+                    className={look.number}
+                  >{`Hint ${String(i + 1)}.`}</span>
                   {hint}
                 </div>
               )}
