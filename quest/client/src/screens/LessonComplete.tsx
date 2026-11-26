@@ -15,7 +15,14 @@ import { Pip } from "../pip/Pip";
 import { SceneBadge } from "../scene/SceneBadge";
 import { PageTitle } from "../shell/PageTitle";
 import { LessonGate } from "./LessonGate";
-import { BOX, CAPTION_ON_SURFACE, EYEBROW, MOMENT, QUIET_LINK } from "./layout";
+import {
+  BOX,
+  CAPTION_ON_SURFACE,
+  EYEBROW,
+  MOMENT,
+  QUIET_LINK,
+  SURFACE,
+} from "./layout";
 import { useActiveLesson, useCourseSnapshot, useOpenLesson } from "./lesson";
 import { celebratable, levelPath, useClaimMilestone } from "./milestones";
 import { PANEL_SURFACE, PanelMain, useOverScene } from "./OverScene";
@@ -198,18 +205,22 @@ export function LessonComplete() {
         )}
       </div>
       {Extra && <Extra lesson={lesson.id} />}
+    </>
+  );
+  const onward = (
+    <>
       {levelPending !== null ? (
         <ButtonLink
           to={levelPath(levelPending)}
           variant="primary"
           size="lg"
           iconEnd="arrow"
-          className="mt-2"
+          className={cx("mt-2", over && WRAPS)}
         >
           {`See the ${LEVEL_NAMES[levelPending]} level complete`}
         </ButtonLink>
       ) : (
-        lesson.next && <NextLesson next={lesson.next} />
+        lesson.next && <NextLesson next={lesson.next} wraps={over} />
       )}
       <Link to="/journey" className={QUIET_LINK}>
         Back to the learning journey
@@ -223,6 +234,7 @@ export function LessonComplete() {
         {head}
         {badge}
         {rest}
+        {onward}
       </main>
     );
   return (
@@ -233,15 +245,32 @@ export function LessonComplete() {
         {badge}
       </div>
       <div className={cx(PANEL_SURFACE, MOMENT_CARD)}>{rest}</div>
+      {/* The way on stays in view as the panel scrolls. */}
+      <div
+        className={cx(SURFACE, MOMENT_CARD, "sticky bottom-0 z-10 px-6 py-4")}
+      >
+        {onward}
+      </div>
     </PanelMain>
   );
 }
+
+/** The way on's button in the panel's foot: a long Lesson title wraps inside it. */
+const WRAPS =
+  "h-auto! min-h-12 max-w-full py-2.5 text-center whitespace-normal!";
 
 /** A card of Lesson complete's panel: centred, as the moment is. */
 const MOMENT_CARD = "grid justify-items-center gap-4 text-center";
 
 /** Opens the next Lesson: it sends lesson.open, as browsing to it would not. */
-function NextLesson({ next }: { next: NonNullable<CompleteLesson["next"]> }) {
+function NextLesson({
+  next,
+  wraps,
+}: {
+  next: NonNullable<CompleteLesson["next"]>;
+  /** In the panel's narrower foot, a long title wraps rather than overflows. */
+  wraps: boolean;
+}) {
   const open = useOpenLesson(next.id);
   return (
     <div className="grid justify-items-center gap-2">
@@ -250,7 +279,7 @@ function NextLesson({ next }: { next: NonNullable<CompleteLesson["next"]> }) {
         variant="primary"
         size="lg"
         iconEnd="arrow"
-        className="mt-2"
+        className={cx("mt-2", wraps && WRAPS)}
         {...open}
       >
         <span>

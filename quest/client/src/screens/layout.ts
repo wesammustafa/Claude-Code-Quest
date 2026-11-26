@@ -47,11 +47,12 @@ export const SCENE_STAGE =
 /**
  * The panel on a Scene screen's stage: two fifths of the page across at
  * most, or at most half its height below the room, scrolling in itself.
- * The stood-down box of a screen's Pip collapses in it: the Scene's Pip
- * stands in the room.
+ * The stood-down box of a screen's Pip collapses in it, and the tail of
+ * the bubble beside it goes: the Scene's Pip stands in the room. Focus
+ * moved inside it stops clear of a sticky foot (WCAG 2.4.11).
  */
 export const SCENE_PANEL =
-  "grid max-h-full w-2/5 max-w-136 content-start gap-5 overflow-y-auto overscroll-contain scene-narrow:max-h-1/2 scene-narrow:w-auto scene-narrow:max-w-none [&>*]:min-w-0 [&_[data-pip-stood-down]]:hidden";
+  "grid max-h-full w-2/5 max-w-136 scroll-pb-28 content-start gap-5 overflow-y-auto overscroll-contain scene-narrow:max-h-1/2 scene-narrow:scroll-pb-48 scene-narrow:w-auto scene-narrow:max-w-none [&>*]:min-w-0 [&_[data-pip-stood-down]]:hidden [&_[data-pip-stood-down]+*_[data-says-bubble]]:before:hidden";
 
 /** An opaque card for words over the Scene: no page text sits on the room itself. */
 export const SURFACE = "rounded-xl border border-line bg-surface shadow-md";

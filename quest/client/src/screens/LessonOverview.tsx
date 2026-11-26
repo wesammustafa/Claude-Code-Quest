@@ -18,7 +18,12 @@ import { FolderQuestion } from "./FolderQuestion";
 import { problemText, workFolderLabel } from "./folderWords";
 import { LessonGate } from "./LessonGate";
 import { COLUMN, EYEBROW, QUIET_LINK } from "./layout";
-import { PANEL_SURFACE, PanelMain, useOverScene } from "./OverScene";
+import {
+  PANEL_FOOT,
+  PANEL_SURFACE,
+  PanelMain,
+  useOverScene,
+} from "./OverScene";
 import {
   summaryOf,
   useActiveLesson,
@@ -335,7 +340,13 @@ export function LessonOverview() {
         </section>
       )}
 
-      <div ref={actions} className="flex flex-wrap items-center gap-2.5">
+      <div
+        ref={actions}
+        className={cx(
+          "flex flex-wrap items-center gap-2.5",
+          over && PANEL_FOOT,
+        )}
+      >
         {Offer && access === "keep-going" && (
           <Offer lesson={lesson.id} offer={access} />
         )}

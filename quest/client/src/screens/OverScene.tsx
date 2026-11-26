@@ -47,6 +47,14 @@ export function PanelMain({
 export const PANEL_SURFACE = cx(SURFACE, "p-6 max-sm:p-5");
 
 /**
+ * The start buttons at the foot of a PANEL_SURFACE panel, kept in view as
+ * the panel scrolls (the prototype's sticky foot): edge to edge across the
+ * panel's padding, on its surface, a rule above.
+ */
+export const PANEL_FOOT =
+  "sticky -bottom-6 z-10 -mx-6 -mb-6 rounded-b-xl border-t border-line bg-surface px-6 py-4 max-sm:-bottom-5 max-sm:-mx-5 max-sm:-mb-5 max-sm:px-5";
+
+/**
  * A moment's main (MOMENT): over the Scene its words sit in one card, the
  * screen's stood-down Pip box collapsed in it.
  */
