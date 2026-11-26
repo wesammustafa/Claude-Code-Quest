@@ -240,8 +240,11 @@
     rises in over --duration-base while a copy of the leaving one fades and
     lifts away over --duration-fast, from wherever it stood. Both end within
     the cap, --duration-slow, which a mount's own move keeps to as well.
+    The rise holds nothing once it ends: a transform held on the screen
+    would make it the box its fixed parts (Pip's bubble, the place tags)
+    are placed in, below the top bar instead of the page's top.
   */
-  --animate-screen-in: rise var(--duration-base) var(--ease-out) both;
+  --animate-screen-in: rise var(--duration-base) var(--ease-out) backwards;
   --animate-screen-out: screen-out var(--duration-fast) var(--ease-out) both;
   /*
     A Scene moment's end state shown in its place, where the moment cannot
