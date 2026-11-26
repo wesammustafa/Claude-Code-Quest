@@ -105,10 +105,13 @@ The script works in any Git repository, with bash and `jq`:
 
 `-p` shows no trust dialog, but a repository's hooks in its settings and its `.mcp.json` servers can still run, so run scripts only in folders you trust. There is no turn limit by default. `--max-budget-usd` caps spend as an estimate, and a run can pass it a little. Claude Code keeps each run's session under `~/.claude/projects/` unless you pass `--no-session-persistence`.
 
+A saved run is a session you can go back to. `claude -r <session id>` (`--resume`) opens it in the terminal, and `claude -p --resume "<session id>" "<follow-up>"` asks it one more thing without starting the review over ([Headless](https://code.claude.com/docs/en/headless#continue-conversations)). The JSON gives you the id in its `session_id` field.
+
 ## Technical detail
 
 | Flag | What it does | Verify | Failure case | Reference |
 |---|---|---|---|---|
+| `--append-system-prompt "<text>"` | adds standing instructions to the end of the default system prompt, so the `-p` prompt can hold the task alone | the run follows them without the prompt repeating them | `--system-prompt` is the other one: it replaces the default prompt instead of adding to it | [CLI reference](https://code.claude.com/docs/en/cli-reference) |
 | `--output-format json` | prints one JSON result | `jq .subtype` | text output can't be checked by a script | [Headless](https://code.claude.com/docs/en/headless) |
 | `--json-schema '<schema>'` | the answer in your shape, under `structured_output` | `jq .structured_output` | no schema: the answer is only text in `result` | [CLI reference](https://code.claude.com/docs/en/cli-reference) |
 | `--permission-mode dontAsk` | never prompts; a call that would ask is denied | `permission_denials` lists each one | left out, the run starts in manual mode and denies every call that needs approval | [Headless](https://code.claude.com/docs/en/headless) |
