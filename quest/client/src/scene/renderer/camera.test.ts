@@ -67,6 +67,8 @@ const STATIONS = stationsWith(["b-1", "b-2"]);
 const PLACES = workshopPlaces(STATIONS);
 const DESKTOP: Viewport = { width: 1440, height: 900 };
 const PHONE: Viewport = { width: 390, height: 844 };
+/** Exactly nine tenths as wide as tall: narrow to the page's CSS (app.css, scene-narrow), so its panel sits below. */
+const SQUARISH: Viewport = { width: 900, height: 1000 };
 
 /** The Journey standing at `at`, with no stage on the page unless a band is given. */
 const standing = (
@@ -272,14 +274,14 @@ describe("where the framings put the places", () => {
 
   // U3 drew him a fifth of the page tall on the overview and up to 44% on
   // Lesson complete, his feet at the page's foot.
-  test("Pip at his Lesson's place stands clear of the panel and modest: in the left 60% on a desktop, above the sheet on a phone", () => {
+  test("Pip at his Lesson's place stands clear of the panel and modest: in the left 60% on a desktop, above the sheet on a phone and on a page exactly nine tenths as wide as tall", () => {
     const PIP_TALL = 1.1;
     for (const place of ["noticeboard", "organizer", "release-desk"] as const)
       for (const [framing, most] of [
         [{ kind: "place", place, panel: true }, 1 / 6],
         [{ kind: "close", place }, 1 / 5],
       ] as const)
-        for (const viewport of [DESKTOP, PHONE]) {
+        for (const viewport of [DESKTOP, PHONE, SQUARISH]) {
           const { onPage } = drawn(framing, viewport);
           const { x, z } = SPOTS[place].stand;
           const feet = onPage(new Vector3(x, 0, z));

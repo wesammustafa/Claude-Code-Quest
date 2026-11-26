@@ -172,12 +172,16 @@ export interface Viewport {
   height: number;
 }
 
-/** A page narrower than this share of its height (a phone held upright) keeps a screen's panel below the Scene, not beside it. */
+/** A page at most this share of its height across (a phone held upright) keeps a screen's panel below the Scene, not beside it. */
 const NARROW = 0.9;
 
-/** Whether a page is narrow: its panel goes below, and the room is framed closer. */
+/**
+ * Whether a page is narrow: its panel goes below, and the room is framed
+ * closer. At exactly NARROW too, as the page's CSS has it (app.css,
+ * scene-narrow's max-aspect-ratio), so the camera and the panel agree.
+ */
 const isNarrow = (viewport: Viewport): boolean =>
-  viewport.width < viewport.height * NARROW;
+  viewport.width <= viewport.height * NARROW;
 
 /** The share of a wide page the Scene keeps on its left beside a panel, and of a narrow one on its top above it. */
 const BESIDE_PANEL = 0.6;
