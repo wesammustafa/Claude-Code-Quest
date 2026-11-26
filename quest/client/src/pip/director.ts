@@ -241,7 +241,7 @@ interface Playing {
   eventType: EventEnvelope["type"] | null;
 }
 
-/** A Reaction waiting for a Celebration's floor to pass. */
+/** A Reaction waiting for a Celebration's floor to pass, or for Pip to walk into view. */
 interface Waiting {
   reaction: Reaction | BrowserReaction;
 }
@@ -370,6 +370,16 @@ const active = (s: DirectorState, now: number): DirectorState => ({
  */
 const unseen = (s: DirectorState) => s.hidden || s.offScreen;
 
+/**
+ * Pip is out of view but on his way into it: the Scene's Pip walking in
+ * from beyond the camera's frame. A Reaction offered now waits for him to
+ * come into view rather than being dropped, so the one a Lesson's Finish
+ * earns plays on the Pip who walks into Lesson complete; if he stops out
+ * of view, it is dropped as any unseen Reaction is.
+ */
+const comingIntoView = (s: DirectorState) =>
+  !s.hidden && s.offScreen && s.travelling;
+
 /** What rests Pip unless he is travelling: the lesson page open, Pip unseen, the connection lost. */
 const restsUnlessTravelling = (s: DirectorState) =>
   s.pagePanelOpen || unseen(s) || s.connectionLost;
@@ -420,13 +430,15 @@ function start(
  * The newest Reaction replaces the one playing, except that a Celebration
  * plays at least 1 s before anything but another Celebration replaces it.
  * What arrives during that second waits, newest only, and plays when the
- * second is up. A Reaction Pip can't be seen playing is dropped.
+ * second is up. A Reaction Pip can't be seen playing is dropped, unless
+ * he is walking into view, when it waits for him there.
  */
 function offer(
   s: DirectorState,
   reaction: Reaction | BrowserReaction,
   now: number,
 ): DirectorState {
+  if (comingIntoView(s)) return { ...s, waiting: { reaction } };
   if (unseen(s)) return s;
   if (reaction.kind !== "celebration" && floorHolds(s, now)) {
     return { ...s, waiting: { reaction } };
@@ -440,9 +452,11 @@ function offer(
  */
 function settle(s: DirectorState, now: number): DirectorState {
   let next = s;
-  // Like a new one, a waiting Reaction is dropped once Pip can't be seen.
-  if (next.waiting !== null && unseen(next)) next = { ...next, waiting: null };
-  if (next.waiting !== null && !floorHolds(next, now)) {
+  // Like a new one, a waiting Reaction is dropped once Pip can't be seen,
+  // and waits while he walks into view.
+  if (next.waiting !== null && unseen(next) && !comingIntoView(next))
+    next = { ...next, waiting: null };
+  if (next.waiting !== null && !unseen(next) && !floorHolds(next, now)) {
     const { reaction } = next.waiting;
     next = { ...next, waiting: null };
     next = offer(next, reaction, now);

@@ -589,6 +589,28 @@ describe("travel", () => {
     expect(director.send({ type: "travel", moving: true }).mode).toBe("idle");
   });
 
+  test("a Reaction earned while the Scene's Pip walks into view plays once he is in view; one he stops out of view for is dropped", () => {
+    // A replay's Finish lands on Lesson complete as Pip walks in from
+    // beyond the camera's frame (scene-pip.spec.ts, finishing b-1).
+    const walksIn = setup({ screen: "complete" });
+    walksIn.director.send({ type: "onScreen", visible: false });
+    walksIn.director.send({ type: "travel", moving: true });
+    expect(walksIn.send(passed).reaction).toBeNull();
+    walksIn.at(2000);
+    expect(
+      walksIn.director.send({ type: "onScreen", visible: true }).reaction,
+    ).toMatchObject({ kind: "success" });
+
+    const stops = setup({ screen: "complete" });
+    stops.director.send({ type: "onScreen", visible: false });
+    stops.director.send({ type: "travel", moving: true });
+    stops.send(passed);
+    stops.director.send({ type: "travel", moving: false });
+    expect(
+      stops.director.send({ type: "onScreen", visible: true }).reaction,
+    ).toBeNull();
+  });
+
   test("reduced motion still means Rest", () => {
     const { director } = setup({ reducedMotion: true });
     expect(director.send({ type: "travel", moving: true }).mode).toBe("rest");
