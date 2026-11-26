@@ -13,6 +13,7 @@ import type { SceneProps, ScreenOnShow } from "../../mount/types";
 import { SceneContext } from "../context";
 import { journeyPathOf } from "../path";
 import { pixelRatioCap } from "../tier";
+import { DeckPortal } from "../workshop/Deck";
 import { pipOnScreen } from "../workshop/goal";
 import { workshopPlaces } from "../workshop/places";
 import { CameraRig } from "./CameraRig";
@@ -68,7 +69,9 @@ function useFollowed<T>(value: T): Followed<T> {
  * changes; stopped, it draws nothing. The screen is followed rather than
  * rendered, so a screen change re-renders nothing in the canvas: the
  * camera rig and the 3D Pip read it. A lost WebGL context hands over to
- * the still images.
+ * the still images. The workshop's parts on the page (Pip's bubble and
+ * toolbar, the place tags, Explore, taps on the room) come with the
+ * renderer, into the place the screen on show keeps for them.
  */
 export function SceneView({
   screen,
@@ -104,7 +107,7 @@ export function SceneView({
     .flatMap((p) => p.cards.map((c) => (c.complete ? "1" : "0")))
     .join("");
   // The same element while nothing it draws changes, so React leaves the canvas alone.
-  return useMemo(
+  const canvas = useMemo(
     () => (
       <Canvas
         data-scene-canvas=""
@@ -161,6 +164,12 @@ export function SceneView({
     ),
     [frameloop, lit, tier, look, theme, pip, shown, stations, places, onReady],
   );
+  return (
+    <>
+      {canvas}
+      <DeckPortal pip={pip} stations={stations} />
+    </>
+  );
 }
 
 /**
@@ -195,6 +204,7 @@ function FollowedPip({
   return (
     <WorkshopPip
       goal={pip.inRoom ? pip.goal : null}
+      show={current}
       inRoom={pip.inRoom}
       tier={tier}
       theme={theme}

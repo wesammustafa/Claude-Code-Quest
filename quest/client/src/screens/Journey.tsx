@@ -28,8 +28,9 @@ import { usePagePanel } from "../pages/PagePanel";
 import { Pip } from "../pip/Pip";
 import { JourneyStage } from "../scene/JourneyStage";
 import { stationForKey, useJourneyPath } from "../scene/path";
+import { useDeckHost } from "../scene/workshop/store";
 import { PageTitle } from "../shell/PageTitle";
-import { EYEBROW, WIDE } from "./layout";
+import { BOX, EYEBROW, ROOM_WIDE, WIDE } from "./layout";
 import { OpenLessonButton } from "./OpenLessonButton";
 import { pathOf, useCourseSnapshot } from "./lesson";
 import {
@@ -134,13 +135,16 @@ const INTRO_END = "Each lesson ends with a check you can also run yourself.";
  * ahead. Below the sm breakpoint Pip sits above the band, which keeps the
  * full width. Until the snapshot has its course, only the heading shows.
  * Browsing here never moves the Learner's place: a node goes to the
- * Lesson's preview, and only the band's Start sends lesson.open.
+ * Lesson's preview, and only the band's Start sends lesson.open. With the
+ * Scene on, every word sits on a surface over the workshop room, the page's
+ * gaps let taps through to the room, and Pip's toolbar comes last.
  */
 export function Journey() {
   const snapshot = useCourseSnapshot();
+  const room = useRoom();
   if (!snapshot) {
     return (
-      <main className={WIDE}>
+      <main className={room ? ROOM_WIDE : WIDE}>
         <JourneyHeader levels={null} />
       </main>
     );
@@ -148,13 +152,19 @@ export function Journey() {
   return <Course snapshot={snapshot} />;
 }
 
+/** The Scene is on: the Journey reads over the workshop room. */
+function useRoom(): boolean {
+  return useMount().scene !== null;
+}
+
 function JourneyHeader({
   levels,
 }: {
   levels: Snapshot["course"]["levels"] | null;
 }) {
+  const room = useRoom();
   return (
-    <header className="grid gap-2">
+    <header className={room ? `${BOX} gap-2 px-5.5 py-5` : "grid gap-2"}>
       <PageTitle
         title="Learning journey"
         className="text-3xl max-sm:text-2xl"
@@ -207,6 +217,8 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
   };
 
   const onPath = useOnPath(level?.id);
+  const room = useRoom();
+  const host = useDeckHost("inline");
   const links = useRef(new Map<LessonId, HTMLAnchorElement>());
   const link = useCallback(
     (lesson: LessonId) => links.current.get(lesson) ?? null,
@@ -253,7 +265,10 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
   // has no labs, stays out of its way: one name for the Learner.
   const hasLabs = levels.some((l) => l.lessons.some((s) => s.optional));
   return (
-    <main className={WIDE}>
+    <main
+      className={room ? ROOM_WIDE : WIDE}
+      {...(room ? { "data-room": "" } : {})}
+    >
       <JourneyHeader levels={levels} />
 
       {/* The tabs sit in one row and their footers in the next; stacked,
@@ -339,7 +354,12 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
             <div
               key={l.id}
               data-level-footer=""
-              className={cx("empty:hidden md:row-start-2", FOOTER_PLACE[i])}
+              className={cx(
+                "empty:hidden md:row-start-2",
+                FOOTER_PLACE[i],
+                room &&
+                  "rounded-lg border border-line bg-surface px-4 shadow-sm [&_summary]:min-h-11",
+              )}
             >
               <Electives level={l.id} />
             </div>
@@ -394,7 +414,8 @@ function Course({ snapshot }: { snapshot: Snapshot }) {
         {labs.length > 0 && <Labs labs={labs} current={current} />}
       </section>
 
-      <NextBand snapshot={snapshot} place={place} />
+      <NextBand snapshot={snapshot} place={place} room={room} />
+      {room && <div ref={host} data-workshop-deck="" />}
     </main>
   );
 }
@@ -493,7 +514,8 @@ function Node({
               },
             })}
         className={cx(
-          "grid size-8.5 place-items-center rounded-full border-2 no-underline",
+          // A 44 px target round the node, which draws smaller.
+          "relative grid size-8.5 place-items-center rounded-full border-2 no-underline after:absolute after:-inset-1.5",
           "transition-[translate,scale,border-color] duration-(--duration-fast) ease-out hover:scale-(--hover-scale)",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
           // In a contrast theme the current node keeps a fill, in the
@@ -573,10 +595,14 @@ function Labs({
 function NextBand({
   snapshot,
   place,
+  room,
 }: {
   snapshot: Snapshot;
   place: JourneyPlace;
+  /** Over the workshop room: its button keeps a 44 px target. */
+  room: boolean;
 }) {
+  const tall = room ? "min-h-11" : undefined;
   const { current, label } = place;
   return (
     <div className="flex items-center gap-3.5 max-sm:flex-col max-sm:items-start max-sm:gap-2">
@@ -596,11 +622,16 @@ function NextBand({
                 to={pathOf(snapshot.lesson)}
                 variant="primary"
                 iconEnd="arrow"
+                className={tall}
               >
                 {label}
               </ButtonLink>
             ) : (
-              <OpenLessonButton variant="primary" id={current.id}>
+              <OpenLessonButton
+                variant="primary"
+                id={current.id}
+                className={tall}
+              >
                 {label}
               </OpenLessonButton>
             )}
@@ -608,7 +639,12 @@ function NextBand({
         ) : (
           <>
             <b className="text-lg">Every lesson is complete</b>
-            <ButtonLink to="/progress" variant="primary" iconEnd="arrow">
+            <ButtonLink
+              to="/progress"
+              variant="primary"
+              iconEnd="arrow"
+              className={tall}
+            >
               See your progress
             </ButtonLink>
           </>

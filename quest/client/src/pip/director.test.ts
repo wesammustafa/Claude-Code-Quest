@@ -623,6 +623,28 @@ describe("an asleep start", () => {
       setup({ reducedMotion: true, asleep: true }).director.model().mode,
     ).toBe("rest");
   });
+
+  test("a doze, once the page learns the Learner is back, stops the page load's Greeting and puts him to sleep; the first activity wakes him to a full Greeting", () => {
+    const { director, at } = setup({ screen: "welcome" });
+    expect(director.model().reaction).toMatchObject({ kind: "greeting" });
+    at(200);
+    expect(director.send({ type: "doze" })).toMatchObject({
+      mode: "sleep",
+      reaction: null,
+    });
+    at(400);
+    expect(director.send({ type: "activity" })).toMatchObject({
+      mode: "idle",
+      reaction: { kind: "greeting", intensity: 1 },
+    });
+  });
+
+  test("a doze after the Learner has stirred keeps him awake", () => {
+    const { director, at } = setup({ screen: "map" });
+    director.send({ type: "activity" });
+    at(200);
+    expect(director.send({ type: "doze" }).mode).toBe("idle");
+  });
 });
 
 const targets = {

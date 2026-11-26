@@ -165,6 +165,7 @@ export function JourneyStage({ lessons, home, link }: Props): ReactNode {
           <div className="absolute top-2 right-2">
             <Button
               size="sm"
+              className="max-md:min-h-11"
               aria-pressed={whole}
               onClick={() => {
                 path.setWhole(!path.whole());

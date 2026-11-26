@@ -5,15 +5,17 @@ import { useOpenLesson } from "./lesson";
 export function OpenLessonButton({
   id,
   variant,
+  className,
   children,
 }: {
   id: string;
   variant?: ButtonVariant;
+  className?: string | undefined;
   children: string;
 }) {
   const open = useOpenLesson(id);
   return (
-    <Button variant={variant} iconEnd="arrow" {...open}>
+    <Button variant={variant} iconEnd="arrow" className={className} {...open}>
       {children}
     </Button>
   );

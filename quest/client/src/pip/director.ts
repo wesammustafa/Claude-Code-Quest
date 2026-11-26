@@ -170,6 +170,13 @@ export type DirectorInput =
   /** The Learner pointed, typed or scrolled. */
   | { type: "activity" }
   /**
+   * The page learned, from its first snapshot, that the Learner has been
+   * here before: Pip dozes as an asleep start does, until the first
+   * activity, unless the Learner has stirred since the page loaded. A
+   * Greeting playing for the page load stops, and plays once he wakes.
+   */
+  | { type: "doze" }
+  /**
    * The Learner said hello to Pip (a tap on him, or the Say hello button):
    * activity that plays a Greeting.
    */
@@ -265,8 +272,10 @@ export interface DirectorState {
   checking: boolean;
   /** The last event or input, for the 5-minute sleep. */
   lastActivityAt: number;
-  /** The page started with Pip asleep (DirectorStart.asleep) and nothing has woken him yet. */
+  /** The page started with Pip asleep (DirectorStart.asleep, or a doze) and nothing has woken him yet. */
   dozing: boolean;
+  /** The Learner has pointed, typed or scrolled since the page loaded. */
+  stirred: boolean;
   /** Pip is travelling across the Scene. */
   travelling: boolean;
   /** Greeting has played (or is waiting on the Celebration floor) this page load. */
@@ -307,6 +316,7 @@ export function initialDirectorState(
     checking: false,
     lastActivityAt: now,
     dozing: start.asleep ?? false,
+    stirred: false,
     travelling: false,
     greeted: false,
     playing: null,
@@ -575,8 +585,25 @@ export function directorReduce(
       next = { ...s, connectionLost: input.lost };
       break;
     case "activity":
-      next = active(s, now);
+      next = { ...active(s, now), stirred: true };
       break;
+    case "doze": {
+      if (s.stirred || s.dozing) {
+        next = s;
+        break;
+      }
+      // The Greeting he wakes to plays in full, not as a nod of this one.
+      const nodWindow = { ...s.nodWindow };
+      if (s.playing?.kind === "greeting") delete nodWindow.greeting;
+      next = {
+        ...s,
+        dozing: true,
+        greeted: false,
+        playing: s.playing?.kind === "greeting" ? null : s.playing,
+        nodWindow,
+      };
+      break;
+    }
     case "greet": {
       const awake = active(s, now);
       // A greet plays a full Greeting at most once per nod window; within it, it only counts as activity.

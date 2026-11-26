@@ -1,17 +1,25 @@
 import type { PlayingLesson, Snapshot, StepDownLesson } from "@quest/contract";
-import { Button } from "../components/Button";
+import { Button, ButtonLink } from "../components/Button";
 import { Icon } from "../components/Icon";
 import { InlineText } from "../components/InlineText";
 import { ProgressBar } from "../components/ProgressBar";
 import { lessonEyebrow, seeLevels } from "../course/labels";
 import { useConnection } from "../live/LiveProvider";
 import { useActionProps } from "../live/useAction";
-import { useSlots } from "../mount/context";
+import { useMount, useSlots } from "../mount/context";
 import { Link, useQuestNavigate } from "../mount/links";
 import { Pip } from "../pip/Pip";
+import { usePipInput } from "../pip/PipStage";
+import { usePipStandsDown } from "../scene/context";
+import { useDeckHost, useWorkshop } from "../scene/workshop/store";
 import { PageTitle } from "../shell/PageTitle";
 import { BOX, EYEBROW, QUIET_LINK } from "./layout";
-import { summaryOf, useCourseSnapshot } from "./lesson";
+import {
+  hasProgress,
+  lastFinished,
+  summaryOf,
+  useCourseSnapshot,
+} from "./lesson";
 
 /** The words while the first snapshot is awaited: the host asks git first. */
 export const WAITING_LINE = "Asking git about this folder…";
@@ -23,17 +31,19 @@ const HERO =
  * Welcome on a first run, Resume on a return: Pip large and centred, one
  * action. A welcomed copy not mid-Lesson offers Continue to the course's
  * next Lesson instead of Start. The words state no Claude Code fact; the
- * resume card's and the Continue title are the snapshot's.
+ * resume card's and the Continue title are the snapshot's. With the Scene
+ * on, the same words and actions sit on one card over the workshop room,
+ * clear of Pip (RoomWelcome).
  */
 export function Welcome() {
+  const room = useMount().scene !== null;
+  return room ? <RoomWelcome /> : <HeroWelcome />;
+}
+
+function HeroWelcome() {
   const snapshot = useCourseSnapshot();
   const waiting = useConnection() === "waiting";
-  const lesson = snapshot?.lesson;
-  const resuming =
-    snapshot?.learner.welcomed === true &&
-    (lesson?.phase === "playing" || lesson?.phase === "step-down")
-      ? lesson
-      : null;
+  const resuming = resumingOf(snapshot);
   const name = snapshot?.learner.name ?? null;
   const waitingLine = useSlots().copy?.waitingLine ?? WAITING_LINE;
 
@@ -62,9 +72,12 @@ export function Welcome() {
   );
 }
 
-function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
+/**
+ * The course's next Lesson and the action that opens it: Start on a first
+ * run, which finishes the welcome; Continue for a welcomed Learner.
+ */
+function useFirstLesson(snapshot: Snapshot | null) {
   const navigate = useQuestNavigate();
-  const welcomeLine = useSlots().copy?.welcomeLine;
   const first = snapshot?.course.next ?? null;
   const welcomed = snapshot?.learner.welcomed === true;
   // The course's own count, once the snapshot says.
@@ -86,6 +99,39 @@ function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
     { type: "lesson.open", lesson: first ?? "" },
     open,
   );
+  return { first, welcomed, see, title, finish, reopen };
+}
+
+/** The action that opens the course's next Lesson: Start the first lesson, or Continue with its title. */
+function FirstLessonButton({
+  lesson,
+}: {
+  lesson: ReturnType<typeof useFirstLesson>;
+}) {
+  const { first, welcomed, title, finish, reopen } = lesson;
+  if (first === null) return null;
+  return welcomed ? (
+    <Button variant="primary" size="lg" iconEnd="arrow" {...reopen}>
+      {title === undefined ? (
+        "Continue"
+      ) : (
+        <>
+          {"Continue: "}
+          <InlineText text={title} />
+        </>
+      )}
+    </Button>
+  ) : (
+    <Button variant="primary" size="lg" iconEnd="arrow" {...finish}>
+      Start the first lesson
+    </Button>
+  );
+}
+
+function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
+  const welcomeLine = useSlots().copy?.welcomeLine;
+  const lesson = useFirstLesson(snapshot);
+  const { welcomed, see } = lesson;
   return (
     <>
       <PageTitle
@@ -119,23 +165,7 @@ function FirstRun({ snapshot }: { snapshot: Snapshot | null }) {
           </span>
         </li>
       </ul>
-      {first !== null &&
-        (welcomed ? (
-          <Button variant="primary" size="lg" iconEnd="arrow" {...reopen}>
-            {title === undefined ? (
-              "Continue"
-            ) : (
-              <>
-                {"Continue: "}
-                <InlineText text={title} />
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button variant="primary" size="lg" iconEnd="arrow" {...finish}>
-            Start the first lesson
-          </Button>
-        ))}
+      <FirstLessonButton lesson={lesson} />
       <Link to="/journey" className={QUIET_LINK}>
         {welcomed ? see : `${see} first`}
       </Link>
@@ -150,6 +180,17 @@ function placeOf(lesson: PlayingLesson | StepDownLesson): [number, number] {
   return [at + 1, lesson.steps.length];
 }
 
+/** Continue the Lesson the Learner is in, at its step. */
+function useResume(lesson: PlayingLesson | StepDownLesson) {
+  const navigate = useQuestNavigate();
+  const go = () => void navigate(`/lesson/${lesson.id}/step`);
+  return useActionProps(
+    "lesson.open",
+    { type: "lesson.open", lesson: lesson.id },
+    go,
+  );
+}
+
 function Resume({
   snapshot,
   lesson,
@@ -157,15 +198,9 @@ function Resume({
   snapshot: Snapshot;
   lesson: PlayingLesson | StepDownLesson;
 }) {
-  const navigate = useQuestNavigate();
   const summary = summaryOf(snapshot, lesson.id);
   const [at, of] = placeOf(lesson);
-  const go = () => void navigate(`/lesson/${lesson.id}/step`);
-  const resume = useActionProps(
-    "lesson.open",
-    { type: "lesson.open", lesson: lesson.id },
-    go,
-  );
+  const resume = useResume(lesson);
   return (
     <>
       <PageTitle title="Welcome back" className="text-display max-sm:text-3xl">
@@ -197,5 +232,171 @@ function Resume({
         </Button>
       </section>
     </>
+  );
+}
+
+/** The Learner mid-Lesson, or null: a welcomed copy in a step or a Step-down. */
+function resumingOf(
+  snapshot: Snapshot | null,
+): PlayingLesson | StepDownLesson | null {
+  const lesson = snapshot?.lesson;
+  return snapshot?.learner.welcomed === true &&
+    (lesson?.phase === "playing" || lesson?.phase === "step-down")
+    ? lesson
+    : null;
+}
+
+/**
+ * Welcome over the workshop room (the warm workshop): one card, at the
+ * foot of the room's left side on a wide screen, where it hides neither
+ * the Levels' places nor Pip, and at the top of a narrower one, a phone's
+ * full width, so Pip stands clear in the room below it,
+ * with Welcome's own words and actions; Say hello, which turns Pip to the
+ * Learner; and, for a Learner who has been here before, Welcome back and a
+ * way into the last Lesson they finished, where the host shows their work.
+ * Under the card, the place where the renderer draws the room's tags and
+ * Pip's toolbar. The card is the page's surface, so no word sits on the
+ * room or its still.
+ */
+function RoomWelcome() {
+  const snapshot = useCourseSnapshot();
+  const waiting = useConnection() === "waiting";
+  const waitingLine = useSlots().copy?.waitingLine ?? WAITING_LINE;
+  const welcomeLine = useSlots().copy?.welcomeLine;
+  const name = snapshot?.learner.name ?? null;
+  const resuming = resumingOf(snapshot);
+  const back = snapshot !== null && hasProgress(snapshot);
+  const finished = snapshot === null ? null : lastFinished(snapshot);
+  const lesson = useFirstLesson(snapshot);
+  const host = useDeckHost("room");
+  // The 3D Pip stands in the room once he holds Pip; until then, and on
+  // the still image, the card shows the screen's own.
+  const inRoom = usePipStandsDown();
+  return (
+    <main
+      data-room=""
+      className="min-h-dvh p-4 pt-16 pb-32 md:p-6 md:pb-28 lg:flex lg:flex-col lg:justify-end lg:pb-6"
+    >
+      <section
+        aria-label="Welcome"
+        data-welcome-card=""
+        className={`${BOX} relative z-10 w-full max-w-sheet gap-3.5 p-5.5 shadow-md lg:max-w-96 xl:max-w-sheet`}
+      >
+        <div className="flex items-start gap-3">
+          <div className="grid min-w-0 flex-1 gap-1.5">
+            <span className={EYEBROW}>
+              {name === null ? "Welcome" : `Hi ${name}!`}
+            </span>
+            <PageTitle
+              title={back ? "Welcome back" : "Welcome"}
+              className="text-3xl max-sm:text-2xl"
+            >
+              {back ? "Welcome back." : "Learn Claude Code by using it."}
+            </PageTitle>
+          </div>
+          {!inRoom && <Pip size="beside" />}
+        </div>
+        {resuming !== null && snapshot !== null ? (
+          <RoomResume snapshot={snapshot} lesson={resuming} />
+        ) : (
+          // A phone keeps the card short, so the room shows below it.
+          <p className="text-muted max-sm:hidden">
+            Every lesson happens in a real project, your Practice copy, with
+            this page beside your terminal.
+          </p>
+        )}
+        {welcomeLine !== undefined && (
+          <p className="text-sm text-muted" data-welcome-line="">
+            {welcomeLine}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {resuming === null && <FirstLessonButton lesson={lesson} />}
+          <SayHello />
+          {back && finished !== null && (
+            <ButtonLink
+              to={`/lesson/${finished.id}`}
+              className="min-h-11"
+              data-your-work=""
+            >
+              Open your work
+            </ButtonLink>
+          )}
+        </div>
+        <Link to="/journey" className={`${QUIET_LINK} justify-self-start`}>
+          {lesson.welcomed || back ? lesson.see : `${lesson.see} first`}
+        </Link>
+        {waiting && (
+          <p
+            className="hidden text-sm text-muted [[data-connection=waiting]_&]:block"
+            data-waiting-line=""
+          >
+            {waitingLine}
+          </p>
+        )}
+      </section>
+      <div ref={host} data-workshop-deck="" />
+    </main>
+  );
+}
+
+/** Where the Learner left off, on the room's card: the Lesson, its step, and Continue. */
+function RoomResume({
+  snapshot,
+  lesson,
+}: {
+  snapshot: Snapshot;
+  lesson: PlayingLesson | StepDownLesson;
+}) {
+  const summary = summaryOf(snapshot, lesson.id);
+  const [at, of] = placeOf(lesson);
+  const resume = useResume(lesson);
+  return (
+    <section
+      aria-label="Where you left off"
+      className="grid justify-items-start gap-2 rounded-md bg-surface-2 p-4"
+    >
+      <span className={EYEBROW}>
+        {lessonEyebrow(
+          lesson.level,
+          summary?.number ?? null,
+          lesson.capstone,
+          summary?.optional ?? false,
+        )}
+      </span>
+      <h2 className="text-lg">
+        <InlineText text={lesson.title} />
+      </h2>
+      {of > 0 && (
+        <>
+          <p className="text-sm text-muted">{`Step ${String(at)} of ${String(of)}`}</p>
+          <ProgressBar value={at - 1} max={of} label="Steps done" />
+        </>
+      )}
+      <Button variant="primary" size="lg" iconEnd="arrow" {...resume}>
+        Continue
+      </Button>
+    </section>
+  );
+}
+
+/**
+ * Say hello: Pip turns to the Learner and greets them, in the room once
+ * the 3D Pip stands there, else as the screen's own Pip.
+ */
+function SayHello() {
+  const workshop = useWorkshop();
+  const inRoom = usePipStandsDown();
+  const send = usePipInput();
+  return (
+    <Button
+      className="min-h-11"
+      onClick={() => {
+        if (inRoom && workshop.ready()) workshop.send({ type: "greet" });
+        else send({ type: "greet" });
+      }}
+    >
+      Say hello
+    </Button>
   );
 }

@@ -60,7 +60,7 @@ describe("the workshop's state", () => {
 
   test("hands each command to the renderer while it listens, drops it when none does, and tells only of a new status", () => {
     const workshop = createWorkshop();
-    const go: PipCommand = { type: "goTo", to: { place: "noticeboard" } };
+    const go: PipCommand = { type: "goTo", to: { spot: "noticeboard" } };
     workshop.send(go);
     const heard = vi.fn();
     const stop = workshop.onCommand(heard);
