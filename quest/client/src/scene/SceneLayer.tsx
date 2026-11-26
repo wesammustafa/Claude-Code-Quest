@@ -27,6 +27,7 @@ import { SceneContext } from "./context";
 import { lessonOfScreen } from "./path";
 import { useSceneTier } from "./tier";
 import { cardPinsOf } from "./workshop/pin";
+import { usePipInView } from "./workshop/seen";
 
 /** The screens the Scene stops on: a Lesson's step, a Step-down included (09 9.2). */
 export function sceneStops(screen: PipScreen): boolean {
@@ -73,6 +74,7 @@ export function SceneLayer({ scene, screen, onShown }: Props): ReactNode {
   // Where the Scene draws, or will once it loads, it stages a first
   // completion: the card's pin, then Pip's Celebration.
   useStagesCompletion(tier !== "still" && !lost && loaded.state !== "failed");
+  usePipInView();
 
   const wanted = tier !== "still" && !stopped && !lost;
   const started = useRef(false);
