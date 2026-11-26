@@ -19,10 +19,10 @@ import { problemText, workFolderLabel } from "./folderWords";
 import { LessonGate } from "./LessonGate";
 import { usePipStandsDown } from "../scene/context";
 import { useDeckHost } from "../scene/workshop/store";
-import { COLUMN, EYEBROW, QUIET_LINK } from "./layout";
+import { COLUMN, EYEBROW, QUIET_LINK, SURFACE } from "./layout";
 import {
   PANEL_FOOT,
-  PANEL_SURFACE,
+  PANEL_PADDING,
   PanelMain,
   useOverScene,
 } from "./OverScene";
@@ -182,8 +182,46 @@ export function LessonOverview() {
     </p>
   ) : null;
 
+  const foot = (
+    <div
+      ref={actions}
+      className={cx("flex flex-wrap items-center gap-2.5", over && PANEL_FOOT)}
+    >
+      {Offer && access === "keep-going" && (
+        <Offer lesson={lesson.id} offer={access} />
+      )}
+      {/* No start while the folder question waits for its answer. */}
+      {access !== "keep-going" && lesson.start?.planned && (
+        <Button
+          variant="primary"
+          size="lg"
+          iconEnd="arrow"
+          data-start=""
+          {...start}
+        >
+          {lesson.resumable ? "Resume" : done ? "Practise again" : "Start"}
+        </Button>
+      )}
+      {access !== "keep-going" && lesson.start?.less && (
+        <Button size="lg" {...startLess}>
+          Start with less help
+        </Button>
+      )}
+      {access !== "keep-going" && lesson.resumable && (
+        <StartOver lesson={lesson.id} inert={inert} />
+      )}
+      <span className="grow" />
+      <ReadLesson />
+    </div>
+  );
+
   return (
-    <PanelMain column={COLUMN} panel={PANEL_SURFACE}>
+    <PanelMain
+      column={COLUMN}
+      frame={SURFACE}
+      panel={PANEL_PADDING}
+      foot={foot}
+    >
       {over && (
         <Link to="/journey" className={cx(QUIET_LINK, "justify-self-start")}>
           Back to the learning journey
@@ -355,40 +393,6 @@ export function LessonOverview() {
           {Done && <Done lesson={lesson.id} />}
         </section>
       )}
-
-      <div
-        ref={actions}
-        className={cx(
-          "flex flex-wrap items-center gap-2.5",
-          over && PANEL_FOOT,
-        )}
-      >
-        {Offer && access === "keep-going" && (
-          <Offer lesson={lesson.id} offer={access} />
-        )}
-        {/* No start while the folder question waits for its answer. */}
-        {access !== "keep-going" && lesson.start?.planned && (
-          <Button
-            variant="primary"
-            size="lg"
-            iconEnd="arrow"
-            data-start=""
-            {...start}
-          >
-            {lesson.resumable ? "Resume" : done ? "Practise again" : "Start"}
-          </Button>
-        )}
-        {access !== "keep-going" && lesson.start?.less && (
-          <Button size="lg" {...startLess}>
-            Start with less help
-          </Button>
-        )}
-        {access !== "keep-going" && lesson.resumable && (
-          <StartOver lesson={lesson.id} inert={inert} />
-        )}
-        <span className="grow" />
-        <ReadLesson />
-      </div>
     </PanelMain>
   );
 }

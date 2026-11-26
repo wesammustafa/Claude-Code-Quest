@@ -51,13 +51,20 @@ export const SCENE_STAGE =
 /**
  * The panel on a Scene screen's stage: two fifths of the page across at
  * most, or at most five eighths of its height below the room (the
- * prototype's phone sheet), scrolling in itself.
- * The stood-down box of a screen's Pip collapses in it, and the tail of
- * the bubble beside it goes: the Scene's Pip stands in the room. Focus
- * moved inside it stops clear of a sticky foot (WCAG 2.4.11).
+ * prototype's phone sheet). It holds the part that scrolls
+ * (SCENE_PANEL_BODY) and, below it, any foot kept in view, which never
+ * lies over the words the body scrolls.
  */
 export const SCENE_PANEL =
-  "grid max-h-full w-2/5 max-w-136 scroll-pb-28 content-start gap-5 overflow-y-auto overscroll-contain scene-narrow:max-h-5/8 scene-narrow:scroll-pb-48 scene-narrow:w-auto scene-narrow:max-w-none [&>*]:min-w-0 [&_[data-pip-stood-down]]:hidden [&_[data-pip-stood-down]+*_[data-says-bubble]]:before:hidden";
+  "flex max-h-full w-2/5 max-w-136 flex-col scene-narrow:max-h-5/8 scene-narrow:w-auto scene-narrow:max-w-none";
+
+/**
+ * The part of a Scene screen's panel that scrolls in itself. The
+ * stood-down box of a screen's Pip collapses in it, and the tail of the
+ * bubble beside it goes: the Scene's Pip stands in the room.
+ */
+export const SCENE_PANEL_BODY =
+  "grid min-h-0 content-start gap-5 overflow-y-auto overscroll-contain [&>*]:min-w-0 [&_[data-pip-stood-down]]:hidden [&_[data-pip-stood-down]+*_[data-says-bubble]]:before:hidden";
 
 /** An opaque card for words over the Scene: no page text sits on the room itself. */
 export const SURFACE = "rounded-xl border border-line bg-surface shadow-md";
