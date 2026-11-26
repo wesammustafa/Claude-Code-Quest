@@ -52,8 +52,12 @@ export const SPOTS: Readonly<Record<SpotId, Spot>> = {
   armchair: { stand: { x: -5.0, z: -1.05 }, look: [-6.3, 0.6, -1.05] },
 };
 
-/** Where Pip stands when the room first shows. */
-export const PIP_START: FloorPoint = { x: 0.4, z: 3.0 };
+/**
+ * Where Pip stands when the room first shows: on the rug in front of the
+ * bench, where Welcome's whole room shows him clear of its card and Pip's
+ * toolbar, awake or asleep, as the prototype's welcome does.
+ */
+export const PIP_START: FloorPoint = { x: 0.4, z: 1.6 };
 
 /** How far round Pip's feet reach, which keeps him that far off the furniture. */
 export const PIP_RADIUS = 0.34;

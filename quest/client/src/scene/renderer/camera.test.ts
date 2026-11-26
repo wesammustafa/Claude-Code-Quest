@@ -6,7 +6,7 @@ import { PerspectiveCamera, Vector3 } from "three";
 import { describe, expect, test } from "vitest";
 import type { SceneStation, ScreenOnShow } from "../../mount/types";
 import type { Band } from "../path";
-import { SPOTS } from "../workshop/layout";
+import { PIP_START, SPOTS } from "../workshop/layout";
 import { workshopPlaces } from "../workshop/places";
 import {
   aim,
@@ -114,10 +114,12 @@ function drawn(framing: Framing, viewport: Viewport) {
 }
 
 describe("the framing each screen shows", () => {
-  test("Welcome, Progress, the added screens and the Level's and course's ends show the whole room", () => {
+  test("Welcome shows the whole room under its card; Progress, the added screens and the Level's and course's ends show the whole room", () => {
+    for (const screen of [at("/", "welcome"), at("/resume", "welcome")])
+      expect(framingFor(screen, standing("b-4"), PLACES), screen.path).toEqual({
+        kind: "welcome",
+      });
     for (const screen of [
-      at("/", "welcome"),
-      at("/resume", "welcome"),
       at("/progress", "progress"),
       at("/settings", "other"),
       at("/level/beginner/complete", "levelComplete"),
@@ -221,6 +223,27 @@ describe("where the framings put the places", () => {
     expect(view.pip).toBeNull();
   });
 
+  test("Welcome shows Pip at his start clear on the floor, above Pip's toolbar at the page's foot; on a phone below the card's top third, with the board in view and the other places ahead, off to the side, where their tags wait at the page's edge", () => {
+    const PIP_TALL = 1.1;
+    for (const viewport of [DESKTOP, PHONE]) {
+      const { onPage, anchors } = drawn({ kind: "welcome" }, viewport);
+      const feet = onPage(new Vector3(PIP_START.x, 0, PIP_START.z));
+      const head = onPage(new Vector3(PIP_START.x, PIP_TALL, PIP_START.z));
+      const what = String(viewport.width);
+      // The toolbar takes about 120 px at a phone's foot (two rows), 70 px at a desktop's.
+      expect(feet.y, what).toBeLessThan(
+        viewport.height - (viewport === PHONE ? 120 : 70) - 40,
+      );
+      if (viewport === PHONE)
+        expect(head.y, what).toBeGreaterThan(viewport.height / 3);
+      expect(feet.x, what).toBeGreaterThan(viewport.width * 0.3);
+      expect(feet.x, what).toBeLessThan(viewport.width * 0.7);
+      expect(anchors.noticeboard?.visible, what).toBe(true);
+      for (const place of ["organizer", "release-desk"] as const)
+        expect(anchors[place]?.ahead, `${what} ${place}`).toBe(true);
+    }
+  });
+
   test("a Lesson's overview on a desktop keeps its place's cards in the left 60%, leaving the panel's side free", () => {
     for (const place of ["noticeboard", "organizer", "release-desk"] as const) {
       const { view } = drawn({ kind: "place", place, panel: true }, DESKTOP);
@@ -238,7 +261,7 @@ describe("where the framings put the places", () => {
     }
   });
 
-  test("on a phone the overview keeps its place's cards in the top half, over the panel", () => {
+  test("on a phone the overview keeps its place's cards in the top three eighths, over the panel", () => {
     const { view } = drawn(
       { kind: "place", place: "noticeboard", panel: true },
       PHONE,
@@ -246,7 +269,7 @@ describe("where the framings put the places", () => {
     const beginner = view.points.filter((p) => p.lesson.startsWith("b-"));
     expect(beginner).toHaveLength(7);
     for (const card of beginner) {
-      expect(card.y + card.r, card.lesson).toBeLessThan(PHONE.height / 2);
+      expect(card.y + card.r, card.lesson).toBeLessThan((PHONE.height * 3) / 8);
       expect(card.x - card.r, card.lesson).toBeGreaterThanOrEqual(0);
       expect(card.x + card.r, card.lesson).toBeLessThanOrEqual(PHONE.width);
     }
@@ -290,7 +313,7 @@ describe("where the framings put the places", () => {
           const free =
             viewport === DESKTOP
               ? { width: viewport.width * 0.6, height: viewport.height }
-              : { width: viewport.width, height: viewport.height / 2 };
+              : { width: viewport.width, height: (viewport.height * 3) / 8 };
           for (const p of [feet, head]) {
             expect(p.x, what).toBeGreaterThan(0);
             expect(p.x, what).toBeLessThan(free.width);

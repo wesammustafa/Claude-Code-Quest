@@ -21,7 +21,11 @@ test("each show sends him to its goal, a show with the goal the last one had too
       useScreenGoal(walker, goal, show, invalidate),
     { initialProps: { goal: "noticeboard", show: first } },
   );
-  expect(walker.goTo).toHaveBeenLastCalledWith({ spot: "noticeboard" });
+  expect(walker.goTo).toHaveBeenLastCalledWith(
+    { spot: "noticeboard" },
+    "auto",
+    false,
+  );
   const sent = walker.goTo.mock.calls.length;
   // The same show again sends nothing: he may be where a command took him.
   rerender({ goal: "noticeboard", show: first });
@@ -29,7 +33,11 @@ test("each show sends him to its goal, a show with the goal the last one had too
   // Back on a screen with that goal, after a command took him to the bench.
   rerender({ goal: "noticeboard", show: { screen: "map" } });
   expect(walker.goTo).toHaveBeenCalledTimes(sent + 1);
-  expect(walker.goTo).toHaveBeenLastCalledWith({ spot: "noticeboard" });
+  expect(walker.goTo).toHaveBeenLastCalledWith(
+    { spot: "noticeboard" },
+    "auto",
+    false,
+  );
 });
 
 test("a show with no goal, or while Explore steers him, sends him nowhere", () => {

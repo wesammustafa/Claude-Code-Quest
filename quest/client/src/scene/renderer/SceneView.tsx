@@ -206,6 +206,9 @@ function FollowedPip({
       goal={pip.inRoom ? pip.goal : null}
       show={current}
       inRoom={pip.inRoom}
+      // On a Lesson's overview he says its line over his head, turned to
+      // the Learner, as the prototype's overview shows him.
+      facesLearner={current.screen === "intro"}
       tier={tier}
       theme={theme}
       shadow={shadow}

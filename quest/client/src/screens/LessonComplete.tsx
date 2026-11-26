@@ -245,9 +245,16 @@ export function LessonComplete() {
         {badge}
       </div>
       <div className={cx(PANEL_SURFACE, MOMENT_CARD)}>{rest}</div>
-      {/* The way on stays in view as the panel scrolls. */}
+      {/* The way on stays in view as the panel scrolls, but on a narrow
+          page, where it would hide the Badge and the Check, it follows
+          them. Set only by variants: the app's stylesheet, after the
+          client's, has a plain sticky of its own. */}
       <div
-        className={cx(SURFACE, MOMENT_CARD, "sticky bottom-0 z-10 px-6 py-4")}
+        className={cx(
+          SURFACE,
+          MOMENT_CARD,
+          "z-10 px-6 py-4 not-scene-narrow:sticky not-scene-narrow:bottom-0",
+        )}
       >
         {onward}
       </div>

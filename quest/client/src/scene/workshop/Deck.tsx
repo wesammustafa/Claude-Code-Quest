@@ -32,6 +32,8 @@ import type { SceneStation } from "../../mount/types";
 import { Link, useQuestNavigate } from "../../mount/links";
 import { summaryOf, useCourseSnapshot } from "../../screens/lesson";
 import { EYEBROW } from "../../screens/layout";
+import { usePipInput } from "../../pip/PipStage";
+import { usePipStandsDown } from "../context";
 import { useJourneyPath } from "../path";
 import {
   OTHER_SPOTS,
@@ -69,8 +71,10 @@ const SURFACE = `${PANEL} border-line shadow-md`;
 const TOOL = "min-h-11";
 
 export interface WorkshopDeckProps {
-  /** The screen's host: the whole room (Welcome), or Pip's buttons alone in its flow (the Journey). */
+  /** The screen's host: the whole room (Welcome), Pip's buttons alone in its flow (the Journey), or his bubble alone (a Lesson's overview). */
   kind: DeckHost["kind"];
+  /** What Pip says while nothing else is said: the bubble-only host's line. */
+  line?: string | null;
   /** The 3D Pip stands in the room, so his bubble, his buttons and Explore come too. */
   pip: boolean;
   stations: readonly SceneStation[];
@@ -93,7 +97,12 @@ export function DeckPortal({
   );
   if (host === null) return null;
   return createPortal(
-    <WorkshopDeck kind={host.kind} pip={pip} stations={stations} />,
+    <WorkshopDeck
+      kind={host.kind}
+      line={host.kind === "pip" ? host.line : null}
+      pip={pip}
+      stations={stations}
+    />,
     host.element,
   );
 }
@@ -107,6 +116,7 @@ interface Said {
 /** The workshop's parts on the page, once the renderer draws the room. */
 export function WorkshopDeck({
   kind,
+  line = null,
   pip,
   stations,
 }: WorkshopDeckProps): ReactNode {
@@ -130,10 +140,15 @@ export function WorkshopDeck({
   /** Explore left by Done or Esc: focus goes back to Explore with Pip. */
   const [leftExplore, setLeftExplore] = useState(false);
 
+  // The 3D Pip greets in the room; until he holds Pip, or where his model
+  // failed, the screen's own Pip does.
+  const standsDown = usePipStandsDown();
+  const sendPip = usePipInput();
   const hello = useCallback(() => {
-    workshop.send({ type: "greet" });
-  }, [workshop]);
-  // Every greet says hello in his bubble: a tap on him, the toolbar's, the card's.
+    if (standsDown) workshop.send({ type: "greet" });
+    else sendPip({ type: "greet" });
+  }, [workshop, standsDown, sendPip]);
+  // Every greet in the room says hello in his bubble: a tap on him, the toolbar's.
   useEffect(
     () =>
       workshop.onCommand((command) => {
@@ -201,17 +216,19 @@ export function WorkshopDeck({
     },
     [workshop, path, navigate, pip, hello, sendTo, kind, exploring],
   );
-  useRoomTaps(onTap, ready);
+  // Pip's bubble alone takes no taps: the screen it rides on keeps them.
+  useRoomTaps(onTap, ready && kind !== "pip");
 
   if (!ready) return null;
   return (
     <>
-      {pip && <PipBubble said={said} onCleared={setSaid} />}
+      {pip && <PipBubble said={said} line={line} onCleared={setSaid} />}
       {pip && <LiveLine />}
       {kind === "room" && snapshot !== null && (
         <PlaceTags places={places} next={next} quiet={exploring} />
       )}
       {pip &&
+        kind !== "pip" &&
         (exploring ? (
           <ExploreBar
             onDone={() => {
@@ -285,10 +302,13 @@ function useRoomTaps(onTap: (x: number, y: number) => void, on: boolean) {
  * Places an element at an anchor as the renderer draws it, frame by frame,
  * with no React render: its `transform`, and `data-anchored` (shown or
  * hidden) for its styles. `fit` may move the point, to keep it on screen.
+ * With `offPage`, an anchor ahead of the camera but off the page shows
+ * too, where `fit` brings it onto the page.
  */
 function useAnchored<T extends HTMLElement>(
   id: AnchorId,
   fit: (anchor: Anchor, el: T) => { x: number; y: number } = (a) => a,
+  offPage = false,
 ) {
   const workshop = useWorkshop();
   const ref = useRef<T>(null);
@@ -301,7 +321,10 @@ function useAnchored<T extends HTMLElement>(
       const el = ref.current;
       if (el === null) return;
       const anchor = workshop.anchors()[id];
-      if (anchor?.visible !== true) {
+      if (
+        anchor === undefined ||
+        !(anchor.visible || (offPage && anchor.ahead))
+      ) {
         el.dataset.anchored = "hidden";
         return;
       }
@@ -312,25 +335,76 @@ function useAnchored<T extends HTMLElement>(
     draw();
     const off = workshop.subscribeAnchors(draw);
     window.addEventListener("resize", draw);
+    // What the element keeps clear of may change size with no anchor moving.
+    const clear = ref.current === null ? [] : clearOf(ref.current);
+    const resized =
+      clear.length > 0 && typeof ResizeObserver === "function"
+        ? new ResizeObserver(draw)
+        : null;
+    for (const el of clear) resized?.observe(el);
     return () => {
       off();
       window.removeEventListener("resize", draw);
+      resized?.disconnect();
     };
-  }, [workshop, id]);
+  }, [workshop, id, offPage]);
   return ref;
 }
+
+/** The screen's parts a tag keeps clear of, such as Welcome's card: each marked `data-deck-clear` in the tag's screen. */
+function clearOf(el: HTMLElement): HTMLElement[] {
+  return [
+    ...(el
+      .closest("main")
+      ?.querySelectorAll<HTMLElement>("[data-deck-clear]") ?? []),
+  ];
+}
+
+const clamp = (v: number, lo: number, hi: number) =>
+  hi < lo ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v));
 
 /** The point an element hung above its anchor and centred on it keeps, so all of it stays EDGE_PX inside the window. */
 function onScreen(anchor: Anchor, el: HTMLElement): { x: number; y: number } {
   const card = el.firstElementChild as HTMLElement | null;
   const half = (card?.offsetWidth ?? 0) / 2;
   const tall = card?.offsetHeight ?? 0;
-  const clamp = (v: number, lo: number, hi: number) =>
-    hi < lo ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v));
   return {
     x: clamp(anchor.x, EDGE_PX + half, window.innerWidth - EDGE_PX - half),
     y: clamp(anchor.y, EDGE_PX + tall, window.innerHeight - EDGE_PX),
   };
+}
+
+/**
+ * onScreen's point, moved off any part of the screen the tag keeps clear
+ * of (clearOf), to its side nearer the anchor: below Welcome's card at a
+ * phone's top, above it at a desktop's foot.
+ */
+function clearOnScreen(
+  anchor: Anchor,
+  el: HTMLElement,
+): { x: number; y: number } {
+  const at = onScreen(anchor, el);
+  const card = el.firstElementChild as HTMLElement | null;
+  const half = (card?.offsetWidth ?? 0) / 2;
+  const tall = card?.offsetHeight ?? 0;
+  const gap = EDGE_PX / 2;
+  for (const part of clearOf(el)) {
+    const r = part.getBoundingClientRect();
+    const overlaps =
+      at.x + half > r.left - gap &&
+      at.x - half < r.right + gap &&
+      at.y > r.top - gap &&
+      at.y - tall < r.bottom + gap;
+    if (!overlaps) continue;
+    const below = r.bottom + gap + tall;
+    const above = r.top - gap;
+    const fitsBelow = below <= window.innerHeight - EDGE_PX;
+    const fitsAbove = above - tall >= EDGE_PX;
+    const goBelow =
+      fitsBelow && (!fitsAbove || anchor.y >= (r.top + r.bottom) / 2);
+    if (goBelow || fitsAbove) at.y = goBelow ? below : above;
+  }
+  return at;
 }
 
 /** An anchored part: at the window's top left, moved to its anchor; nothing of it takes a pointer but what asks to. */
@@ -338,16 +412,19 @@ const ANCHORED =
   "pointer-events-none fixed top-0 left-0 z-5 data-[anchored=hidden]:invisible";
 
 /**
- * Pip's bubble over his head: what he says, for a --says-hold read, as a
- * status every reader hears; and, asleep with nothing to say, his sleeping
- * mark. Off camera it fades but still speaks. It stands over the page's
- * cards, which the place tags stand under.
+ * Pip's bubble over his head: what he says, for a --says-hold read, else
+ * the screen's standing line, as a status every reader hears; and, asleep
+ * with nothing to say, his sleeping mark. Off camera it fades but still
+ * speaks. It stands over the page's cards, which the place tags stand
+ * under.
  */
 function PipBubble({
   said,
+  line,
   onCleared,
 }: {
   said: Said | null;
+  line: string | null;
   onCleared: (said: null) => void;
 }): ReactNode {
   const workshop = useWorkshop();
@@ -355,7 +432,8 @@ function PipBubble({
     workshop.subscribeStatus,
     workshop.status,
   );
-  const ref = useAnchored<HTMLDivElement>("pip");
+  // Kept on the page: a long line over a Pip near its edge would run off it.
+  const ref = useAnchored<HTMLDivElement>("pip", onScreen);
   useEffect(() => {
     if (said === null) return;
     const timer = setTimeout(
@@ -379,18 +457,19 @@ function PipBubble({
         role="status"
         className="absolute bottom-0 left-0 -translate-x-1/2 pb-3"
       >
-        {said !== null && (
+        {(said !== null || line !== null) && (
           <p
-            key={said.key}
+            key={said?.key ?? "line"}
+            data-pip-says=""
             className={cx(
               SURFACE,
               "w-max max-w-60 animate-pop px-3.5 py-2 text-sm font-semibold text-text",
             )}
           >
-            {said.words}
+            {said === null ? line : said.words}
           </p>
         )}
-        {said === null && status.activity === "asleep" && (
+        {said === null && line === null && status.activity === "asleep" && (
           <span
             aria-hidden="true"
             data-pip-asleep=""
@@ -459,7 +538,9 @@ function PlaceTag({
   quiet: boolean;
 }): ReactNode {
   const snapshot = useCourseSnapshot();
-  const ref = useAnchored<HTMLDivElement>(place.id, onScreen);
+  // A place off the page's side still gets its tag, at the page's edge, as
+  // a phone's narrow room shows only the board.
+  const ref = useAnchored<HTMLDivElement>(place.id, clearOnScreen, true);
   // Complete as the Level is: every core Lesson done, a lab left or not.
   const core = place.cards.filter((c) => !c.optional);
   const done = core.length > 0 && core.every((c) => c.complete);
@@ -509,9 +590,17 @@ function PlaceTag({
   );
 }
 
-/** Where Pip's controls sit: along the room's foot (on a wide screen to the right, clear of Welcome's card), or in the screen's flow. */
-const DOCK: Record<DeckHost["kind"], string> = {
-  room: "fixed inset-x-4 bottom-4 z-10 mx-auto w-fit md:mx-0 lg:mr-0 lg:ml-auto",
+/** The hosts that hold Pip's toolbar: all but his bubble alone. */
+type ToolbarHost = Exclude<DeckHost["kind"], "pip">;
+
+/**
+ * Where Pip's controls sit: along the room's foot (on a wide screen to the
+ * right, clear of Welcome's card), or in the screen's flow. Each width sets
+ * its own margins: the app's stylesheet comes after the client's, so a
+ * plain utility it also uses would beat a breakpoint's.
+ */
+const DOCK: Record<ToolbarHost, string> = {
+  room: "fixed inset-x-4 bottom-4 z-10 w-fit max-md:mx-auto md:max-lg:mx-0 lg:mr-0 lg:ml-auto",
   inline: "w-fit max-w-full",
 };
 
@@ -547,7 +636,7 @@ function PipToolbar({
   onNext,
   onExplore,
 }: {
-  kind: DeckHost["kind"];
+  kind: ToolbarHost;
   /** Drawn again as Explore closes, the toolbar focuses Explore with Pip. */
   focusExplore: boolean;
   places: readonly WorkshopPlace[];
@@ -749,6 +838,9 @@ function useTouch(): boolean {
 
 type Send = ReturnType<typeof useWorkshop>["send"];
 
+/** An open menu or dialog on the page, which an Esc closes before it leaves Explore. */
+const OPEN_POPUP = '[aria-expanded="true"], dialog[open], [aria-modal="true"]';
+
 /**
  * The steering keys while Explore is on: held together they steer Pip
  * across the floor, Shift runs, Esc leaves. A key typed into a field, or
@@ -765,14 +857,14 @@ function useExploreKeys(send: Send, leave: () => void): void {
       last = next;
       send({ type: "steer", ...next });
     };
+    const ignored = (event: KeyboardEvent) =>
+      typesInto(event.target) || event.altKey || event.metaKey || event.ctrlKey;
+    /** Whether a menu or dialog was open as the Esc being heard began. */
+    let popupOpen = false;
     const down = (event: KeyboardEvent) => {
-      if (typesInto(event.target) || event.altKey || event.metaKey) return;
-      if (event.ctrlKey) return;
-      if (event.key === "Escape") {
-        event.preventDefault();
-        leave();
-        return;
-      }
+      if (event.key === "Escape")
+        popupOpen = document.querySelector(OPEN_POPUP) !== null;
+      if (ignored(event) || event.key === "Escape") return;
       if (STEER_KEYS[event.code] !== undefined) {
         event.preventDefault();
         held.add(event.code);
@@ -787,12 +879,23 @@ function useExploreKeys(send: Send, leave: () => void): void {
       held.clear();
       steer(false);
     };
+    // Esc is heard last: a menu or dialog open as it began closes on it,
+    // and only an Esc nothing else took leaves Explore.
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || ignored(event))
+        return;
+      if (popupOpen) return;
+      event.preventDefault();
+      leave();
+    };
     // Heard first, so an arrow steering Pip moves nothing else on the page.
     window.addEventListener("keydown", down, true);
+    window.addEventListener("keydown", escape);
     window.addEventListener("keyup", up, true);
     window.addEventListener("blur", lost);
     return () => {
       window.removeEventListener("keydown", down, true);
+      window.removeEventListener("keydown", escape);
       window.removeEventListener("keyup", up, true);
       window.removeEventListener("blur", lost);
       if (last.x !== 0 || last.z !== 0)

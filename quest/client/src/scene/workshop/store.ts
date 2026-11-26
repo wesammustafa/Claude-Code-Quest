@@ -13,11 +13,16 @@ import type { WorkshopPlaceId } from "./places";
 /** Something the renderer places on the page: a place, Pip, or a Lesson's card. */
 export type AnchorId = WorkshopPlaceId | "pip" | `card:${LessonId}`;
 
-/** Where an anchor falls on the page, in CSS pixels from the viewport's top left, and whether it is in view. */
+/**
+ * Where an anchor falls on the page, in CSS pixels from the viewport's top
+ * left; whether it is in view; and whether it lies ahead of the camera,
+ * where x and y still point its way when it falls off the page.
+ */
 export interface Anchor {
   x: number;
   y: number;
   visible: boolean;
+  ahead: boolean;
 }
 
 /** The anchors the renderer drew last; one it does not draw is absent. */
@@ -66,13 +71,13 @@ export interface PipStatus {
 /**
  * Where a screen puts the workshop's parts that ride on the Scene (Pip's
  * bubble and toolbar, the place tags, Explore): an element of its own on
- * the page, and how much of the workshop it holds: the whole room, or Pip's
- * buttons alone in the screen's flow.
+ * the page, and how much of the workshop it holds: the whole room, Pip's
+ * buttons alone in the screen's flow, or Pip's bubble alone, saying the
+ * screen's `line` over his head.
  */
-export interface DeckHost {
-  element: HTMLElement;
-  kind: "room" | "inline";
-}
+export type DeckHost =
+  | { element: HTMLElement; kind: "room" | "inline" }
+  | { element: HTMLElement; kind: "pip"; line: string };
 
 /** One of Pip's feet in a probe's frame: where the model draws it, in the world, and whether his gait stands it on the floor. */
 export interface ProbeFoot {
@@ -167,6 +172,7 @@ function sameAnchors(a: Anchors, b: Anchors): boolean {
       p !== undefined &&
       q !== undefined &&
       p.visible === q.visible &&
+      p.ahead === q.ahead &&
       Math.abs(p.x - q.x) < ANCHOR_SLACK &&
       Math.abs(p.y - q.y) < ANCHOR_SLACK
     );
@@ -253,15 +259,28 @@ export function useWorkshop(): Workshop {
 
 /**
  * A ref for the element a screen keeps for the workshop's parts: while it
- * is on the page, the renderer draws them there (`kind` says how many).
+ * is on the page, the renderer draws them there (`kind` says how many;
+ * for Pip's bubble alone, `line` is what he says).
  */
 export function useDeckHost(
+  kind: "room" | "inline",
+): (element: HTMLElement | null) => (() => void) | undefined;
+export function useDeckHost(
+  kind: "pip",
+  line: string,
+): (element: HTMLElement | null) => (() => void) | undefined;
+export function useDeckHost(
   kind: DeckHost["kind"],
+  line = "",
 ): (element: HTMLElement | null) => (() => void) | undefined {
   const workshop = useWorkshop();
   return useCallback(
     (element: HTMLElement | null) =>
-      element === null ? undefined : workshop.setHost({ element, kind }),
-    [workshop, kind],
+      element === null
+        ? undefined
+        : workshop.setHost(
+            kind === "pip" ? { element, kind, line } : { element, kind },
+          ),
+    [workshop, kind, line],
   );
 }

@@ -47,6 +47,7 @@ export function tellPage(
     return {
       x,
       y,
+      ahead: v.z < 1,
       visible:
         v.z < 1 &&
         x >= page.left &&

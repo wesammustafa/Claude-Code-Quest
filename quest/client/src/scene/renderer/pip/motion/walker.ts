@@ -55,6 +55,8 @@ export class Walker {
   private exploring = false;
   /** The spot his route goes to, until he arrives. */
   private bound: SpotId | null = null;
+  /** Arrived at `bound`, he turns to the Learner rather than to what the spot looks at. */
+  private facesLearner = false;
   /** The spot he stands at, from his arrival until he sets off again. */
   private standing: SpotId | null = null;
   private greeting: { waited: number } | null = null;
@@ -85,12 +87,16 @@ export class Walker {
     return this.greeting !== null;
   }
 
-  /** Sends him to a spot (he faces what it looks at on arrival) or a point of the floor. */
-  goTo(to: WalkTo, pace: Pace = "auto"): void {
+  /**
+   * Sends him to a spot or a point of the floor; at a spot he faces what it
+   * looks at on arrival, or with `facesLearner` the Learner.
+   */
+  goTo(to: WalkTo, pace: Pace = "auto", facesLearner = false): void {
     this.greeting = null;
     this.standing = null;
     if ("spot" in to) {
       this.bound = to.spot;
+      this.facesLearner = facesLearner;
       this.motor.goTo(SPOTS[to.spot].stand, pace);
     } else {
       this.bound = null;
@@ -135,14 +141,18 @@ export class Walker {
     this.greeting = null;
   }
 
-  update(dt: number): WalkFrame {
+  /** One frame of his walk; `learner` is where the Learner looks from, on the floor, which he turns to on arriving when sent so. */
+  update(dt: number, learner: FloorPoint | null = null): WalkFrame {
     const motor = this.motor;
     const before = motor.arrivedId;
     const root = motor.update(dt);
     if (motor.arrivedId !== null && motor.arrivedId !== before) {
       if (this.bound !== null) {
         const look = SPOTS[this.bound].look;
-        motor.faceYaw = yawTo(root.pos, { x: look[0], z: look[2] });
+        motor.faceYaw =
+          this.facesLearner && learner !== null
+            ? yawTo(root.pos, learner)
+            : yawTo(root.pos, { x: look[0], z: look[2] });
         this.standing = this.bound;
       }
       this.bound = null;

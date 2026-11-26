@@ -17,6 +17,8 @@ import { CheckLooksFor } from "./CheckLooksFor";
 import { FolderQuestion } from "./FolderQuestion";
 import { problemText, workFolderLabel } from "./folderWords";
 import { LessonGate } from "./LessonGate";
+import { usePipStandsDown } from "../scene/context";
+import { useDeckHost } from "../scene/workshop/store";
 import { COLUMN, EYEBROW, QUIET_LINK } from "./layout";
 import {
   PANEL_FOOT,
@@ -77,6 +79,9 @@ function noteText(note: OverviewNote): string | null {
   }
 }
 
+/** Pip's line on an overview over the Scene, whose panel lists every `can` line. */
+const SCENE_LINE = "Ready when you are.";
+
 /**
  * A Lesson's overview: Pip with one line, the title, what the Lesson
  * teaches (quoted), its time and Badge, the help by part, and how to start.
@@ -127,6 +132,10 @@ export function LessonOverview() {
   }, [asked, startable]);
   const learner = useCourseSnapshot()?.learner;
   const over = useOverScene();
+  // Over the Scene, once the 3D Pip stands in the room, his line rides
+  // over his head there, not in the panel.
+  const inRoom = usePipStandsDown();
+  const host = useDeckHost("pip", SCENE_LINE);
   // The open-first offer leaves once its prerequisite passes: focus it had
   // moves to Start.
   const first = active?.lesson.start?.first ?? null;
@@ -180,14 +189,21 @@ export function LessonOverview() {
           Back to the learning journey
         </Link>
       )}
-      {/* Pip's one line: the `can` line the Lesson builds to, quoted. */}
-      <Says>
-        {intro?.payoff ? (
-          <InlineText text={intro.payoff} />
-        ) : (
-          "Ready when you are."
-        )}
-      </Says>
+      {/* Pip's one line: without the Scene, the `can` line the Lesson
+          builds to, quoted; over it, which lists every can line beside
+          him, an invitation instead, in the room once he stands there. */}
+      {over && inRoom ? (
+        // Its parts are fixed over the room: it takes no row of the panel.
+        <div ref={host} data-workshop-deck="" className="contents" />
+      ) : (
+        <Says>
+          {over || !intro?.payoff ? (
+            SCENE_LINE
+          ) : (
+            <InlineText text={intro.payoff} />
+          )}
+        </Says>
+      )}
       <header className="grid gap-2">
         <span className={EYEBROW}>
           {lessonEyebrow(

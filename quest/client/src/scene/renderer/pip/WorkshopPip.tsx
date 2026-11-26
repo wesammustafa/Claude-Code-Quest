@@ -63,6 +63,8 @@ export interface WorkshopPipProps {
   shadow: string;
   /** Where he stands when he first shows; the room's start if none. */
   start?: SpotId;
+  /** At the goal he turns to the Learner, to say the screen's line, rather than to what the spot looks at. */
+  facesLearner?: boolean;
 }
 
 type Loaded =
@@ -137,6 +139,7 @@ function InRoom({
   theme,
   shadow: shadowColour,
   start,
+  facesLearner = false,
 }: WorkshopPipProps & { model: PipModel3D }): ReactNode {
   const pip = usePipModel();
   const send = usePipInput();
@@ -202,7 +205,7 @@ function InRoom({
     canvas.setAttribute("data-scene-pip-mode", pip.mode);
   }, [canvas, shown, pip.mode]);
 
-  const goalNow = useScreenGoal(walker, goal, show, invalidate);
+  const goalNow = useScreenGoal(walker, goal, show, invalidate, facesLearner);
 
   // The screens' commands, each replacing what he did at once.
   useEffect(
@@ -279,7 +282,8 @@ function InRoom({
     // stride over them.
     stride.restore();
     driver.update(dt);
-    const frame = walker.update(dt);
+    const eye = state.camera.position;
+    const frame = walker.update(dt, { x: eye.x, z: eye.z });
     const driven = driver.state();
     stride.apply(dt, place, {
       root: frame.root,
@@ -374,20 +378,23 @@ function InRoom({
 
 /**
  * The screen's goal, on each show and each new goal, sends him there,
- * unless Explore steers him; the goal as it stands now, for Explore's end.
+ * turned at it to the Learner if the screen asks, unless Explore steers
+ * him; the goal as it stands now, for Explore's end.
  */
 export function useScreenGoal(
   walker: Pick<Walker, "explore" | "goTo">,
   goal: SpotId | null,
   show: unknown,
   invalidate: () => void,
+  facesLearner = false,
 ): { readonly current: SpotId | null } {
   const goalNow = useRef(goal);
   useEffect(() => {
     goalNow.current = goal;
-    if (goal !== null && !walker.explore) walker.goTo({ spot: goal });
+    if (goal !== null && !walker.explore)
+      walker.goTo({ spot: goal }, "auto", facesLearner);
     invalidate();
-  }, [goal, show, walker, invalidate]);
+  }, [goal, show, walker, invalidate, facesLearner]);
   return goalNow;
 }
 
@@ -480,6 +487,7 @@ function publishHead(
       x: size.left + ((p.x + 1) / 2) * size.width,
       y: size.top + ((1 - p.y) / 2) * size.height,
       visible: shown && inView,
+      ahead: p.z > -1 && p.z < 1,
     },
   });
   return inView;

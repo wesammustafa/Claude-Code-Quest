@@ -35,7 +35,8 @@ export interface PathState {
 }
 
 /**
- * What the camera frames: the whole room; a Level's place, with or without
+ * What the camera frames: the whole room, or the whole room under
+ * Welcome's card, which on a narrow page keeps the top; a Level's place, with or without
  * room kept free for the screen's panel beside it (or below it, on a narrow
  * page); close on a place, beside the panel too; or, while today's Journey
  * shows its stage, the card of the Lesson Pip stands at, or its whole place
@@ -44,11 +45,13 @@ export interface PathState {
  */
 export type Framing =
   | { kind: "room" }
+  | { kind: "welcome" }
   | { kind: "place"; place: WorkshopPlaceId; panel: boolean }
   | { kind: "close"; place: WorkshopPlaceId }
   | { kind: "stage"; card: PlacedCard; whole: boolean; band: Band };
 
 const ROOM_WIDE: Framing = { kind: "room" };
+const WELCOME: Framing = { kind: "welcome" };
 
 /** The place that holds a Lesson's card, or null for a Lesson the places do not hold. */
 function placeHolding(
@@ -75,8 +78,8 @@ function atLesson(
  * while its stage shows, that Lesson's card in the stage's band, or the
  * whole place pulled back; a Lesson's overview frames its Lesson's place
  * beside the panel, and its step, where the Scene stops, keeps that; Lesson
- * complete comes close on the place, beside its panel; every other screen
- * shows the whole room.
+ * complete comes close on the place, beside its panel; Welcome shows the
+ * whole room under its card; every other screen shows the whole room.
  */
 export function framingFor(
   screen: ScreenOnShow,
@@ -112,6 +115,8 @@ export function framingFor(
         kind: "close",
         place,
       }));
+    case "welcome":
+      return WELCOME;
     default:
       return ROOM_WIDE;
   }
@@ -121,7 +126,8 @@ export function framingFor(
 export function sameFraming(a: Framing, b: Framing): boolean {
   switch (a.kind) {
     case "room":
-      return b.kind === "room";
+    case "welcome":
+      return b.kind === a.kind;
     case "place":
       return b.kind === "place" && a.place === b.place && a.panel === b.panel;
     case "close":
@@ -183,9 +189,9 @@ const NARROW = 0.9;
 const isNarrow = (viewport: Viewport): boolean =>
   viewport.width <= viewport.height * NARROW;
 
-/** The share of a wide page the Scene keeps on its left beside a panel, and of a narrow one on its top above it. */
+/** The share of a wide page the Scene keeps on its left beside a panel, and of a narrow one on its top above it (the panel's five eighths, layout.ts). */
 const BESIDE_PANEL = 0.6;
-const ABOVE_PANEL = 0.5;
+const ABOVE_PANEL = 3 / 8;
 
 type V3 = readonly [number, number, number];
 
@@ -216,6 +222,21 @@ const ROOM_VIEW: View = {
   height: 6.8,
   narrow: { look: [0, 0.8, -1.4], from: unit(0, 0.7, 1), width: 6.8 },
 };
+
+/**
+ * The whole room under Welcome's card: on a wide page the room's own view,
+ * the card at its foot on the left; on a narrow one framed from Pip's start
+ * back to the noticeboard, below the card, as the prototype's phone shows
+ * it, with the places off to the side tagged at the page's edge.
+ */
+const WELCOME_VIEW: View = {
+  ...ROOM_VIEW,
+  narrow: { look: [-0.3, 0.7, 0], from: unit(0.1, 0.7, 1), width: 6.4 },
+};
+
+/** The shares of a narrow page's top and foot that Welcome's card and Pip's toolbar keep, which the room is framed between. */
+const UNDER_CARD = 0.34;
+const OVER_TOOLBAR = 0.14;
 
 /** Each place, seen from the room, with Pip's spot in front of it in view. */
 const PLACE_VIEWS: Readonly<Record<WorkshopPlaceId, View>> = {
@@ -325,6 +346,12 @@ export function poseOf(framing: Framing, viewport: Viewport): Pose {
       x: band.left + band.width / 2 - viewport.width / 2,
       y: band.top + band.height / 2 - viewport.height / 2,
     };
+  } else if (framing.kind === "welcome") {
+    seen = seenOn(WELCOME_VIEW, narrow);
+    const top = narrow ? viewport.height * UNDER_CARD : 0;
+    const foot = narrow ? viewport.height * OVER_TOOLBAR : 0;
+    region = { width: viewport.width, height: viewport.height - top - foot };
+    shift = { x: 0, y: (top - foot) / 2 };
   } else {
     seen = seenOn(
       framing.kind === "room" ? ROOM_VIEW : PLACE_VIEWS[framing.place],

@@ -17,7 +17,7 @@ describe("the workshop's state", () => {
     const workshop = createWorkshop();
     const drawn = vi.fn();
     workshop.subscribeAnchors(drawn);
-    const at = { x: 100, y: 50, visible: true };
+    const at = { x: 100, y: 50, visible: true, ahead: true };
     workshop.setAnchors({ pip: at });
     expect(drawn).toHaveBeenCalledTimes(1);
     // Two small moves: the second is measured from the anchors last told.

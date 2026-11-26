@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import type { PlayingLesson, Snapshot, StepDownLesson } from "@quest/contract";
 import { Button, ButtonLink } from "../components/Button";
 import { Icon } from "../components/Icon";
@@ -258,9 +259,11 @@ function resumingOf(
  * Welcome over the workshop room (the warm workshop): one card, at the
  * foot of the room's left side on a wide screen, where it hides neither
  * the Levels' places nor Pip, and at the top of a narrower one, a phone's
- * full width, so Pip stands clear in the room below it,
- * with Welcome's own words and actions; Say hello, which turns Pip to the
- * Learner; and, for a Learner who has been here before, Welcome back and a
+ * full width and short, under the sound button, so the room's tags and
+ * Pip stand clear below it (the camera frames the room there, and the tags
+ * keep clear of the card), with Welcome's own words and actions; Say
+ * hello, which turns Pip to the Learner, where Pip's toolbar does not
+ * show its own; and, for a Learner who has been here before, Welcome back and a
  * way into the last Lesson they finished, where the host shows their work.
  * Under the card, the place where the renderer draws the room's tags and
  * Pip's toolbar. The card is the page's surface, so no word sits on the
@@ -281,15 +284,25 @@ function RoomWelcome() {
   // The 3D Pip stands in the room once he holds Pip; until then, and on
   // the still image, the card shows the screen's own.
   const inRoom = usePipStandsDown();
+  // Pip's toolbar, drawn with the room where the mount asks for the 3D
+  // Pip, has Say hello; the card has it only where no toolbar is.
+  const workshop = useWorkshop();
+  const drawing = useSyncExternalStore(
+    workshop.subscribeReady,
+    workshop.ready,
+    () => false,
+  );
+  const toolbar = useMount().scene?.pip === true && drawing;
   return (
     <main
       data-room=""
-      className="min-h-dvh p-4 pt-16 pb-32 md:p-6 md:pb-28 lg:flex lg:flex-col lg:justify-end lg:pb-6"
+      className="min-h-dvh max-md:px-4 max-md:pt-14 max-md:pb-32 md:px-6 md:pt-6 md:max-lg:pb-28 lg:flex lg:flex-col lg:justify-end lg:pb-6"
     >
       <section
         aria-label="Welcome"
         data-welcome-card=""
-        className="relative z-10 grid w-full max-w-sheet gap-3.5 rounded-lg border border-line bg-surface p-5.5 shadow-md lg:max-w-96 xl:max-w-sheet"
+        data-deck-clear=""
+        className="relative z-10 grid w-full rounded-lg border border-line bg-surface shadow-md max-sm:gap-2.5 max-sm:p-4 sm:max-lg:max-w-sheet sm:gap-3.5 sm:p-5.5 lg:max-xl:max-w-96 xl:max-w-sheet"
       >
         <div className="flex items-start gap-3">
           <div className="grid min-w-0 flex-1 gap-1.5">
@@ -298,7 +311,7 @@ function RoomWelcome() {
             </span>
             <PageTitle
               title={returning ? "Welcome back" : "Welcome"}
-              className="text-3xl max-sm:text-2xl"
+              className="max-sm:text-xl sm:text-3xl"
             >
               {returning ? "Welcome back." : "Learn Claude Code by using it."}
             </PageTitle>
@@ -315,7 +328,7 @@ function RoomWelcome() {
           </p>
         )}
         {welcomeLine !== undefined && (
-          <p className="text-sm text-muted" data-welcome-line="">
+          <p className="text-sm text-muted max-sm:hidden" data-welcome-line="">
             {welcomeLine}
           </p>
         )}
@@ -323,7 +336,7 @@ function RoomWelcome() {
           {resuming === null && (
             <FirstLessonButton lesson={lesson} returning={returning} />
           )}
-          <SayHello />
+          {!toolbar && <SayHello />}
           {back && finished !== null && (
             <ButtonLink
               to={`/lesson/${finished.id}`}
@@ -365,7 +378,7 @@ function RoomResume({
   return (
     <section
       aria-label="Where you left off"
-      className="grid justify-items-start gap-2 rounded-md bg-surface-2 p-4"
+      className="grid justify-items-start gap-2 rounded-md bg-surface-2 max-sm:p-3 sm:p-4"
     >
       <span className={EYEBROW}>
         {lessonEyebrow(
@@ -375,7 +388,7 @@ function RoomResume({
           summary?.optional ?? false,
         )}
       </span>
-      <h2 className="text-lg">
+      <h2 className="max-sm:text-base sm:text-lg">
         <InlineText text={lesson.title} />
       </h2>
       {of > 0 && (
@@ -391,20 +404,14 @@ function RoomResume({
   );
 }
 
-/**
- * Say hello: Pip turns to the Learner and greets them, in the room once
- * the 3D Pip stands there, else as the screen's own Pip.
- */
+/** Say hello on the card: the screen's own Pip turns to the Learner and greets them. */
 function SayHello() {
-  const workshop = useWorkshop();
-  const inRoom = usePipStandsDown();
   const send = usePipInput();
   return (
     <Button
       className="min-h-11"
       onClick={() => {
-        if (inRoom && workshop.ready()) workshop.send({ type: "greet" });
-        else send({ type: "greet" });
+        send({ type: "greet" });
       }}
     >
       Say hello

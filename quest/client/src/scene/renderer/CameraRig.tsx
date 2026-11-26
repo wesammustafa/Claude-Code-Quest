@@ -231,7 +231,7 @@ export function CameraRig({ screen, stations, sway, feet }: Props): null {
     const shot = moves.frame(performance.now(), poseOf(framing, size));
     if (!shot.between) canvas.removeAttribute(MOVING);
     if (shot.moving) invalidate();
-    if (sway && framing.kind === "room")
+    if (sway && (framing.kind === "room" || framing.kind === "welcome"))
       shot.pose.position.x += Math.sin(clock.elapsedTime * SWAY_RATE) * SWAY;
     aim(camera, shot.pose, size);
     const told = tellPage(

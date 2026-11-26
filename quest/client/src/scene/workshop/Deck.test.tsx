@@ -25,7 +25,7 @@ import {
 import { renderMounted } from "../../../test/mounted";
 import { drawingTier, LOOK } from "../../../test/scene";
 import type { SceneMount, SceneProps } from "../../mount/types";
-import { SceneContext } from "../context";
+import { SceneContext, useScenePip } from "../context";
 import { journeyPathOf } from "../path";
 import { resetTierProbes } from "../tier";
 import { DeckPortal } from "./Deck";
@@ -37,7 +37,13 @@ interface Drawn {
   loads: number;
 }
 
-/** A renderer that draws the workshop's anchors and one card, picks what the test says, and hears Pip's commands. */
+/** The 3D Pip standing in the room: he holds Pip, as WorkshopPip does once drawn. */
+function HeldPip(): null {
+  useScenePip();
+  return null;
+}
+
+/** A renderer that draws the workshop's anchors and one card, picks what the test says, and hears Pip's commands; with the mount's `pip`, its Pip holds Pip. */
 function sceneWith(drawn: Drawn): SceneMount {
   function StandIn({ pip = false, stations }: SceneProps): ReactNode {
     const hub = useContext(SceneContext);
@@ -46,9 +52,9 @@ function sceneWith(drawn: Drawn): SceneMount {
       const offCommands = workshop.onCommand((c) => drawn.commands.push(c));
       const offPick = workshop.setPick(() => drawn.pick);
       workshop.setAnchors({
-        noticeboard: { x: 300, y: 300, visible: true },
-        organizer: { x: 700, y: 300, visible: true },
-        pip: { x: 500, y: 500, visible: true },
+        noticeboard: { x: 300, y: 300, visible: true, ahead: true },
+        organizer: { x: 700, y: 300, visible: true, ahead: true },
+        pip: { x: 500, y: 500, visible: true, ahead: true },
       });
       journeyPathOf(hub).setView({
         points: [{ lesson: "b-2", x: 300, y: 200, r: 30, lit: true }],
@@ -61,7 +67,12 @@ function sceneWith(drawn: Drawn): SceneMount {
         workshop.setReady(false);
       };
     }, [hub]);
-    return <DeckPortal pip={pip} stations={stations} />;
+    return (
+      <>
+        {pip && <HeldPip />}
+        <DeckPortal pip={pip} stations={stations} />
+      </>
+    );
   }
   return {
     load: () => {
@@ -149,7 +160,11 @@ describe("taps on the room", () => {
     ]);
     const card = document.querySelector("[data-welcome-card]") as HTMLElement;
     tap(card, 100, 100);
-    tap(within(card).getByRole("button", { name: "Say hello" }), 100, 100);
+    // Say hello is the toolbar's alone once the 3D Pip stands in the room.
+    const hello = screen.getAllByRole("button", { name: "Say hello" });
+    expect(hello).toHaveLength(1);
+    expect(card).not.toContainElement(hello[0] ?? null);
+    tap(hello[0] as HTMLElement, 100, 100);
     // The button's own click greets; no tap reached the room.
     expect(drawn.commands).toHaveLength(1);
   });
@@ -327,6 +342,27 @@ describe("Explore", () => {
     const heard = drawn.commands.length;
     expect(key("ArrowUp")).toBe(true);
     expect(drawn.commands).toHaveLength(heard);
+  });
+
+  test("with a menu open, Esc closes it first; the next Esc leaves Explore", async () => {
+    const drawn = await onWelcome();
+    fireEvent.click(screen.getByRole("button", { name: "Explore with Pip" }));
+    // A page menu open over Explore: its button says so until it closes.
+    const menu = document.createElement("button");
+    menu.setAttribute("aria-expanded", "true");
+    document.body.append(menu);
+    const closes = (event: KeyboardEvent) => {
+      if (event.key === "Escape") menu.setAttribute("aria-expanded", "false");
+    };
+    document.addEventListener("keydown", closes);
+    key("Escape");
+    // The menu's own handler ran after Explore's look, so the first Esc is the menu's.
+    expect(drawn.commands).toEqual([{ type: "explore", on: true }]);
+    expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
+    key("Escape");
+    expect(drawn.commands.at(-1)).toEqual({ type: "explore", on: false });
+    document.removeEventListener("keydown", closes);
+    menu.remove();
   });
 
   test("a touch screen steers with the stick", async () => {
