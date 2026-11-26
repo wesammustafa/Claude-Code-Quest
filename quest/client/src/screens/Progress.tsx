@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { LessonSummary, Snapshot } from "@quest/contract";
 import { ButtonLink } from "../components/Button";
 import { InlineText } from "../components/InlineText";
@@ -7,7 +7,7 @@ import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { cx } from "../lib/cx";
 import { Pip } from "../pip/Pip";
 import { usePipLook } from "../pip/PipStage";
-import { useBadgesDrawn } from "../scene/badges";
+import { useBadgeSurface, useBadgesDrawn } from "../scene/badges";
 import { BadgeShelfHint, SceneBadge } from "../scene/SceneBadge";
 import { PageTitle } from "../shell/PageTitle";
 import { BOX, CAPTION_ON_SURFACE, COLUMN, EYEBROW } from "./layout";
@@ -59,6 +59,8 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
   ];
   const skills = Object.entries(snapshot.learner.mastery);
   const shelf = useBadgesDrawn();
+  const shelfBox = useRef<HTMLElement>(null);
+  useBadgeSurface(shelfBox, shelf);
   return (
     <>
       <ul className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -99,6 +101,7 @@ function ProgressBody({ snapshot }: { snapshot: Snapshot }) {
       </div>
       <NextGoal snapshot={snapshot} />
       <section
+        ref={shelfBox}
         className={shelf ? SHELF : BOX}
         aria-labelledby="progress-badges"
       >
@@ -160,7 +163,9 @@ function Badges({
 
 /**
  * The Badges section as the Badge shelf, while the Scene draws its Badges:
- * the card with no surface of its own, so the 3D Badges behind it show.
+ * the card with no page surface of its own, which would hide the 3D Badges
+ * behind it; the Scene draws its surface behind them instead, so the room
+ * never shows between the Badges.
  */
 const SHELF = "grid gap-3 rounded-lg border border-line p-5";
 

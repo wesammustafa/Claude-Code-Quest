@@ -15,6 +15,8 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  Shape,
+  ShapeGeometry,
   SphereGeometry,
   type Camera,
   type PerspectiveCamera,
@@ -55,12 +57,19 @@ function geometryFor(slot: BadgeSlot): BadgeGeometry | null {
 
 const lightGeometry = new SphereGeometry(1, 16, 12);
 
-/** The Badges' colours, read from the theme's tokens as the SVG Badges take them. */
+/**
+ * How far in front of the camera a surface behind the Badges stands: just
+ * behind them, so every Badge, turned or revealing, stays in front of it.
+ */
+const SURFACE_DEPTH = DEPTH * 1.05;
+
+/** The Badges' colours, read from the theme's tokens as the SVG Badges take them, and the page's surface. */
 interface Colours {
   earned: Color;
   ink: Color;
   outline: Color;
   light: Color;
+  surface: Color;
 }
 
 function colours(): Colours {
@@ -71,7 +80,47 @@ function colours(): Colours {
     ink: read("--color-accent-ink"),
     outline: read("--color-mark"),
     light: read("--color-accent-hover"),
+    surface: read("--color-surface"),
   };
+}
+
+/** A surface as drawn: its mesh, and the size its rounded box was cut at, in CSS pixels. */
+interface DrawnSurface {
+  mesh: Mesh<ShapeGeometry, MeshBasicMaterial>;
+  cut: string;
+}
+
+/** A box `width` by `height` with corners of `radius`, centred on the origin. */
+function roundedBox(width: number, height: number, radius: number): Shape {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  const x = -width / 2;
+  const y = -height / 2;
+  const shape = new Shape();
+  shape.moveTo(x + r, y);
+  shape.lineTo(x + width - r, y);
+  shape.quadraticCurveTo(x + width, y, x + width, y + r);
+  shape.lineTo(x + width, y + height - r);
+  shape.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  shape.lineTo(x + r, y + height);
+  shape.quadraticCurveTo(x, y + height, x, y + height - r);
+  shape.lineTo(x, y + r);
+  shape.quadraticCurveTo(x, y, x + r, y);
+  return shape;
+}
+
+/**
+ * A surface the stage asks for: opaque and nearer than anything in the
+ * room, it hides the room drawn before it and, by its depth, all the room
+ * draws after it, Pip and his shadow too, as the page's own card would;
+ * the Badges, nearer still, stand on it. A mesh that skipped the depth
+ * test would write no depth either, and let the room's later draws show.
+ */
+function makeSurface(colour: Color): DrawnSurface {
+  const mesh = new Mesh(
+    new ShapeGeometry(roundedBox(1, 1, 0)),
+    new MeshBasicMaterial({ color: colour, fog: false }),
+  );
+  return { mesh, cut: "" };
 }
 
 /** One slot as drawn: its meshes, and where it stood last. */
@@ -242,6 +291,7 @@ export class BadgeDrawer {
   /** The group the Badges stand in, kept where the camera is. */
   readonly rig = new Group();
   private readonly drawn = new Map<BadgeSlot, Drawn>();
+  private readonly surfaces = new Map<Element, DrawnSurface>();
   private palette: Colours;
   private readonly stage: BadgeStage;
 
@@ -255,11 +305,63 @@ export class BadgeDrawer {
   recolour(): void {
     this.palette = colours();
     for (const d of this.drawn.values()) recolour(d, this.palette);
+    for (const { mesh } of this.surfaces.values())
+      mesh.material.color.copy(this.palette.surface);
   }
 
   dispose(): void {
     for (const d of this.drawn.values()) dispose(d);
     this.drawn.clear();
+    for (const element of [...this.surfaces.keys()]) this.dropSurface(element);
+  }
+
+  private dropSurface(element: Element): void {
+    const surface = this.surfaces.get(element);
+    if (surface === undefined) return;
+    surface.mesh.geometry.dispose();
+    surface.mesh.material.dispose();
+    surface.mesh.removeFromParent();
+    this.surfaces.delete(element);
+  }
+
+  /** Draws each surface the stage asks for over its element's box, at SURFACE_DEPTH. */
+  private drawSurfaces(
+    view: DOMRect,
+    toView: (x: number, y: number, depth: number) => [number, number],
+    perPx: number,
+  ): void {
+    const asked = new Set(this.stage.surfaces());
+    for (const element of [...this.surfaces.keys()])
+      if (!asked.has(element)) this.dropSurface(element);
+    for (const element of asked) {
+      let surface = this.surfaces.get(element);
+      if (surface === undefined) {
+        surface = makeSurface(this.palette.surface);
+        this.rig.add(surface.mesh);
+        this.surfaces.set(element, surface);
+      }
+      const box = element.getBoundingClientRect();
+      const { mesh } = surface;
+      mesh.visible = box.width > 0 && box.height > 0;
+      if (!mesh.visible) continue;
+      const radius = parseFloat(getComputedStyle(element).borderTopLeftRadius);
+      const cut = `${box.width.toFixed(1)} ${box.height.toFixed(1)} ${String(radius)}`;
+      if (cut !== surface.cut) {
+        mesh.geometry.dispose();
+        mesh.geometry = new ShapeGeometry(
+          roundedBox(box.width, box.height, Number.isNaN(radius) ? 0 : radius),
+          8,
+        );
+        surface.cut = cut;
+      }
+      const [x, y] = toView(
+        box.left + box.width / 2 - view.left,
+        box.top + box.height / 2 - view.top,
+        SURFACE_DEPTH,
+      );
+      mesh.position.set(x, y, -SURFACE_DEPTH);
+      mesh.scale.setScalar((perPx * SURFACE_DEPTH) / DEPTH);
+    }
   }
 
   /** Draws one frame's Badges; true while something still moves, so a phone asks for the next frame. */
@@ -289,6 +391,14 @@ export class BadgeDrawer {
     const perPx =
       ((2 * halfH) / view.height) *
       (part === null ? 1 : part.height / part.fullHeight);
+    this.drawSurfaces(
+      view,
+      (x, y, depth) => [
+        (across(x) * 2 * halfW - halfW) * (depth / DEPTH),
+        (halfH - down(y) * 2 * halfH) * (depth / DEPTH),
+      ],
+      perPx,
+    );
     const enter = tokenMs("--duration-base");
     const leave = tokenMs("--duration-fast");
     let moving = false;

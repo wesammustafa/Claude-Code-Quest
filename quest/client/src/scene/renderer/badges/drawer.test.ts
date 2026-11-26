@@ -4,7 +4,13 @@
 // the Scene's Badges count as drawn only once the Scene's layer has faded
 // its renderer in. Until then the SVG shows as ever.
 import type { RootState } from "@react-three/fiber";
-import { PerspectiveCamera, Vector3 } from "three";
+import {
+  PerspectiveCamera,
+  Vector3,
+  type Mesh,
+  type MeshBasicMaterial,
+  type Object3D,
+} from "three";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createBadgeStage, type BadgeSlot } from "../../badges";
 import { BadgeDrawer, layerShown } from "./drawer";
@@ -114,6 +120,68 @@ describe("where a Badge stands", () => {
     // The SVG's centre: 100 + 96 / 2 across and down.
     expect((((at?.x ?? 0) + 1) / 2) * 800).toBeCloseTo(148, 3);
     expect(((1 - (at?.y ?? 0)) / 2) * 600).toBeCloseTo(148, 3);
+  });
+});
+
+// The Badge shelf has no page surface, so its 3D Badges behind it show:
+// U4 left the room showing between them.
+describe("a surface behind the Badges", () => {
+  function shelf(): HTMLElement {
+    const el = document.createElement("section");
+    el.getBoundingClientRect = () => rect(50, 80, 400, 200);
+    document.body.append(el);
+    return el;
+  }
+
+  test("fills its element's box behind the Badges in the page's surface colour, keeping the room out, and goes when released", () => {
+    root.style.setProperty("--color-surface", "#fdfaf5");
+    const stage = createBadgeStage();
+    const drawer = new BadgeDrawer(stage);
+    const state = stateOf();
+    const camera = state.camera as PerspectiveCamera;
+    const release = stage.addSurface(shelf());
+    stage.add(slotOf(badgeArt()));
+    drawer.frame(state, 0.016);
+    drawer.rig.updateMatrixWorld(true);
+    const [surface, badge] = drawer.rig.children as Mesh[];
+    if (surface === undefined || badge === undefined)
+      throw new Error("nothing drawn");
+    const material = surface.material as MeshBasicMaterial;
+    expect(`#${material.color.getHexString()}`).toBe("#fdfaf5");
+    // Depth-tested, so it writes its depth and hides what the room draws after it.
+    expect(material.depthTest).toBe(true);
+    expect(material.depthWrite).toBe(true);
+    expect(material.transparent).toBe(false);
+    // Its box, corner to corner, on the page.
+    surface.geometry.computeBoundingBox();
+    const box = surface.geometry.boundingBox;
+    const page = (p: Vector3) => {
+      const v = surface.localToWorld(p).project(camera);
+      return [((v.x + 1) / 2) * 800, ((1 - v.y) / 2) * 600];
+    };
+    const [left, top] = page(new Vector3(box?.min.x, box?.max.y, 0));
+    const [right, bottom] = page(new Vector3(box?.max.x, box?.min.y, 0));
+    expect(left).toBeCloseTo(50, 3);
+    expect(top).toBeCloseTo(80, 3);
+    expect(right).toBeCloseTo(450, 3);
+    expect(bottom).toBeCloseTo(280, 3);
+    // Behind the Badge, which stands in front of it.
+    const depth = (o: Object3D) =>
+      o.getWorldPosition(new Vector3()).distanceTo(camera.position);
+    expect(depth(surface)).toBeGreaterThan(depth(badge));
+    release();
+    drawer.frame(state, 0.016);
+    expect(drawer.rig.children).not.toContain(surface);
+  });
+
+  test("is not drawn while its element has no box", () => {
+    const stage = createBadgeStage();
+    const drawer = new BadgeDrawer(stage);
+    const el = shelf();
+    el.getBoundingClientRect = () => rect(0, 0, 0, 0);
+    stage.addSurface(el);
+    drawer.frame(stateOf(), 0.016);
+    expect(drawer.rig.children[0]?.visible).toBe(false);
   });
 });
 

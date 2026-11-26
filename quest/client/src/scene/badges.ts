@@ -5,7 +5,13 @@
 // sound). One stage per page's Scene, kept beside its hub, so the shell and
 // the hub need nothing new. No 3D code here: the screens read it without
 // loading the renderer.
-import { useContext, useEffect, useRef, useSyncExternalStore } from "react";
+import {
+  useContext,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type RefObject,
+} from "react";
 import type { BadgeSize } from "../components/Badge";
 import { SceneContext, type SceneHub } from "./context";
 
@@ -71,6 +77,15 @@ export interface BadgeStage {
   attach: () => () => void;
   /** Whether a renderer draws the slots: only then does a 3D Badge stand in for an SVG one. */
   drawing: () => boolean;
+  /**
+   * The surfaces the renderer draws behind the Badges, each filling its
+   * element's box: a card whose Badges stand in 3D (the Badge shelf) has
+   * no page surface of its own, since that would hide them, so the Scene
+   * draws it, and no Badge sits on the room.
+   */
+  surfaces: () => readonly Element[];
+  /** Adds a surface until the returned release is called. */
+  addSurface: (element: Element) => () => void;
   /** Follows the Badge reveal's events until the returned release is called. */
   onReveal: (fn: (event: BadgeRevealEvent) => void) => () => void;
   /** Tells every follower one of the reveal's events. */
@@ -79,6 +94,7 @@ export interface BadgeStage {
 
 export function createBadgeStage(): BadgeStage {
   let slots: readonly BadgeSlot[] = [];
+  let surfaces: readonly Element[] = [];
   let drawers = 0;
   const listeners = new Set<() => void>();
   const followers = new Set<(event: BadgeRevealEvent) => void>();
@@ -121,6 +137,16 @@ export function createBadgeStage(): BadgeStage {
       };
     },
     drawing: () => drawers > 0,
+    surfaces: () => surfaces,
+    addSurface: (element) => {
+      surfaces = [...surfaces, element];
+      changed();
+      return () => {
+        if (!surfaces.includes(element)) return;
+        surfaces = surfaces.filter((e) => e !== element);
+        changed();
+      };
+    },
     onReveal: (fn) => {
       followers.add(fn);
       return () => {
@@ -166,6 +192,19 @@ export function useBadgeStage(): BadgeStage {
 export function useBadgesDrawn(): boolean {
   const stage = useBadgeStage();
   return useSyncExternalStore(stage.subscribe, stage.drawing, () => false);
+}
+
+/** Has the Scene draw a surface behind the Badges in `element`'s box while `on` holds and the element is mounted. */
+export function useBadgeSurface(
+  element: RefObject<Element | null>,
+  on: boolean,
+): void {
+  const stage = useBadgeStage();
+  useEffect(() => {
+    const el = element.current;
+    if (!on || el === null) return;
+    return stage.addSurface(el);
+  }, [stage, element, on]);
 }
 
 /**
