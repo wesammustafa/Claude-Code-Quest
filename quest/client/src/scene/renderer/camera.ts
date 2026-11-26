@@ -37,9 +37,10 @@ export interface PathState {
 /**
  * What the camera frames: the whole room; a Level's place, with or without
  * room kept free for the screen's panel beside it (or below it, on a narrow
- * page); close on a place; or, while today's Journey shows its stage, the
- * card of the Lesson Pip stands at, or its whole place pulled back, framed
- * in the stage's band with Pip's feet in front of the card.
+ * page); close on a place, beside the panel too; or, while today's Journey
+ * shows its stage, the card of the Lesson Pip stands at, or its whole place
+ * pulled back, framed in the stage's band with Pip's feet in front of the
+ * card.
  */
 export type Framing =
   | { kind: "room" }
@@ -74,8 +75,8 @@ function atLesson(
  * while its stage shows, that Lesson's card in the stage's band, or the
  * whole place pulled back; a Lesson's overview frames its Lesson's place
  * beside the panel, and its step, where the Scene stops, keeps that; Lesson
- * complete comes close on the place; every other screen shows the whole
- * room.
+ * complete comes close on the place, beside its panel; every other screen
+ * shows the whole room.
  */
 export function framingFor(
   screen: ScreenOnShow,
@@ -237,8 +238,16 @@ const PLACE_VIEWS: Readonly<Record<WorkshopPlaceId, View>> = {
   },
 };
 
-/** How much of its place's view the close framing shows. */
-const CLOSE = 0.72;
+/**
+ * How much further back a framing beside a panel stands on a wide page than
+ * its place's own view, so Pip by the place stays a modest figure beside
+ * the panel, about an eighth of the page's height, as the prototype shows
+ * him; a narrow page's panel below already leaves him about that.
+ */
+const BESIDE_BACK = 1.5;
+
+/** How much of the framing beside the panel the close framing shows. */
+const CLOSE = 0.8;
 
 /** What a framing sees on a page of one shape: a View with its narrow page's parts taken in. */
 type Seen = Omit<View, "narrow">;
@@ -317,9 +326,11 @@ export function poseOf(framing: Framing, viewport: Viewport): Pose {
       framing.kind === "room" ? ROOM_VIEW : PLACE_VIEWS[framing.place],
       narrow,
     );
-    if (framing.kind === "close") scale = CLOSE;
     // All of the page, or what a panel leaves.
-    const panel = framing.kind === "place" && framing.panel;
+    const panel =
+      framing.kind === "close" || (framing.kind === "place" && framing.panel);
+    if (panel && !narrow) scale = BESIDE_BACK;
+    if (framing.kind === "close") scale *= CLOSE;
     region = {
       width: panel && !narrow ? viewport.width * BESIDE_PANEL : viewport.width,
       height: panel && narrow ? viewport.height * ABOVE_PANEL : viewport.height,

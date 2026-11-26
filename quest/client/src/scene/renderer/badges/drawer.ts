@@ -256,7 +256,21 @@ export class BadgeDrawer {
     if (view.height <= 0) return false;
     const halfH = Math.tan((camera.fov * Math.PI) / 360) * DEPTH;
     const halfW = halfH * camera.aspect;
-    const perPx = (2 * halfH) / view.height;
+    // A camera framing beside a screen's panel draws part of a larger view
+    // (setViewOffset): a point of the page lies that far across and down in
+    // the whole view, so each Badge still stands on its HTML Badge.
+    const part = camera.view?.enabled === true ? camera.view : null;
+    const across = (x: number) =>
+      part === null
+        ? x / view.width
+        : (part.offsetX + (x / view.width) * part.width) / part.fullWidth;
+    const down = (y: number) =>
+      part === null
+        ? y / view.height
+        : (part.offsetY + (y / view.height) * part.height) / part.fullHeight;
+    const perPx =
+      ((2 * halfH) / view.height) *
+      (part === null ? 1 : part.height / part.fullHeight);
     const enter = tokenMs("--duration-base");
     const leave = tokenMs("--duration-fast");
     let moving = false;
@@ -320,8 +334,8 @@ export class BadgeDrawer {
         slot.element.setAttribute("data-scene-shown", "");
 
       d.place.position.set(
-        (d.box.x / view.width) * 2 * halfW - halfW,
-        halfH - (d.box.y / view.height) * 2 * halfH,
+        across(d.box.x) * 2 * halfW - halfW,
+        halfH - down(d.box.y) * 2 * halfH,
         -DEPTH,
       );
       d.place.scale.setScalar(d.box.size * perPx);

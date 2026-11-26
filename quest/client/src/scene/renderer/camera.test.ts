@@ -6,6 +6,7 @@ import { PerspectiveCamera, Vector3 } from "three";
 import { describe, expect, test } from "vitest";
 import type { SceneStation, ScreenOnShow } from "../../mount/types";
 import type { Band } from "../path";
+import { SPOTS } from "../workshop/layout";
 import { workshopPlaces } from "../workshop/places";
 import {
   aim,
@@ -151,7 +152,7 @@ describe("the framing each screen shows", () => {
     ).toEqual({ kind: "room" });
   });
 
-  test("a Lesson's overview frames its place beside the panel, its step keeps that, and Lesson complete comes close", () => {
+  test("a Lesson's overview frames its place beside the panel, its step keeps that, and Lesson complete comes close beside it", () => {
     const none = standing(null);
     expect(framingFor(at("/lesson/a-4", "intro"), none, PLACES)).toEqual({
       kind: "place",
@@ -249,19 +250,53 @@ describe("where the framings put the places", () => {
     }
   });
 
-  test("close on a place draws its cards larger than the Journey's framing does, every one in view", () => {
+  test("Lesson complete comes closer on its place than the overview, beside the same panel, every card in view", () => {
     const reach = (framing: Framing) =>
       drawn(framing, DESKTOP).view.points.filter((p) =>
         p.lesson.startsWith("a-"),
       );
-    const journey = reach({
+    const overview = reach({
       kind: "place",
       place: "release-desk",
-      panel: false,
+      panel: true,
     });
     const close = reach({ kind: "close", place: "release-desk" });
     expect(close).toHaveLength(10);
-    expect(close[0]?.r ?? 0).toBeGreaterThan(journey[0]?.r ?? Infinity);
+    // Its cards spread wider on the page: a card's 44 px target floors r.
+    const spread = (cards: typeof close) =>
+      Math.max(...cards.map((c) => c.x)) - Math.min(...cards.map((c) => c.x));
+    expect(spread(close)).toBeGreaterThan(spread(overview));
+    for (const card of close)
+      expect(card.x + card.r, card.lesson).toBeLessThan(DESKTOP.width * 0.6);
+  });
+
+  // U3 drew him a fifth of the page tall on the overview and up to 44% on
+  // Lesson complete, his feet at the page's foot.
+  test("Pip at his Lesson's place stands clear of the panel and modest: in the left 60% on a desktop, above the sheet on a phone", () => {
+    const PIP_TALL = 1.1;
+    for (const place of ["noticeboard", "organizer", "release-desk"] as const)
+      for (const [framing, most] of [
+        [{ kind: "place", place, panel: true }, 1 / 6],
+        [{ kind: "close", place }, 1 / 5],
+      ] as const)
+        for (const viewport of [DESKTOP, PHONE]) {
+          const { onPage } = drawn(framing, viewport);
+          const { x, z } = SPOTS[place].stand;
+          const feet = onPage(new Vector3(x, 0, z));
+          const head = onPage(new Vector3(x, PIP_TALL, z));
+          const what = `${framing.kind} ${place} ${String(viewport.width)}`;
+          const free =
+            viewport === DESKTOP
+              ? { width: viewport.width * 0.6, height: viewport.height }
+              : { width: viewport.width, height: viewport.height / 2 };
+          for (const p of [feet, head]) {
+            expect(p.x, what).toBeGreaterThan(0);
+            expect(p.x, what).toBeLessThan(free.width);
+            expect(p.y, what).toBeGreaterThan(0);
+            expect(p.y, what).toBeLessThan(free.height);
+          }
+          expect((feet.y - head.y) / viewport.height, what).toBeLessThan(most);
+        }
   });
 
   test("an anchor off the page is told, but not as in view; a card is a 44 px target at the least", () => {
