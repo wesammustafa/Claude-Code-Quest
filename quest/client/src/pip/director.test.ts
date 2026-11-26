@@ -526,6 +526,105 @@ describe("Greeting", () => {
   });
 });
 
+describe("the Learner's greet", () => {
+  const greet: DirectorInput = { type: "greet" };
+
+  test("plays a Greeting in full and wakes Pip", () => {
+    const { director, at } = setup({ screen: "map" });
+    at(IDLE_SLEEP_MS);
+    expect(director.model().mode).toBe("sleep");
+    expect(director.send(greet)).toMatchObject({
+      mode: "idle",
+      reaction: { kind: "greeting", intensity: 1 },
+      // Facing the Learner.
+      gaze: { x: 0, y: 0 },
+    });
+  });
+
+  test("plays again once the nod window has passed; within it, it only counts as activity", () => {
+    const { director, at } = setup({ screen: "map" });
+    const first = director.send(greet).reaction;
+    at(NOD_WINDOW_MS - 1);
+    expect(director.send(greet).reaction).toEqual(first);
+    at(NOD_WINDOW_MS - 1 + IDLE_SLEEP_MS - 1);
+    expect(director.model().mode).toBe("idle");
+    const again = director.send(greet).reaction;
+    expect(again).toMatchObject({ kind: "greeting", intensity: 1 });
+    expect(again?.id).not.toBe(first?.id);
+  });
+
+  test("counts as the page load's Greeting, so Welcome does not greet again", () => {
+    const { director, at } = setup({ screen: "map" });
+    const own = director.send(greet).reaction;
+    at(10_000);
+    expect(
+      director.send({ type: "screen", screen: "welcome" }).reaction,
+    ).toEqual(own);
+  });
+
+  test("plays nothing while Pip can't be seen, and leaves Welcome's Greeting to come", () => {
+    const { director } = setup({ screen: "welcome", hidden: true });
+    expect(director.send(greet).reaction).toBeNull();
+    expect(
+      director.send({ type: "visibility", hidden: false }).reaction?.id,
+    ).toBe("greeting");
+  });
+});
+
+describe("travel", () => {
+  test("while Pip travels he neither rests nor sleeps; his arrival starts the 5 minutes again", () => {
+    const { director, at } = setup({ screen: "map" });
+    director.send({ type: "travel", moving: true });
+    at(2 * IDLE_SLEEP_MS);
+    expect(director.model().mode).toBe("idle");
+    expect(director.send({ type: "pagePanel", open: true }).mode).toBe("idle");
+    expect(director.send({ type: "connection", lost: true }).mode).toBe("idle");
+    expect(director.send({ type: "travel", moving: false }).mode).toBe("rest");
+    director.send({ type: "pagePanel", open: false });
+    director.send({ type: "connection", lost: false });
+    at(3 * IDLE_SLEEP_MS - 1);
+    expect(director.model().mode).toBe("idle");
+    at(3 * IDLE_SLEEP_MS);
+    expect(director.model().mode).toBe("sleep");
+    expect(director.send({ type: "travel", moving: true }).mode).toBe("idle");
+  });
+
+  test("reduced motion still means Rest", () => {
+    const { director } = setup({ reducedMotion: true });
+    expect(director.send({ type: "travel", moving: true }).mode).toBe("rest");
+  });
+});
+
+describe("an asleep start", () => {
+  test("a returning Learner's page starts with Pip asleep: the screen told again keeps him so, and the first activity wakes him", () => {
+    const { director, at } = setup({ screen: "map", asleep: true });
+    expect(director.model().mode).toBe("sleep");
+    expect(director.send({ type: "screen", screen: "map" }).mode).toBe("sleep");
+    at(1000);
+    expect(director.send({ type: "activity" }).mode).toBe("idle");
+    at(1000 + IDLE_SLEEP_MS - 1);
+    expect(director.model().mode).toBe("idle");
+    // A new screen wakes him too.
+    const other = setup({ screen: "map", asleep: true }).director;
+    expect(other.send({ type: "screen", screen: "intro" }).mode).toBe("idle");
+  });
+
+  test("on Resume, Pip greets once he wakes, not while he sleeps", () => {
+    const { director } = setup({ screen: "resume", asleep: true });
+    expect(director.model()).toMatchObject({ mode: "sleep", reaction: null });
+    expect(director.send({ type: "activity" })).toMatchObject({
+      mode: "idle",
+      reaction: { id: "greeting", kind: "greeting" },
+    });
+  });
+
+  test("under reduced motion Pip rests, never sleeps", () => {
+    expect(
+      setup({ reducedMotion: true, asleep: true }).director.model().mode,
+    ).toBe("rest");
+  });
+});
+
 const targets = {
   hint: { x: 0.6, y: -0.2 },
   tiers: { x: 2, y: -3 },

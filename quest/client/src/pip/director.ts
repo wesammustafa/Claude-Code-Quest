@@ -169,6 +169,13 @@ export type DirectorInput =
   | { type: "connection"; lost: boolean }
   /** The Learner pointed, typed or scrolled. */
   | { type: "activity" }
+  /**
+   * The Learner said hello to Pip (a tap on him, or the Say hello button):
+   * activity that plays a Greeting.
+   */
+  | { type: "greet" }
+  /** Pip set off across the Scene, or arrived: activity, and while he travels he neither rests nor sleeps. */
+  | { type: "travel"; moving: boolean }
   /** Where the page's gaze targets sit now, relative to Pip. */
   | {
       type: "gazeTargets";
@@ -253,6 +260,10 @@ export interface DirectorState {
   checking: boolean;
   /** The last event or input, for the 5-minute sleep. */
   lastActivityAt: number;
+  /** The page started with Pip asleep (DirectorStart.asleep) and nothing has woken him yet. */
+  dozing: boolean;
+  /** Pip is travelling across the Scene. */
+  travelling: boolean;
   /** Greeting has played (or is waiting on the Celebration floor) this page load. */
   greeted: boolean;
   playing: Playing | null;
@@ -271,6 +282,8 @@ export interface DirectorStart {
   screen?: PipScreen;
   reducedMotion?: boolean;
   hidden?: boolean;
+  /** A returning Learner's page: Pip starts asleep, and the first activity wakes him. */
+  asleep?: boolean;
 }
 
 /** The director's state at page load. */
@@ -288,6 +301,8 @@ export function initialDirectorState(
     connectionLost: false,
     checking: false,
     lastActivityAt: now,
+    dozing: start.asleep ?? false,
+    travelling: false,
     greeted: false,
     playing: null,
     waiting: null,
@@ -298,9 +313,17 @@ export function initialDirectorState(
     pointer: null,
     help: initialHelpState,
   };
-  // A page that loads on Welcome or Resume greets at once.
+  // A page that loads on Welcome or Resume greets at once, or, starting
+  // with Pip asleep, once he wakes.
   return settle(state, now);
 }
+
+/** Activity: it holds off Sleep, and wakes Pip from an asleep start. */
+const active = (s: DirectorState, now: number): DirectorState => ({
+  ...s,
+  lastActivityAt: now,
+  dozing: false,
+});
 
 /**
  * Pip can't be seen: a Reaction now would play to no one, so it is dropped,
@@ -382,7 +405,12 @@ function settle(s: DirectorState, now: number): DirectorState {
     next = { ...next, waiting: null };
     next = offer(next, reaction, now);
   }
-  if (!next.greeted && GREETING_SCREENS.has(next.screen) && !unseen(next)) {
+  if (
+    !next.greeted &&
+    !next.dozing &&
+    GREETING_SCREENS.has(next.screen) &&
+    !unseen(next)
+  ) {
     next = {
       ...offer(next, greeting, now),
       greeted: true,
@@ -478,6 +506,7 @@ function applyEvents(
     ...s,
     checking,
     lastActivityAt: events.length > 0 ? now : s.lastActivityAt,
+    dozing: s.dozing && events.length === 0,
     looking: linesArrived
       ? { target: "lines", at: lines, since: now }
       : s.looking,
@@ -507,6 +536,8 @@ export function directorReduce(
         ...s,
         screen: input.screen,
         lastActivityAt: now,
+        // The same screen told again, as the stage tells it when it mounts, wakes no one.
+        dozing: s.dozing && same,
         looking: same ? s.looking : null,
         pointer: same ? s.pointer : null,
       };
@@ -535,7 +566,27 @@ export function directorReduce(
       next = { ...s, connectionLost: input.lost };
       break;
     case "activity":
-      next = { ...s, lastActivityAt: now };
+      next = active(s, now);
+      break;
+    case "greet": {
+      const awake = active(s, now);
+      // A greet plays a full Greeting at most once per nod window; within it, it only counts as activity.
+      const last = s.nodWindow.greeting;
+      if (last !== undefined && now - last.since < NOD_WINDOW_MS) {
+        next = awake;
+        break;
+      }
+      const offered = offer(
+        awake,
+        { ...greeting, eventId: `greeting.${String(now)}` },
+        now,
+      );
+      // It counts as the page load's Greeting, so Welcome does not greet again.
+      next = offered === awake ? awake : { ...offered, greeted: true };
+      break;
+    }
+    case "travel":
+      next = { ...active(s, now), travelling: input.moving };
       break;
     case "gazeTargets":
       next = { ...s, targets: input.targets };
@@ -549,8 +600,7 @@ export function directorReduce(
     case "pointer":
       // A moving mouse is the Learner, there: it keeps Pip from resting.
       next = {
-        ...s,
-        lastActivityAt: now,
+        ...active(s, now),
         pointer: {
           at: clampPoint(input.at),
           pull: Math.max(0, Math.min(1, input.pull)),
@@ -583,22 +633,23 @@ export function directorReduce(
 /**
  * Rest while Pip can't be seen or isn't needed; otherwise Thinking while a
  * Check runs; otherwise Sleep after 5 minutes with no event or input (owner,
- * 2026-10-29); otherwise Idle. Rest outranks Thinking, so reduced motion means
- * Rest and a reduced-motion Learner never sees Thinking (the owner's reading,
- * 2026-10-26), nor Sleep. Pip never falls asleep while a Check runs.
+ * 2026-10-29), or from an asleep start until the first; otherwise Idle. Rest
+ * outranks Thinking, so reduced motion means Rest and a reduced-motion
+ * Learner never sees Thinking (the owner's reading, 2026-10-26), nor Sleep.
+ * Pip never falls asleep while a Check runs, and while he travels he neither
+ * rests nor sleeps, but for reduced motion's Rest.
  */
 export function modeAt(s: DirectorState, now: number): PipMode {
+  if (s.reducedMotion) return "rest";
   if (
-    s.pagePanelOpen ||
-    s.hidden ||
-    s.offScreen ||
-    s.reducedMotion ||
-    s.connectionLost
+    !s.travelling &&
+    (s.pagePanelOpen || s.hidden || s.offScreen || s.connectionLost)
   ) {
     return "rest";
   }
   if (s.checking) return "thinking";
-  return now - s.lastActivityAt >= IDLE_SLEEP_MS ? "sleep" : "idle";
+  if (s.travelling) return "idle";
+  return s.dozing || now - s.lastActivityAt >= IDLE_SLEEP_MS ? "sleep" : "idle";
 }
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
