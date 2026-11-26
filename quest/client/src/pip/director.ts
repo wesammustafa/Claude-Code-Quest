@@ -93,6 +93,12 @@ const HERO_SCREENS: ReadonlySet<PipScreen> = new Set([
 ]);
 const GREETING_SCREENS: ReadonlySet<PipScreen> = new Set(["welcome", "resume"]);
 /**
+ * Where a first completion's staged Reaction waits for its card's pin: the
+ * step it was earned on and the Lesson complete screen the pin plays on.
+ * Any other screen means the Learner left the moment, and it is dropped.
+ */
+const STAGED_SCREENS: ReadonlySet<PipScreen> = new Set(["step", "complete"]);
+/**
  * Where Pip sits beside the content and rests turned toward it: the Lesson
  * overview, the step, and the Learning journey and Progress, where he sits
  * by the Next band and by the skills. Everywhere else he is centred (every
@@ -181,6 +187,17 @@ export type DirectorInput =
    * renderer unmounts too.
    */
   | { type: "travel"; moving: boolean }
+  /**
+   * Whether the Scene stages a Lesson's first completion (the warm
+   * workshop, D5, D10): it pins the Lesson's card once the Badge reveal of
+   * the milestone this tab won ends, then Pip celebrates. While it does,
+   * the Reaction a first completion earns waits for `pinned` instead of
+   * playing at once, so it plays on the Pip by the card; told the Scene no
+   * longer stages it (the still, a lost context), a waiting one plays now.
+   */
+  | { type: "sceneStages"; on: boolean }
+  /** The Scene pinned a Lesson's card: the Reaction its first completion earned plays. */
+  | { type: "pinned" }
   /** Where the page's gaze targets sit now, relative to Pip. */
   | {
       type: "gazeTargets";
@@ -271,6 +288,10 @@ export interface DirectorState {
   travelling: boolean;
   /** Greeting has played (or is waiting on the Celebration floor) this page load. */
   greeted: boolean;
+  /** The Scene stages a first completion: its Reaction waits for the card's pin. */
+  stages: boolean;
+  /** A first completion's Reaction waiting for its card's pin. */
+  staged: Reaction | null;
   playing: Playing | null;
   waiting: Waiting | null;
   /** Each kind's nod window: its first full play, and the strongest it earned since. */
@@ -309,6 +330,8 @@ export function initialDirectorState(
     dozing: start.asleep ?? false,
     travelling: false,
     greeted: false,
+    stages: false,
+    staged: null,
     playing: null,
     waiting: null,
     nodWindow: {},
@@ -522,7 +545,14 @@ function applyEvents(
     help: helpEvents(s.help, events, now),
   };
   const reaction = reactionFor(events, { glanceReady: glanceReady(next, now) });
-  if (reaction !== null) next = offer(next, reaction, now);
+  const first = events.some(
+    (event) => event.type === "lesson.completed" && event.firstTime,
+  );
+  if (reaction !== null)
+    next =
+      s.stages && first
+        ? { ...next, staged: reaction }
+        : offer(next, reaction, now);
   return next;
 }
 
@@ -549,6 +579,7 @@ export function directorReduce(
         dozing: s.dozing && same,
         looking: same ? s.looking : null,
         pointer: same ? s.pointer : null,
+        staged: STAGED_SCREENS.has(input.screen) ? s.staged : null,
       };
       break;
     }
@@ -596,6 +627,15 @@ export function directorReduce(
     }
     case "travel":
       next = { ...active(s, now), travelling: input.moving };
+      break;
+    case "sceneStages":
+      next = { ...s, stages: input.on };
+      if (!input.on && s.staged !== null)
+        next = offer({ ...next, staged: null }, s.staged, now);
+      break;
+    case "pinned":
+      next =
+        s.staged === null ? s : offer({ ...s, staged: null }, s.staged, now);
       break;
     case "gazeTargets":
       next = { ...s, targets: input.targets };

@@ -36,6 +36,7 @@ import { usePipModel } from "../pip/PipStage";
 import { useBadgeStage } from "./badges";
 import { useSceneMove, useScenePip } from "./context";
 import { resetTierProbes } from "./tier";
+import { useCardPin } from "./workshop/pin";
 
 /** What the stand-in renderer heard: every props it rendered with, and how many renderers were made. */
 interface Heard {
@@ -825,5 +826,160 @@ describe("a first completion's Station (09 9.3)", () => {
     );
     await drawn(heard);
     expect(heard.props.map(litOf)).not.toContain(false);
+  });
+});
+
+describe("a first completion's pin and Celebration (the warm workshop, D10)", () => {
+  const root = document.documentElement;
+  afterEach(() => {
+    root.removeAttribute("style");
+  });
+
+  const scene = () => document.querySelector<HTMLElement>("[data-test-scene]");
+  const pinning = () => scene()?.dataset.testPin;
+  const reaction = () => scene()?.dataset.testReaction;
+
+  const doneB1 = {
+    ...course,
+    levels: course.levels.map((level) => ({
+      ...level,
+      lessons: level.lessons.map((l) =>
+        l.id === "b-1" ? { ...l, complete: true } : l,
+      ),
+    })),
+  };
+  const litOf = (props: SceneProps | undefined) =>
+    props?.stations.find((s) => s.lesson === "b-1")?.complete;
+
+  /** A renderer that draws the stage's Badges and shows the card pinning now and Pip's Reaction. */
+  function staging(heard: Heard, pins: string[]): SceneMount {
+    function Draws(props: SceneProps): ReactNode {
+      heard.props.push(props);
+      const stage = useBadgeStage();
+      useEffect(() => stage.attach(), [stage]);
+      useEffect(() => {
+        heard.mounts = 1;
+      }, []);
+      const pin = useCardPin();
+      useEffect(() => {
+        if (pin !== null) pins.push(pin.lesson);
+      }, [pin]);
+      return (
+        <div
+          data-test-scene=""
+          data-test-pin={pin?.lesson ?? ""}
+          data-test-reaction={usePipModel().reaction?.kind ?? ""}
+        />
+      );
+    }
+    return {
+      load: vi.fn(() => Promise.resolve({ default: Draws })),
+      look: LOOK,
+    };
+  }
+
+  /**
+   * b-1 played to its complete screen: the course and the milestone the
+   * host published once its save landed; a lesson.completed milestone
+   * reaches the page only through the snapshot, and Pip through its claim.
+   */
+  async function played(
+    heard: Heard,
+    pins: string[],
+    {
+      before,
+      firstTime,
+      milestone,
+    }: { before: typeof course; firstTime: boolean; milestone: boolean },
+  ): Promise<void> {
+    const page = renderMounted(
+      "/journey/",
+      snapshotOf(overview, { course: before }),
+      {
+        scene: staging(heard, pins),
+      },
+    );
+    await drawn(heard);
+    page.send(snapshotOf(playing, { revision: 2, course: before }));
+    go("/lesson/b-1/step/");
+    // Until the save lands nothing is published: no pin, no Celebration.
+    expect(pinning()).toBe("");
+    expect(reaction()).toBe("");
+    page.send(
+      snapshotOf(
+        { ...complete, firstTime },
+        {
+          revision: 3,
+          course: doneB1,
+          ...(milestone ? { milestones: completed } : {}),
+        },
+      ),
+    );
+    go("/lesson/b-1/complete/");
+    await screen.findByRole("heading", { level: 1, name: /Install, sign in/ });
+  }
+
+  test("the card stays up unpinned through the reveal of the milestone this tab won, pins at its end, and only then does Pip celebrate", async () => {
+    root.style.setProperty("--duration-reveal", "300ms");
+    root.style.setProperty("--duration-moment", "200ms");
+    const heard: Heard = { props: [], mounts: 0 };
+    const pins: string[] = [];
+    await played(heard, pins, {
+      before: course,
+      firstTime: true,
+      milestone: true,
+    });
+    await waitFor(() => {
+      expect(document.querySelector("[data-badge-reveal]")).toHaveAttribute(
+        "data-badge-reveal",
+        "playing",
+      );
+    });
+    expect(litOf(last(heard))).toBe(false);
+    expect(pinning()).toBe("");
+    expect(reaction()).not.toBe("celebration");
+    await waitFor(() => {
+      expect(pinning()).toBe("b-1");
+    });
+    expect(litOf(last(heard))).toBe(true);
+    expect(reaction()).not.toBe("celebration");
+    await waitFor(() => {
+      expect(reaction()).toBe("celebration");
+    });
+    expect(pinning()).toBe("");
+    expect(pins).toEqual(["b-1"]);
+  });
+
+  test("a replay's complete screen shows the card pinned at once, with no pin and no Celebration", async () => {
+    const heard: Heard = { props: [], mounts: 0 };
+    const pins: string[] = [];
+    await played(heard, pins, {
+      before: doneB1,
+      firstTime: false,
+      milestone: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(heard.props.map(litOf)).not.toContain(false);
+    expect(pins).toEqual([]);
+    expect(reaction()).not.toBe("celebration");
+  });
+
+  test("a first completion whose milestone this tab did not win pins nothing and celebrates nowhere, and the Journey shows it lit", async () => {
+    const heard: Heard = { props: [], mounts: 0 };
+    const pins: string[] = [];
+    await played(heard, pins, {
+      before: course,
+      firstTime: true,
+      milestone: false,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(document.querySelector("[data-badge-reveal]")).toBeNull();
+    expect(litOf(last(heard))).toBe(false);
+    go("/journey/");
+    await waitFor(() => {
+      expect(litOf(last(heard))).toBe(true);
+    });
+    expect(pins).toEqual([]);
+    expect(reaction()).not.toBe("celebration");
   });
 });

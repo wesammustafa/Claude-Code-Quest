@@ -467,12 +467,14 @@ export function cardLooks(
  * with lines written on it, taped up until it is complete, then pinned and
  * coloured as done; an optional Lesson's card in its own colour; the next
  * card edged in the mark's colour. On the kit organizer each card is the
- * label on its own drawer.
+ * label on its own drawer. Only the cards `draws` keeps are drawn, each in
+ * its own slot, so a card pinning now can be drawn apart from the rest.
  */
 export function cardsGeometry(
   look: SceneLook,
   place: WorkshopPlaceId,
   cards: readonly CardLook[],
+  draws: (lesson: LessonId) => boolean = () => true,
 ): BufferGeometry {
   const paint = paintOf(look);
   const w = look.workshop;
@@ -489,7 +491,7 @@ export function cardsGeometry(
     baked(g, paint.light, colour, true, PAPER_OWN);
   cards.forEach((card, i) => {
     const slot = slots[i];
-    if (slot === undefined) return;
+    if (slot === undefined || !draws(card.lesson)) return;
     const drawer = place === "organizer" ? 0.05 : 0;
     const at = (g: BufferGeometry, x: number, y: number, lift: number) =>
       onCard(g, surface, basis, slot, x, y, lift + drawer);
