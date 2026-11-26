@@ -618,7 +618,7 @@ function NextBand({
   return (
     <div className="flex items-center gap-3.5 max-sm:flex-col max-sm:items-start max-sm:gap-2">
       <Pip size="beside" />
-      <div className="flex min-w-0 flex-1 items-center max-sm:self-stretch justify-between gap-4 rounded-lg border border-accent-edge bg-linear-100 from-accent-soft to-surface to-55% px-5.5 py-4.5 shadow-sm max-sm:flex-col max-sm:items-stretch">
+      <div className="flex min-w-0 flex-1 items-center max-sm:self-stretch justify-between gap-4 rounded-lg border border-accent-edge bg-surface bg-linear-100 from-accent-soft to-surface to-55% px-5.5 py-4.5 shadow-sm max-sm:flex-col max-sm:items-stretch">
         {current && label ? (
           <>
             <div className="grid gap-0.5">

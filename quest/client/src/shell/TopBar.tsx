@@ -383,7 +383,7 @@ export function TopBar() {
   const card = snapshot?.learner.card ?? [];
 
   return (
-    <header className="relative z-10 grid h-(--topbar-height) grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-line bg-bg/82 pr-4 pl-5 backdrop-blur-md backdrop-saturate-140 max-sm:pr-2 max-sm:pl-3.5">
+    <header className="relative z-10 grid h-(--topbar-height) grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-line bg-bg/82 pr-4 pl-5 backdrop-blur-md in-data-scene-behind:bg-bg backdrop-saturate-140 max-sm:pr-2 max-sm:pl-3.5">
       <Link
         to="/"
         className="justify-self-start rounded-sm px-1 py-1.5 text-text no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
