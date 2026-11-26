@@ -254,6 +254,9 @@ function usePipModelFailed(root: RefObject<HTMLElement | null>): boolean {
   return failed;
 }
 
+/** How long after the reveal the pin waits for Pip to reach the card: as long as a line of his holds. */
+const PIN_WAIT = "--says-hold";
+
 /**
  * The Stations as the renderer draws them, and the card's pin (09 9.3; the
  * warm workshop, D5, D10). A Lesson completed in this tab, on its own
@@ -262,7 +265,10 @@ function usePipModelFailed(root: RefObject<HTMLElement | null>): boolean {
  * once the save has landed. At the reveal's end or skip its card pins, and
  * where `waitsForPip`, not before the Scene holds Pip and he stands at the
  * card's place: a renderer still loading, as after a reload or a direct
- * entry to a step, brings him in from the room's edge. The moment runs
+ * entry to a step, brings him in from the room's edge. He gets PIN_WAIT
+ * for it; a Pip who never comes (blocked, steered away, his model slow)
+ * leaves nothing staged: the card pins then anyway, and he celebrates
+ * where he stands, or the Pip on show does. The moment runs
  * over --duration-moment (at once under reduced motion), then the director
  * hears `pinned` and Pip celebrates. Leaving that Lesson's screens lights
  * it with no pin and no Celebration. A Lesson already complete when the
@@ -299,14 +305,32 @@ function useStagedStations(
   useEffect(() => {
     placed.current = stations;
   }, [stations]);
+  /** The wait for Pip at the due card's place, and whether PIN_WAIT has passed. */
+  const waiting = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overdue = useRef(false);
+  const stopWaiting = useCallback(() => {
+    if (waiting.current !== null) clearTimeout(waiting.current);
+    waiting.current = null;
+    overdue.current = false;
+  }, []);
   const pinDue = useCallback(() => {
     const lesson = due.current;
     if (lesson === null) return;
-    if (waits.current) {
+    if (waits.current && !overdue.current) {
       const place = placeOfLesson(placed.current, lesson);
-      const at = workshopOf(hub).status().at;
-      if (!hub.holdsPip() || (place !== null && at !== place)) return;
+      const there =
+        hub.holdsPip() &&
+        (place === null || workshopOf(hub).status().at === place);
+      if (!there) {
+        waiting.current ??= setTimeout(() => {
+          waiting.current = null;
+          overdue.current = true;
+          retry.current();
+        }, tokenMs(PIN_WAIT));
+        return;
+      }
     }
+    stopWaiting();
     due.current = null;
     setHeld((h) => (h === lesson ? null : h));
     const ms = motionReduced() ? 0 : tokenMs("--duration-moment");
@@ -317,7 +341,11 @@ function useStagedStations(
       pins.set(null);
       send({ type: "pinned" });
     }, ms);
-  }, [hub, pins, send]);
+  }, [hub, pins, send, stopWaiting]);
+  const retry = useRef(pinDue);
+  useEffect(() => {
+    retry.current = pinDue;
+  }, [pinDue]);
   useEffect(() => {
     waits.current = waitsForPip;
     pinDue();
@@ -332,20 +360,24 @@ function useStagedStations(
   }, [hub, pinDue]);
   useEffect(() => {
     onNow.current = on;
-    if (due.current !== on) due.current = null;
+    if (due.current !== on) {
+      due.current = null;
+      stopWaiting();
+    }
     if (pins.now()?.lesson === on) return;
     // A pin left behind with its Lesson's screens ends unplayed.
     if (timer.current !== null) clearTimeout(timer.current);
     timer.current = null;
     pins.set(null);
-  }, [on, pins]);
+  }, [on, pins, stopWaiting]);
   useEffect(
     () => () => {
       if (timer.current !== null) clearTimeout(timer.current);
       due.current = null;
+      stopWaiting();
       pins.set(null);
     },
-    [pins],
+    [pins, stopWaiting],
   );
   useBadgeReveal((event) => {
     if (event.lesson !== onNow.current) return;
@@ -354,6 +386,7 @@ function useStagedStations(
       return;
     }
     due.current = event.lesson;
+    stopWaiting();
     pinDue();
   });
   return useMemo(

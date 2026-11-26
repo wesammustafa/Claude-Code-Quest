@@ -1015,6 +1015,8 @@ describe("a first completion's pin and Celebration (the warm workshop, D10)", ()
   test("on a renderer still loading when the reveal ends, the card pins only once the Scene's Pip stands at its place, and he celebrates there", async () => {
     root.style.setProperty("--duration-cross-fade", "60ms");
     root.style.setProperty("--duration-moment", "60ms");
+    // Well within the wait for him (PIN_WAIT).
+    root.style.setProperty("--says-hold", "5s");
     const heard: Heard = { props: [], mounts: 0 };
     const pins: string[] = [];
     let arrive = (): void => undefined;
@@ -1075,5 +1077,48 @@ describe("a first completion's pin and Celebration (the warm workshop, D10)", ()
     });
     expect(pins).toEqual(["b-1"]);
     expect(document.querySelector("[data-pip-reaction]")).toBeNull();
+  });
+
+  test("a Pip who never reaches the card's place leaves nothing staged: past the wait after the reveal, the card pins anyway and he celebrates where he stands", async () => {
+    root.style.setProperty("--duration-reveal", "100ms");
+    root.style.setProperty("--duration-moment", "60ms");
+    root.style.setProperty("--says-hold", "300ms");
+    const heard: Heard = { props: [], mounts: 0 };
+    const pins: string[] = [];
+    const page = renderMounted("/journey/", snapshotOf(overview, { course }), {
+      scene: staging(heard, pins, true),
+    });
+    await drawn(heard);
+    await waitFor(() => {
+      expect(document.querySelector("[data-pip-stood-down]")).not.toBeNull();
+    });
+    page.send(snapshotOf(playing, { revision: 2, course }));
+    go("/lesson/b-1/step/");
+    page.send(
+      snapshotOf(
+        { ...complete, firstTime: true },
+        { revision: 3, course: doneB1, milestones: completed },
+      ),
+    );
+    go("/lesson/b-1/complete/");
+    await screen.findByRole("heading", { level: 1, name: /Install, sign in/ });
+    await waitFor(() => {
+      expect(document.querySelector("[data-badge-reveal]")).toHaveAttribute(
+        "data-badge-reveal",
+        "formed",
+      );
+    });
+    // He stands elsewhere: within the wait nothing pins.
+    act(() => {
+      room?.setStatus({ activity: "idle", at: "bench" });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(pins).toEqual([]);
+    expect(reaction()).not.toBe("celebration");
+    await waitFor(() => {
+      expect(reaction()).toBe("celebration");
+    });
+    expect(pins).toEqual(["b-1"]);
+    expect(litOf(last(heard))).toBe(true);
   });
 });
