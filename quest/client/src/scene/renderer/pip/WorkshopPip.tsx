@@ -37,7 +37,7 @@ import {
   type Workshop,
 } from "../../workshop/store";
 import modelUrl from "../../../../pip/model/pip.glb?url";
-import { PipDrive, frameStep } from "./drive";
+import { PipDrive, frameStep, type Playing } from "./drive";
 import { loadPipModel, type PipModel3D } from "./load";
 import type { Side } from "./motion/gait";
 import { workshopNav } from "./motion/nav";
@@ -182,8 +182,10 @@ function InRoom({
   }, [driver, pip, hold, invalidate]);
 
   // A Reaction plays once per ID in this tab, as on the Rive rig: one the
-  // screen's Pip already played never plays again here.
+  // screen's Pip already played never plays again here. A celebration
+  // waits for him to stand and turn to the Learner, held here until then.
   const reaction = pip.reaction;
+  const cheer = useRef<Playing | null>(null);
   useLayoutEffect(() => {
     if (reaction !== null) reactionLedger.arrive(reaction.id);
   }, [reaction]);
@@ -194,12 +196,25 @@ function InRoom({
       return;
     }
     if (!reactionLedger.start(reaction.id)) return;
-    driver.react(reaction);
+    if (reaction.kind === "celebration") {
+      const at = get().camera.position;
+      walker.cheer({ x: at.x, z: at.z });
+      cheer.current = reaction;
+    } else driver.react(reaction);
     canvas.setAttribute("data-scene-pip-reaction", reaction.id);
     canvas.setAttribute("data-scene-pip-reaction-kind", reaction.kind);
     canvas.setAttribute("data-scene-pip-intensity", String(reaction.intensity));
     invalidate();
-  }, [shown, reaction, pip.reducedMotion, driver, canvas, invalidate]);
+  }, [
+    shown,
+    reaction,
+    pip.reducedMotion,
+    driver,
+    walker,
+    get,
+    canvas,
+    invalidate,
+  ]);
   useEffect(() => {
     canvas.setAttribute("data-scene-pip", shown ? "shown" : "ready");
     canvas.setAttribute("data-scene-pip-mode", pip.mode);
@@ -247,12 +262,14 @@ function InRoom({
   // so it never shows him beside the screen's own Pip.
   useLayoutEffect(() => {
     if (inRoom) return;
+    cheer.current = null;
+    walker.cheer(null);
     const place = root.current;
     if (place !== null) place.visible = false;
     workshop.setAnchors(withoutPip(workshop.anchors()));
     const { gl, scene, camera } = get();
     gl.render(scene, camera);
-  }, [inRoom, workshop, get]);
+  }, [inRoom, workshop, walker, get]);
 
   const holding = useRef(false);
   const onHold = useCallback((held: boolean) => {
@@ -292,6 +309,11 @@ function InRoom({
       look: frame.look,
       reacting: driven.reaction !== null,
     });
+    // Turned to the Learner, or a command took him elsewhere: it plays now.
+    if (cheer.current !== null && (frame.cheer || !walker.cheerPending)) {
+      driver.react(cheer.current);
+      cheer.current = null;
+    }
     if (frame.greet) {
       send({ type: "greet" });
       greetAnswer.current = GREET_ANSWER;
@@ -360,6 +382,7 @@ function InRoom({
       frame.travelling ||
       frame.out.stepping > 0 ||
       walker.greetPending ||
+      walker.cheerPending ||
       greetAnswer.current > 0 ||
       stride.weight() > SETTLED;
     // The phone draws again while he moves or a Reaction plays.
