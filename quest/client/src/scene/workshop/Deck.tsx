@@ -559,11 +559,16 @@ function PlaceTag({
         {...(done ? { "data-done": "" } : {})}
         className={cx(
           PANEL,
-          "pointer-events-auto absolute bottom-0 left-0 grid min-h-11 w-max max-w-56 -translate-x-1/2 content-center gap-0.5 px-3.5 py-2 text-left no-underline",
-          "transition-[opacity,border-color] duration-(--duration-fast) ease-out hover:border-accent-mark",
+          // Never wider than the window inside its gutters, so onScreen can keep all of it there with large text.
+          "pointer-events-auto absolute bottom-0 left-0 grid min-h-11 w-max max-w-[min(14rem,calc(100vw_-_2rem))] -translate-x-1/2 content-center gap-0.5 px-3.5 py-2 text-left no-underline",
+          "transition-[border-color,box-shadow] duration-(--duration-fast) ease-out hover:border-accent-mark",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-          next ? "border-accent-mark shadow-selected" : "border-line shadow-md",
-          quiet && "opacity-disabled",
+          // Stepping back drops the tag's lift, never its words' contrast: it is still a link.
+          quiet
+            ? "border-line shadow-none"
+            : next
+              ? "border-accent-mark shadow-selected"
+              : "border-line shadow-md",
         )}
       >
         <span

@@ -55,7 +55,7 @@ interface Props {
  * so the stage floats none and the two never show together. The
  * Stations' marks are for the pointer alone: the list's links are the
  * keyboard and screen reader path, so the band is hidden from assistive
- * technology but for its control.
+ * technology. Its control sits over the band, off the Stations.
  */
 export function JourneyStage({ lessons, home, link }: Props): ReactNode {
   const path = useJourneyPath();
@@ -153,6 +153,19 @@ export function JourneyStage({ lessons, home, link }: Props): ReactNode {
       )}
     >
       <div className="min-h-0 overflow-hidden">
+        {/* Over the band, not on it: on a phone its 44 px target covered the Stations the camera frames there. */}
+        <div data-journey-whole="" className="flex justify-end pt-2">
+          <Button
+            size="sm"
+            className="max-md:min-h-11"
+            aria-pressed={whole}
+            onClick={() => {
+              path.setWhole(!path.whole());
+            }}
+          >
+            {WHOLE_LEVEL}
+          </Button>
+        </div>
         <div
           ref={band}
           data-journey-stage=""
@@ -162,18 +175,6 @@ export function JourneyStage({ lessons, home, link }: Props): ReactNode {
           <div aria-hidden="true" className="absolute inset-0">
             <Stations path={path} lessons={lessons} />
             {floats && <FloatingPip path={path} />}
-          </div>
-          <div className="absolute top-2 right-2">
-            <Button
-              size="sm"
-              className="max-md:min-h-11"
-              aria-pressed={whole}
-              onClick={() => {
-                path.setWhole(!path.whole());
-              }}
-            >
-              {WHOLE_LEVEL}
-            </Button>
           </div>
         </div>
       </div>
