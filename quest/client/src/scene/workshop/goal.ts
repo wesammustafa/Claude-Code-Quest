@@ -5,8 +5,10 @@
 // and its complete screen send him to that Lesson's place; Progress and
 // the Level and course moments, on a wide page, send him aside to the
 // armchair, clear of the panels over the room's middle, where his
-// Celebration shows; every other screen leaves him where he is. Where the Scene stops (the Workspace) he
-// is not in the room, so the screen's own 2D Pip is the one. No 3D code.
+// Celebration shows; every other screen leaves him where he is. Where the
+// Scene stops (the Workspace), and on a narrow page's Progress and Level
+// and course moments, he is not in the room, so the screen's own 2D Pip is
+// the one. No 3D code.
 import type { LessonId } from "@quest/contract";
 import type { SceneStation, ScreenOnShow } from "../../mount/types";
 import { lessonOfScreen } from "../path";
@@ -24,8 +26,10 @@ const OUT: PipOnScreen = { inRoom: false };
  * Where a screen with panels over the room's middle sends him on a wide
  * page: the whole room's view draws the armchair beside a 720 px column at
  * every wide size, so he stands whole beside the panels rather than behind
- * them. A narrow page's panels cover the room's width: there he stays
- * where he stands.
+ * them. A narrow page's panels cover the room's width and scroll over it,
+ * so no spot stays clear of them: there he leaves the room, and the 2D Pip
+ * in the panel, which scrolls with it, is the one, as on the Workspace and
+ * the prototype's phone Step.
  */
 const ASIDE: SpotId = "armchair";
 
@@ -60,7 +64,7 @@ export function pipOnScreen(
     case "progress":
     case "levelComplete":
     case "courseComplete":
-      return { inRoom: true, goal: narrow ? null : ASIDE };
+      return narrow ? OUT : { inRoom: true, goal: ASIDE };
     default:
       return { inRoom: true, goal: null };
   }

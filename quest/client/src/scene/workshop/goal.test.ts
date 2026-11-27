@@ -74,21 +74,22 @@ describe("the workshop Pip's goal per screen", () => {
   });
 
   // U4 left him where he stood, which on these screens is behind their
-  // panels, his Celebration on the moments unseen.
+  // panels, his Celebration on the moments unseen. A phone's panels cover
+  // the room's width and scroll over it, so there the panel's own Pip is
+  // the one.
   test.each([
     ["progress", "/progress"],
     ["levelComplete", "/level/b/complete"],
     ["courseComplete", "/course/complete"],
   ] as const)(
-    "%s sends him aside to the armchair on a wide page, and leaves him where he stands on a narrow one",
+    "%s sends him aside to the armchair on a wide page, and out of the room on a narrow one",
     (screen, path) => {
       expect(pipOnScreen(on(screen, path), "i-2", COURSE)).toEqual({
         inRoom: true,
         goal: "armchair",
       });
       expect(pipOnScreen(on(screen, path), "i-2", COURSE, true)).toEqual({
-        inRoom: true,
-        goal: null,
+        inRoom: false,
       });
     },
   );
