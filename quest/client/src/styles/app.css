@@ -13,6 +13,11 @@
    the Scene's camera leaves it room (scene/renderer/camera.ts, NARROW). */
 @custom-variant scene-narrow (@media (max-aspect-ratio: 9/10));
 
+/* Inside an @container narrower than 12rem: a phone's Scene panel with
+   large text (from about 170% on a 390 px phone), never one at the default
+   text size, where the same panel is about 20rem wide. */
+@custom-variant cramped (@container (width < 12rem));
+
 @layer base {
   html {
     background-color: var(--color-bg);

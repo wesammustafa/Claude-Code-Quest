@@ -255,7 +255,7 @@ export function LessonComplete() {
   return (
     <PanelMain
       column={MOMENT}
-      panel=""
+      panel="@container"
       frame="gap-5"
       foot={narrow ? undefined : way}
     >
@@ -274,8 +274,15 @@ export function LessonComplete() {
 const WRAPS =
   "h-auto! min-h-12 max-w-full py-2.5 text-center whitespace-normal!";
 
-/** A card of Lesson complete's panel: centred, as the moment is; one column the card's width, so no line of it widens the card past its panel. */
-const MOMENT_CARD = "grid grid-cols-1 justify-items-center gap-4 text-center";
+/**
+ * A card of Lesson complete's panel: centred, as the moment is; one column
+ * the card's width, so no line of it widens the card past its panel. In a
+ * cramped panel (a phone's with large text) the card and the boxes in it
+ * keep less padding, so a box's button, whose words wrap only between
+ * words, still fits in it.
+ */
+const MOMENT_CARD =
+  "grid grid-cols-1 justify-items-center gap-4 text-center cramped:p-2 cramped:[&>section]:px-2";
 
 /** Opens the next Lesson: it sends lesson.open, as browsing to it would not. */
 function NextLesson({
