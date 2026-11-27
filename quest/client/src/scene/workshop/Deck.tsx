@@ -747,7 +747,8 @@ function SendMenu({
           aria-label="Send Pip to"
           className={cx(
             SURFACE,
-            "absolute bottom-full left-1/2 z-10 mb-2 grid w-max min-w-48 -translate-x-1/2 gap-0.5 p-1.5",
+            // Never wider than the window inside its gutters, so with 200% text it stays on the page above its button, which a phone centres.
+            "absolute bottom-full left-1/2 z-10 mb-2 grid w-max max-w-[calc(100vw_-_2rem)] min-w-[min(12rem,calc(100vw_-_2rem))] -translate-x-1/2 gap-0.5 p-1.5",
           )}
         >
           {spots.map(({ spot, level }) => (
