@@ -190,8 +190,12 @@ export function LessonComplete() {
         </section>
       )}
       <div className="flex flex-wrap items-center justify-center gap-3">
-        {/* A touch-sized target where the panel sits under the room. */}
-        <ReadLesson size="sm" {...(narrow ? { className: "min-h-11" } : {})} />
+        {/* A touch-sized target where the panel sits under the room, and
+            wherever the page is touched. */}
+        <ReadLesson
+          size="sm"
+          className={narrow ? "min-h-11" : "pointer-coarse:min-h-11"}
+        />
         {Reference ? (
           <Reference lesson={lesson.id} />
         ) : (

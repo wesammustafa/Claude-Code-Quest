@@ -179,7 +179,9 @@ test("a finished Lesson replayed from the journey opens its overview, and its fi
       await expect(heading(page)).toHaveText(
         "Install, sign in and look around",
       );
-      await page.getByRole("button", { name: "Start", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Practise again", exact: true })
+        .click();
       await expect(page).toHaveURL(/#\/lesson\/b-1\/step$/);
       const first = page
         .getByRole("list", { name: "Steps" })
