@@ -212,9 +212,8 @@ function FollowedPip({
       goal={pip.inRoom ? pip.goal : null}
       show={current}
       inRoom={pip.inRoom}
-      // On a Lesson's overview he says its line over his head, turned to
-      // the Learner (a U4-fix call; the prototype's overview shows his back).
-      facesLearner={current.screen === "intro"}
+      // At each screen's place he faces what it looks at, the overview's
+      // board too, his back to the Learner as the prototype's overview shows.
       tier={tier}
       theme={theme}
       shadow={shadow}
