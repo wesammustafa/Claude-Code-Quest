@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { usePagePanel } from "../pages/PagePanel";
 
+/** Inline code: a long path breaks where it must rather than widen its box. */
 export const CODE =
-  "rounded-sm border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-code font-normal tracking-normal";
+  "rounded-sm border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-code font-normal tracking-normal wrap-anywhere";
 
 // One span at a time: `code`, **bold** or [text](url). Everything else is
 // text, so the Guide's words reach the page as text nodes, never as HTML.

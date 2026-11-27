@@ -274,8 +274,8 @@ export function LessonComplete() {
 const WRAPS =
   "h-auto! min-h-12 max-w-full py-2.5 text-center whitespace-normal!";
 
-/** A card of Lesson complete's panel: centred, as the moment is. */
-const MOMENT_CARD = "grid justify-items-center gap-4 text-center";
+/** A card of Lesson complete's panel: centred, as the moment is; one column the card's width, so no line of it widens the card past its panel. */
+const MOMENT_CARD = "grid grid-cols-1 justify-items-center gap-4 text-center";
 
 /** Opens the next Lesson: it sends lesson.open, as browsing to it would not. */
 function NextLesson({
