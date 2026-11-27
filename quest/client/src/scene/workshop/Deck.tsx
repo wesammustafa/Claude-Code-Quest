@@ -747,7 +747,7 @@ function SendMenu({
           aria-label="Send Pip to"
           className={cx(
             SURFACE,
-            // Never wider than the window inside its gutters, so with 200% text it stays on the page above its button, which a phone centres.
+            // Never wider than the window inside its gutters, so with 200% text it stays on the page above its button, which a phone centres; a spot's name and its Level then wrap.
             "absolute bottom-full left-1/2 z-10 mb-2 grid w-max max-w-[calc(100vw_-_2rem)] min-w-[min(12rem,calc(100vw_-_2rem))] -translate-x-1/2 gap-0.5 p-1.5",
           )}
         >
@@ -760,7 +760,7 @@ function SendMenu({
                   onSend(spot);
                   close(true);
                 }}
-                className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-4 rounded-md px-3 text-left text-control text-text hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                className="flex min-h-11 w-full cursor-pointer flex-wrap items-center justify-between gap-x-4 rounded-md px-3 text-left text-control text-text hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
               >
                 <span>{SPOT_NAMES[spot].label}</span>
                 {level !== null && (
