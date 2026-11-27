@@ -28,6 +28,12 @@ describe("the live line", () => {
     expect(activityLine(at("asleep"), at("idle"))).toBe("Pip is awake");
   });
 
+  test("says he woke when a tap wakes him straight into a greeting", () => {
+    expect(activityLine(at("asleep"), at("greeting"))).toBe("Pip is awake");
+    // The greeting ending is not a second wake.
+    expect(activityLine(at("greeting"), at("idle"))).toBeNull();
+  });
+
   test("says nothing when nothing worth saying changed", () => {
     expect(activityLine(at("walking"), at("walking"))).toBeNull();
     expect(activityLine(at("greeting"), at("idle"))).toBeNull();
