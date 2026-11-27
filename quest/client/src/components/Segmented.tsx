@@ -41,7 +41,8 @@ export function Segmented<V extends string>({
   return (
     <fieldset className="grid justify-items-start gap-2">
       <legend className="mb-2 text-sm font-semibold">{legend}</legend>
-      <div className="inline-flex gap-0.5 rounded-md border border-line bg-surface-2 p-0.5">
+      {/* Wider than its panel (a phone's with large text), the choices wrap rather than run past the panel's edge. */}
+      <div className="inline-flex flex-wrap gap-0.5 rounded-md border border-line bg-surface-2 p-0.5">
         {options.map((option) => {
           const selected = option.value === value;
           return (
