@@ -18,16 +18,11 @@ function run(walker: Walker, seconds: number) {
   return frames;
 }
 
-/** The frame the greet (or the celebration) comes due, within `seconds`: how far he is off facing `camera` then, and whether he moves. */
-function untilGreet(
-  walker: Walker,
-  camera: FloorPoint,
-  seconds: number,
-  due: "greet" | "cheer" = "greet",
-) {
+/** The frame the greet comes due, within `seconds`: how far he is off facing `camera` then, and whether he moves. */
+function untilGreet(walker: Walker, camera: FloorPoint, seconds: number) {
   for (let i = 0; i < seconds * 60; i++) {
     const f = walker.update(DT);
-    if (f[due])
+    if (f.greet)
       return {
         frame: i,
         off: Math.abs(wrapAngle(f.root.yaw - yawTo(f.root.pos, camera))),
@@ -82,47 +77,6 @@ describe("Pip's walk in the workshop", () => {
     const due = untilGreet(walker, camera, 2.5);
     expect(due?.moving).toBe(false);
     expect(due?.off).toBeLessThan(0.7);
-  });
-
-  test("a celebration turns him from what he stands at to the Learner before it is due", () => {
-    const walker = new Walker(workshopNav(), "noticeboard");
-    const camera = { x: 0, z: 9 };
-    walker.cheer(camera);
-    const due = untilGreet(walker, camera, 1.5, "cheer");
-    expect(due?.frame, "his back was to the Learner").toBeGreaterThan(0);
-    expect(due?.off).toBeLessThan(0.7);
-    run(walker, 1.5);
-    const toCamera = yawTo(walker.motor.root.pos, camera);
-    expect(Math.abs(wrapAngle(walker.motor.root.yaw - toCamera))).toBeLessThan(
-      0.05,
-    );
-    expect(walker.at, "he celebrates at his place").toBe("noticeboard");
-  });
-
-  test("a celebration earned on the way waits until he arrives, then turns him to the Learner", () => {
-    const walker = new Walker(workshopNav(), { x: 0.4, z: 3 });
-    walker.goTo({ spot: "noticeboard" });
-    run(walker, 0.5);
-    const camera = { x: 0, z: 9 };
-    walker.cheer(camera);
-    const due = untilGreet(walker, camera, 8, "cheer");
-    expect(due?.moving).toBe(false);
-    expect(due?.off).toBeLessThan(0.7);
-    expect(walker.at).toBe("noticeboard");
-  });
-
-  test("a command before he turns drops the celebration's turn", () => {
-    const walker = new Walker(workshopNav(), "noticeboard");
-    walker.cheer({ x: 0, z: 9 });
-    walker.goTo({ spot: "bench" });
-    expect(walker.cheerPending).toBe(false);
-    expect(run(walker, 8).filter((f) => f.cheer)).toHaveLength(0);
-    const { stand, look } = SPOTS.bench;
-    const facing = yawTo(stand, { x: look[0], z: look[2] });
-    expect(
-      Math.abs(wrapAngle(walker.motor.root.yaw - facing)),
-      "he faces what he came to",
-    ).toBeLessThan(0.05);
   });
 
   test("steers only while Explore is on, stops on no steer, and goes back to the goal when it ends", () => {

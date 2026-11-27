@@ -1,8 +1,8 @@
 // Pip in the workshop (D6): what he does with what the screens ask, on his
 // legs only. The one director keeps his modes and Reactions; this walks
 // him to a spot or a point of the floor, turns him to face what he arrived
-// at, turns him to the Learner for a greet or a celebration before the
-// director plays it, and moves him while Explore steers him. One goal at a time: each command
+// at, turns him to the Learner for a greet before the director plays it,
+// and moves him while Explore steers him. One goal at a time: each command
 // replaces the last at once, mid-stride included, so nothing queues.
 import { Vector3 } from "three";
 import type { PipMode, PipReactionKind } from "../../../../../pip/contract";
@@ -43,8 +43,6 @@ export interface WalkFrame {
   travelling: boolean;
   /** The greet is due: he has turned to the Learner, so the director may play it. */
   greet: boolean;
-  /** The celebration is due: he stands and has turned to the Learner, so it may play. */
-  cheer: boolean;
 }
 
 /** The turn that faces from `from` to `to` on the floor. */
@@ -62,8 +60,6 @@ export class Walker {
   /** The spot he stands at, from his arrival until he sets off again. */
   private standing: SpotId | null = null;
   private greeting: { waited: number } | null = null;
-  /** A celebration waiting for him to stand and turn to the Learner at `camera`. */
-  private cheering: { waited: number; camera: FloorPoint } | null = null;
   private readonly ahead = new Vector3();
 
   /** Stands him at `start` (a spot, facing what it looks at, or a point, facing the room's front). */
@@ -91,18 +87,12 @@ export class Walker {
     return this.greeting !== null;
   }
 
-  /** A celebration is waiting for his turn to the Learner. */
-  get cheerPending(): boolean {
-    return this.cheering !== null;
-  }
-
   /**
    * Sends him to a spot or a point of the floor; at a spot he faces what it
    * looks at on arrival, or with `facesLearner` the Learner.
    */
   goTo(to: WalkTo, pace: Pace = "auto", facesLearner = false): void {
     this.greeting = null;
-    this.cheering = null;
     this.standing = null;
     if ("spot" in to) {
       this.bound = to.spot;
@@ -118,25 +108,14 @@ export class Walker {
   greet(camera: FloorPoint): void {
     this.motor.stop();
     this.bound = null;
-    this.cheering = null;
     this.motor.faceYaw = yawTo(this.motor.root.pos, camera);
     this.greeting = { waited: 0 };
-  }
-
-  /**
-   * Turns him to the Learner at `camera` for a celebration, once he stands:
-   * a walk he is on ends first, where it was going; the celebration is due
-   * once he has turned. Any other command drops it, and so does null.
-   */
-  cheer(camera: FloorPoint | null): void {
-    this.cheering = camera === null ? null : { waited: 0, camera };
   }
 
   /** Steers him while Explore is on: a way across the floor (length 0 to 1), running or not; none stops him. */
   steer(x: number, z: number, run: boolean): void {
     if (!this.exploring) return;
     this.greeting = null;
-    this.cheering = null;
     this.bound = null;
     if (Math.hypot(x, z) < DEAD_STEER) {
       this.motor.stop();
@@ -160,7 +139,6 @@ export class Walker {
     this.motor.stop();
     this.bound = null;
     this.greeting = null;
-    this.cheering = null;
   }
 
   /** One frame of his walk; `learner` is where the Learner looks from, on the floor, which he turns to on arriving when sent so. */
@@ -195,18 +173,6 @@ export class Walker {
       }
     }
 
-    let cheer = false;
-    if (this.cheering !== null && !moving && motor.goal.kind === "none") {
-      // Standing, after any turn to what he arrived at: round to the Learner.
-      motor.faceYaw = yawTo(root.pos, this.cheering.camera);
-      this.cheering.waited += dt;
-      const off = Math.abs(wrapAngle(motor.faceYaw - root.yaw));
-      if (off < GREET_TURN || this.cheering.waited >= GREET_WAIT) {
-        cheer = true;
-        this.cheering = null;
-      }
-    }
-
     const corner = moving ? motor.heading() : null;
     const look =
       corner === null ? null : this.ahead.set(corner.x, LOOK_HEIGHT, corner.z);
@@ -217,7 +183,6 @@ export class Walker {
       moving,
       travelling: motor.goal.kind !== "none" || moving,
       greet,
-      cheer,
     };
   }
 }
