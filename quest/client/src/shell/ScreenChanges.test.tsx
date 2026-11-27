@@ -274,8 +274,10 @@ describe("the transition tokens", () => {
   const reduced = reducedMotion(css);
 
   test("the enter and the exit run on the scale's durations, within the cap (--duration-slow)", () => {
+    // The enter holds no transform once it ends, or the screen would place
+    // its fixed parts (Pip's bubble, the place tags) below the top bar.
     expect(full.get("--animate-screen-in")).toBe(
-      "rise var(--duration-base) var(--ease-out) both",
+      "rise var(--duration-base) var(--ease-out) backwards",
     );
     expect(full.get("--animate-screen-out")).toBe(
       "screen-out var(--duration-fast) var(--ease-out) both",

@@ -7,6 +7,7 @@ import { InlineText } from "../components/InlineText";
 import { Tier } from "../components/Tier";
 import { LEVEL_NAMES, lessonLabel } from "../course/labels";
 import { cx } from "../lib/cx";
+import { useSceneNarrow } from "../lib/media";
 import { useSlots } from "../mount/context";
 import { Link } from "../mount/links";
 import { githubTree, pageIndex } from "../pages/fetch";
@@ -104,6 +105,7 @@ export function LessonComplete() {
   const { lessonCompleteExtra: Extra, lessonCompleteReference: Reference } =
     useSlots();
   const over = useOverScene();
+  const narrow = useSceneNarrow();
   if (!active) return <LessonGate />;
   const { lesson, summary } = active;
   const passed = lesson.checkSummary.filter((line) => line.pass).length;
@@ -237,16 +239,20 @@ export function LessonComplete() {
         {onward}
       </main>
     );
+  const way = (
+    <div className={cx(SURFACE, MOMENT_CARD, "shrink-0 px-6 py-4")}>
+      {onward}
+    </div>
+  );
+  // The way on stays in view below the part that scrolls, but on a narrow
+  // page, where the panel is short, it would take the Check's room: there
+  // it follows the Badge and the Check in the flow.
   return (
     <PanelMain
       column={MOMENT}
       panel=""
       frame="gap-5"
-      foot={
-        <div className={cx(SURFACE, MOMENT_CARD, "shrink-0 px-6 py-4")}>
-          {onward}
-        </div>
-      }
+      foot={narrow ? undefined : way}
     >
       <div className={cx(PANEL_SURFACE, MOMENT_CARD)}>{head}</div>
       {/* No surface behind the Badge, so the Scene's 3D Badge shows; its name on one of its own. */}
@@ -254,6 +260,7 @@ export function LessonComplete() {
         {badge}
       </div>
       <div className={cx(PANEL_SURFACE, MOMENT_CARD)}>{rest}</div>
+      {narrow && way}
     </PanelMain>
   );
 }

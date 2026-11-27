@@ -39,3 +39,30 @@ export function useBelow(breakpoint: Breakpoint): boolean {
     () => false,
   );
 }
+
+// app.css's scene-narrow variant: a page at most nine tenths as wide as it
+// is tall, where a Scene screen's panel sits under the room.
+const SCENE_NARROW = "(max-aspect-ratio: 9/10)";
+let sceneNarrow: MediaQueryList | undefined;
+
+function sceneNarrowQuery(): MediaQueryList | undefined {
+  if (sceneNarrow === undefined && typeof window.matchMedia === "function")
+    sceneNarrow = window.matchMedia(SCENE_NARROW);
+  return sceneNarrow;
+}
+
+/** Whether the scene-narrow styles apply, following the window as it changes. */
+export function useSceneNarrow(): boolean {
+  return useSyncExternalStore(
+    (changed) => {
+      const list = sceneNarrowQuery();
+      if (list === undefined) return () => undefined;
+      list.addEventListener("change", changed);
+      return () => {
+        list.removeEventListener("change", changed);
+      };
+    },
+    () => sceneNarrowQuery()?.matches ?? false,
+    () => false,
+  );
+}
