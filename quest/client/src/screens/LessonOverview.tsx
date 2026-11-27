@@ -242,7 +242,8 @@ export function LessonOverview() {
           )}
         </Says>
       )}
-      <header className="grid gap-2">
+      {/* A width container, which the time and Stamp's row reads (cramped). */}
+      <header className="@container grid gap-2">
         <span className={EYEBROW}>
           {lessonEyebrow(
             lesson.level,
@@ -255,10 +256,13 @@ export function LessonOverview() {
           <InlineText text={lesson.title} />
         </PageTitle>
         {summary && (
-          <p className="flex items-center gap-3 text-sm text-muted">
+          <p className="flex items-center gap-3 text-sm text-muted cramped:flex-wrap">
             {/* The time estimate and the page's Stamp, quoted word for word
                 and joined as the page's own line joins them; the pair wraps
-                beside the Badge on a narrow screen. */}
+                beside the Badge on a narrow screen, and in a cramped header
+                (a phone's with large text) the Badge goes under it, since
+                its longest word and the Badge side by side can be wider
+                than the panel. */}
             <span className="min-w-0">
               <span>{summary.minutes}</span>
               {summary.stamp ? (
