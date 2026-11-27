@@ -39,7 +39,7 @@ function MainLink({
   return (
     <NavLink to={to} className={NAV_LINK}>
       <Icon name={icon} />
-      <span className="max-md:sr-only">{children}</span>
+      <span className="max-md:sr-only top-max-md:sr-only">{children}</span>
     </NavLink>
   );
 }
@@ -383,7 +383,10 @@ export function TopBar() {
   const card = snapshot?.learner.card ?? [];
 
   return (
-    <header className="relative z-10 grid h-(--topbar-height) grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-line bg-bg/82 pr-4 pl-5 backdrop-blur-md in-data-scene-behind:bg-bg backdrop-saturate-140 max-sm:pr-2 max-sm:pl-3.5">
+    // Too narrow for one row (top-cramped), the bar wraps: the brand and the
+    // Lesson's cluster on the first row, the main places under them, wrapping
+    // too, each control in its place in the tab order.
+    <header className="relative z-10 grid h-(--topbar-height) grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-line bg-bg/82 pr-4 pl-5 backdrop-blur-md in-data-scene-behind:bg-bg backdrop-saturate-140 max-sm:pr-2 max-sm:pl-3.5 top-cramped:flex top-cramped:h-auto top-cramped:min-h-(--topbar-height) top-cramped:flex-wrap top-cramped:gap-y-1 top-cramped:py-1.5">
       <Link
         to="/"
         className="justify-self-start rounded-sm px-1 py-1.5 text-text no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -394,18 +397,25 @@ export function TopBar() {
       {lesson ? (
         <nav
           aria-label="Where you are"
-          className="flex min-w-0 items-center gap-1 text-sm"
+          className="flex min-w-0 items-center gap-1 text-sm top-cramped:shrink-0"
         >
-          {/* The crumbs need the room of a wide window, and Steps shows its label from md: narrower, either would crowd the brand or the main nav and push this cluster off centre. */}
-          <Link to="/journey" className={`${CRUMB} max-lg:hidden`}>
+          {/* The crumbs need the room of a wide window, and Steps shows its label from md, in rem, so with larger text they need a wider one (top-max-lg, top-max-md): narrower, either would crowd the brand or the main nav and push this cluster off centre. */}
+          <Link
+            to="/journey"
+            className={`${CRUMB} max-lg:hidden top-max-lg:hidden`}
+          >
             {levelName}
           </Link>
-          <Icon name="chevron" size="sm" className="text-muted max-lg:hidden" />
+          <Icon
+            name="chevron"
+            size="sm"
+            className="text-muted max-lg:hidden top-max-lg:hidden"
+          />
           {/* On the Lesson's overview this crumb is the current page, which NavLink marks. */}
           <NavLink
             to={`/lesson/${lesson.id}`}
             end
-            className={`${CRUMB} max-lg:hidden`}
+            className={`${CRUMB} max-lg:hidden top-max-lg:hidden`}
           >
             {label}
           </NavLink>
@@ -414,23 +424,23 @@ export function TopBar() {
               variant="secondary"
               size="sm"
               icon="steps"
-              className="max-md:gap-0 max-md:px-1.75 lg:ml-2"
+              className="max-md:gap-0 max-md:px-1.75 lg:ml-2 top-max-md:gap-0 top-max-md:px-1.75 top-max-lg:ml-0"
               aria-haspopup="dialog"
               onClick={() => {
                 setPanel("steps");
               }}
             >
-              <span className="max-md:sr-only">Steps</span>
+              <span className="max-md:sr-only top-max-md:sr-only">Steps</span>
             </Button>
           )}
         </nav>
       ) : (
-        <span />
+        <span className="top-cramped:hidden" />
       )}
 
       <nav
         aria-label="Main"
-        className="flex items-center gap-0.5 justify-self-end"
+        className="flex items-center gap-0.5 justify-self-end top-cramped:flex-auto top-cramped:flex-wrap top-cramped:justify-end top-cramped:gap-y-1"
       >
         <MainLink to="/journey" icon="map">
           Journey

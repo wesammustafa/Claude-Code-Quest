@@ -18,6 +18,18 @@
    text size, where the same panel is about 20rem wide. */
 @custom-variant cramped (@container (width < 12rem));
 
+/* The top bar's widths (shell/TopBar.tsx), read from the sticky top's own
+   width (Shell.tsx's @container/top) in rem, so they follow the page's text
+   size: the media widths (max-sm, max-md, max-lg) read the browser's
+   default size and miss a larger root font size, at which the bar's labels
+   and crumbs no longer fit. A bar narrower than top-cramped has no room for
+   one row even with its labels hidden (a phone's with large text), so its
+   main places wrap under the brand. */
+@custom-variant top-max-sm (@container top (width < 40rem));
+@custom-variant top-max-md (@container top (width < 48rem));
+@custom-variant top-max-lg (@container top (width < 64rem));
+@custom-variant top-cramped (@container top (width < 21rem));
+
 @layer base {
   html {
     background-color: var(--color-bg);

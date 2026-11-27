@@ -207,7 +207,8 @@ function Frame(): ReactNode {
         {/* The Badge reveal's cue, which hears the reveal through the Scene's hub. */}
         {scene !== null && <RevealSound />}
         {/* The top bar and the connection notice under it stay at the top of the window together, outside the animated screen. */}
-        <div ref={top} data-top="" className="sticky top-0 z-20">
+        {/* A width container, which the top bar's widths read (top-max-md and the rest in app.css). */}
+        <div ref={top} data-top="" className="@container/top sticky top-0 z-20">
           {!welcome && <TopBar />}
           <Notice kind={NOTICES[connection]} />
           <SaveNotices />

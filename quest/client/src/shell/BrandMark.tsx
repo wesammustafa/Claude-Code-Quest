@@ -7,7 +7,7 @@ export function BrandMark() {
   return (
     <span className="inline-flex items-center gap-2.5">
       {brand ? <brand.mark /> : <Pip size="icon" />}
-      <span className="text-control font-bold tracking-tight max-sm:sr-only">
+      <span className="text-control font-bold tracking-tight max-sm:sr-only top-max-sm:sr-only">
         {brand ? brand.title : "Claude Code Quest"}
       </span>
     </span>
