@@ -1,6 +1,6 @@
 # Release engineering: Claude review on a pull request
 
-<sub>**Advanced** · Optional lab · about 40 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Optional lab · about 40 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the engineering side of the Advanced capstone, Release day for the summer series, where you make a go or no-go call on the public pack. Here you make the same call on a pull request, from a review Claude runs on GitHub. No core lesson or capstone depends on it, so you can skip it. It asks you to read two short workflow files and run Git and GitHub commands in the terminal, and explains each part as you meet it.
 

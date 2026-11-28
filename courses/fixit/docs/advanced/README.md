@@ -1,6 +1,6 @@
 # Advanced: a release others can trust within stated limits
 
-<sub>**Advanced** · about 2 hours 30 minutes · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · about 2 hours 30 minutes · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 It's the summer series for the Millbrook Fixers: three session pages and a schedule, which Maya publishes on Friday and Priya pastes into the reminder email to 70 people. You choose how the work runs, set its bounds, judge what comes back, and decide what ships. Each lesson starts with the reference organizer kit as it stands at the end of Intermediate, with the summer files as they stood on that lesson's day.
 

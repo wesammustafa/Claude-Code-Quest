@@ -1,6 +1,6 @@
 # Hand it over: show it is ready
 
-<sub>**Beginner** · Lesson 5 of 6 · about 20 minutes · Needs: [lesson 4](04-steer-undo-and-start-fresh.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · Lesson 5 of 6 · about 20 minutes · Needs: [lesson 4](04-steer-undo-and-start-fresh.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 ## Goal
 

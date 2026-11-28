@@ -1,6 +1,6 @@
 # Model and effort, one variable at a time
 
-<sub>**Intermediate** · Optional lab · about 20 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Optional lab · about 20 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the experiment behind Intermediate lesson 4, Bring in a second reviewer, where you pick a reviewer's model and effort. No core lesson or capstone depends on it, so you can skip it. It asks you to read a skill file, a short code change and its diff, and explains each one as you meet it.
 

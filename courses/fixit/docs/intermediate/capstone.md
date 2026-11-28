@@ -1,6 +1,6 @@
 # Capstone: hand the kit to Sam
 
-<sub>**Intermediate** · Capstone, Lesson 6 of 6 · 40 to 60 minutes · Needs: [lesson 5](05-connect-an-outside-tool.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Capstone, Lesson 6 of 6 · 40 to 60 minutes · Needs: [lesson 5](05-connect-an-outside-tool.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 ## Goal
 

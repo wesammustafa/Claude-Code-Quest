@@ -1,5 +1,5 @@
 // @ts-check
-// Shared by the Fix-It pilot's checks: a document read as claims, one per
+// Shared by the Fix-It course's checks: a document read as claims, one per
 // list item or paragraph, and the quoting the checks use in their hints.
 /** @import { Repo } from '../repo.mjs' */
 

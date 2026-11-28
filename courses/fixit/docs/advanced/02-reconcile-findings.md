@@ -1,6 +1,6 @@
 # Reconcile conflicting findings
 
-<sub>**Advanced** · Lesson 2 of 6 · about 25 minutes · Needs: [lesson 1](01-split-the-work.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Lesson 2 of 6 · about 25 minutes · Needs: [lesson 1](01-split-the-work.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 ## Goal
 

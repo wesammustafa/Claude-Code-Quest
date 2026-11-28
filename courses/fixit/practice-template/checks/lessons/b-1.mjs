@@ -1,5 +1,5 @@
 // @ts-check
-// Start Claude Code and check what it tells you (Fix-It pilot, Beginner
+// Start Claude Code and check what it tells you (Fix-It, Beginner
 // lesson 1). The check runs `claude --version` itself, and reads Jordan's
 // welcome note the Learner corrects against the library's email: the parking
 // line fixed, the extension-leads line kept and marked for Priya to confirm,

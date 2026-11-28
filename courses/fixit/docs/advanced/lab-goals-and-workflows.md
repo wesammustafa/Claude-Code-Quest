@@ -1,6 +1,6 @@
 # Goals and saved workflows
 
-<sub>**Advanced** · Optional lab · about 30 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Optional lab · about 30 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the engineering side of Advanced lessons 1 and 4, Choose how to split the work, where you decide when a workflow beats subagents, and Recover from a partial failure, where you learn that a run's own report is not evidence. Here you set a goal and build a workflow yourself. No core lesson or capstone depends on it, so you can skip it. It asks you to read a short script and some Git output, and explains each part as you meet it.
 

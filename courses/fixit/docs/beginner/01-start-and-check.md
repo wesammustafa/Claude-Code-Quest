@@ -1,6 +1,6 @@
 # Start Claude Code and check what it tells you
 
-<sub>**Beginner** · Lesson 1 of 6 · about 15 minutes · Needs: [Beginner index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · Lesson 1 of 6 · about 15 minutes · Needs: [Beginner index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 ## Goal
 

@@ -1,6 +1,6 @@
 # Script Claude Code with `claude -p`
 
-<sub>**Advanced** · Optional lab · about 25 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Optional lab · about 25 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the hands-on side of Advanced lesson 3, Bound an unattended run, which decides whether a run should go unattended and sets its bounds. Here you write the script around those bounds, for a review that runs before each commit. No core lesson or capstone depends on it, so you can skip it. It asks you to edit a short shell script, read JSON and use Git commands in the shell, and explains each one as you meet it.
 

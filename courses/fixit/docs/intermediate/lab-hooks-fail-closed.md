@@ -1,6 +1,6 @@
 # Hooks that fail closed
 
-<sub>**Intermediate** · Optional lab · about 25 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Optional lab · about 25 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the deep end of Intermediate lesson 3, Decide what each part may touch, where you decide that a rule needs a guard and pick a deny rule or a hook. Here you build and test the hooks themselves. No core lesson or capstone depends on it, so you can skip it. It asks you to read two short shell scripts and run them in the terminal, and explains each part as you meet it.
 

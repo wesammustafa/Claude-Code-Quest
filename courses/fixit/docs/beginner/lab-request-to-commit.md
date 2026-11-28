@@ -1,6 +1,6 @@
 # From request to commit in code
 
-<sub>**Beginner** · Optional lab · about 45 minutes · Needs: [Beginner index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · Optional lab · about 45 minutes · Needs: [Beginner index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the code version of [Check every claim before anyone relies on it](03-check-every-claim.md): the same question, does this do what it says?, asked of a change to the Fix-It group's website code. No core lesson or capstone depends on it, so you can skip it. It asks you to read code, test output and a diff, and explains each one as you meet it.
 

@@ -1,6 +1,6 @@
 # Check every claim before anyone relies on it
 
-<sub>**Beginner** · Lesson 3 of 6 · about 20 minutes · Needs: [lesson 2](02-give-claude-a-clear-job.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · Lesson 3 of 6 · about 20 minutes · Needs: [lesson 2](02-give-claude-a-clear-job.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 ## Goal
 

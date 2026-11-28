@@ -1,6 +1,6 @@
 # Evaluate, trial and share a plugin
 
-<sub>**Intermediate** · Optional lab · about 25 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Optional lab · about 25 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the engineering side of Intermediate lesson 5, Connect an outside tool when it earns its place, where you decide whether a connection earns its access. Here you make the same decision about a plugin: what it installs, who loads it, and whether the team should share it. No core lesson or capstone depends on it, so you can skip it. It asks you to read a function's references and a settings file, and explains each one as you meet it.
 

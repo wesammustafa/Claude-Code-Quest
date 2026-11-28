@@ -1,6 +1,6 @@
 # Give Claude a clear job
 
-<sub>**Beginner** · Lesson 2 of 6 · about 20 minutes · Needs: [lesson 1](01-start-and-check.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · Lesson 2 of 6 · about 20 minutes · Needs: [lesson 1](01-start-and-check.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 ## Goal
 

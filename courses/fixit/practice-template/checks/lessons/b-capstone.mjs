@@ -1,5 +1,5 @@
 // @ts-check
-// The Beginner capstone of the Fix-It pilot: the March attendee guide Maya
+// The Beginner capstone of the Fix-It course: the March attendee guide Maya
 // asked for, and the readiness note that shows why it's right. The check
 // reads each claim by what it says, not its exact words, and quotes the line
 // it judged.

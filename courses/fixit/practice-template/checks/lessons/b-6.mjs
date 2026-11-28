@@ -1,5 +1,5 @@
 // @ts-check
-// Check every claim before anyone relies on it (Fix-It pilot, Beginner
+// Check every claim before anyone relies on it (Fix-It, Beginner
 // lesson 3). The check reads the fact table the Learner makes and the
 // February attendee guide they correct, one claim at a time, by what each
 // claim says rather than its exact words, and that the sources are as they

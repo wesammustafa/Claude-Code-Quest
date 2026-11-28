@@ -1,6 +1,6 @@
 # Parallel worktrees and real merges
 
-<sub>**Advanced** · Optional lab · about 25 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Advanced** · Optional lab · about 25 minutes · Needs: [Advanced index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 **Optional engineering lab.** This is the hands-on side of Advanced lesson 1, Choose how to split the work, which decides whether two jobs are independent enough to run at once. Here you run two such jobs in two Claude Code sessions at the same time and merge the result. No core lesson or capstone depends on it, so you can skip it. It asks you to use Git commands in the shell and read short lists of changed files, and explains each one as you meet it.
 

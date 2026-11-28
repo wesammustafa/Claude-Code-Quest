@@ -118,7 +118,7 @@ test("each lesson opens from its own prepared files, and no starting file is its
 test("each stamp is truthful: checked against the documentation, not yet re-run, and the page's sub line agrees", () => {
   for (const { id, page } of PATH) {
     const stamp = byId[id].stamp;
-    assert.match(stamp, /^Verified against Claude Code v\d+\.\d+\.\d+ \(stable\) documentation on \d{4}-\d{2}-\d{2}, pilot not yet re-run in a real session$/);
+    assert.match(stamp, /^Verified against Claude Code v\d+\.\d+\.\d+ \(stable\) documentation on \d{4}-\d{2}-\d{2}, not yet re-run in a real session$/);
     assert.ok(text(page).split('\n')[2].includes(stamp), `${page} gives another stamp`);
   }
 });

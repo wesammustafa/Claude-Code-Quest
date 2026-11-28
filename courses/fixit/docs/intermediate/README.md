@@ -1,6 +1,6 @@
 # Intermediate: a kit a second organizer can use
 
-<sub>**Intermediate** · about 3 hours · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · about 3 hours · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 Sam, the Fixers' second organizer, runs sessions at another venue. In this level you build the organizer kit: project memory, an attendee-guide skill, access settings and a guard, a reviewer, and the decision whether a booking connection earns its place. Then Sam uses it in a fresh session for the April session at Northside Community Centre. It runs in Questerm's practice workspace. You need no Git or programming experience.
 

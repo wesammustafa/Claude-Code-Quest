@@ -1,6 +1,6 @@
 # Decide what Claude should remember
 
-<sub>**Intermediate** · Lesson 1 of 6 · about 25 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, pilot not yet re-run in a real session</sub>
+<sub>**Intermediate** · Lesson 1 of 6 · about 25 minutes · Needs: [Intermediate index](README.md) · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-25, not yet re-run in a real session</sub>
 
 ## Goal
 

@@ -1,6 +1,6 @@
 # Beginner: one attendee guide you can defend
 
-<sub>**Beginner** · about 2 hours 15 minutes · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, pilot not yet re-run in a real session</sub>
+<sub>**Beginner** · about 2 hours 15 minutes · Verified against Claude Code v2.1.325 (stable) documentation on 2026-11-24, not yet re-run in a real session</sub>
 
 Six lessons, the capstone last, built around the Millbrook Fixers, a volunteer repair workshop that meets at Millbrook Library. They run in Questerm's practice workspace. You need no terminal, Git or programming experience.
 
